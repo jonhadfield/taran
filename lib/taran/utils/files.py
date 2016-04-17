@@ -13,12 +13,13 @@ from contracts import contract
 @contract(file_path='unicode')
 def write_md5(file_path=None):
     """Write a file containing a file's MD5 checksum"""
-    with io.open('{0}'.format(file_path), "r", encoding='utf-8') as index_file:
-        data = text_type(index_file.read())
-        md5 = hashlib.md5(data.encode('utf-8')).hexdigest()
-        print(md5.__class__.__name__)
+    hash_md5 = hashlib.md5()
+    with open('{0}'.format(file_path), "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    # return hash_md5.hexdigest()
     with io.open('{0}.md5'.format(file_path), "w", encoding='utf-8') as md5_file:
-        md5_file.write(text_type(md5))
+        md5_file.write(text_type(hash_md5.hexdigest()))
 
 
 @contract(file_path='unicode')
