@@ -14,7 +14,6 @@ except ImportError:
     ClientError = None
     exit('boto3 is required but not installed.')
 
-from taran.errors import TaranError
 from taran.helpers.aws import get_account_id
 from taran.helpers.aws.clients import get_swf_client
 from taran.helpers.aws.swf import get_activity_history
