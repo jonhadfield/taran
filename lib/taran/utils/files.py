@@ -4,18 +4,21 @@
 from __future__ import (absolute_import, print_function, unicode_literals)
 
 import hashlib
+import io
 from os import path
+from six import text_type
 from contracts import contract
 
 
 @contract(file_path='unicode')
 def write_md5(file_path=None):
     """Write a file containing a file's MD5 checksum"""
-    with open('{0}'.format(file_path), "r") as index_file:
-        data = index_file.read()
-        md5 = hashlib.md5(data).hexdigest()
-    with open('{0}.md5'.format(file_path), "w") as md5_file:
-        md5_file.write(md5)
+    with io.open('{0}'.format(file_path), "r", encoding='utf-8') as index_file:
+        data = text_type(index_file.read())
+        md5 = hashlib.md5(data.encode('utf-8')).hexdigest()
+        print(md5.__class__.__name__)
+    with io.open('{0}.md5'.format(file_path), "w", encoding='utf-8') as md5_file:
+        md5_file.write(text_type(md5))
 
 
 @contract(file_path='unicode')

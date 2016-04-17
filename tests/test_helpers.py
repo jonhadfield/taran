@@ -8,6 +8,7 @@ import pytest
 from boto3 import Session
 from dateutil.tz.tz import tzlocal
 from moto import mock_ec2, mock_s3, mock_iam
+from six import text_type
 
 from taran.errors import TaranError
 from taran.helpers.aws import get_account_id
@@ -55,7 +56,7 @@ def test_s3_download(tmpdir):
     download_dir = tmpdir.mkdir("download_dir").join("downloaded.txt")
     s3_client.upload_file(str(local_file), "test-bucket", "test-file.txt")
     assert s3_download(
-        items=[{'s3_path': 'test-file.txt', 'bucket': 'test-bucket', 'local_path': str(download_dir).decode('UTF-8')}])
+        items=[{'s3_path': 'test-file.txt', 'bucket': 'test-bucket', 'local_path': text_type(download_dir)}])
 
 
 @mock_s3
@@ -68,7 +69,8 @@ def test_s3_upload(tmpdir):
     local_file.write("content")
     s3_client.upload_file(str(local_file), "test-bucket", "test-file.txt")
     assert s3_upload(
-        items=[{'s3_path': 'test-file.txt', 'bucket': 'test-bucket', 'local_path': str(local_file).decode('UTF-8')}])
+        items=[
+            {'s3_path': 'test-file.txt', 'bucket': 'test-bucket', 'local_path': text_type(local_file)}])
 
 
 successful_workflow_history = {'previous_started_event_id': 9, 'next_page_token': None, 'events': [
