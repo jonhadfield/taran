@@ -26,5 +26,5 @@ def get_local_md5(file_path=None):
     """Get the MD5 value of a file's content."""
     if not path.exists('{0}.md5'.format(file_path)):
         return None
-    with open('{0}.md5'.format(file_path, "r")) as existing_md5_file:
+    with open('{0}.md5'.format(file_path), "r") as existing_md5_file:
         return existing_md5_file.read()
