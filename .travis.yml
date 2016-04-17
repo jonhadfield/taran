@@ -1,4 +1,6 @@
 language: python
+env:
+- DISABLE_CONTRACTS=True
 python:
   - "3.5"
   - "3.4"
