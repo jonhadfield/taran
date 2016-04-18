@@ -6,7 +6,6 @@ from __future__ import (print_function, unicode_literals)
 import time
 
 import requests
-from requests.exceptions import BaseHTTPError
 
 
 def url_check(url=None, method='get', timeout=None, response_timeout=2, expected_codes=200, interval=2,
@@ -27,6 +26,7 @@ def url_check(url=None, method='get', timeout=None, response_timeout=2, expected
                 healthy_count += 1
             if healthy_count == healthy_threshold:
                 return True
-        except BaseHTTPError:
+        # TODO: Remove broad exception - some scenarios should be a failure
+        except BaseException:
             healthy_count = 0
             time.sleep(interval)
