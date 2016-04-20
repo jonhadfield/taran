@@ -1,4 +1,5 @@
 six>=1.10.0
+requests>=2.9.1
 boto3>=1.3.0
 botocore>=1.4.11
 PyContracts>=1.7.9
