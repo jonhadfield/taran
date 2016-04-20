@@ -23,10 +23,12 @@ import inspect
 import time
 import os
 import json
+
 try:
     from collections import Counter
 except ImportError:
     from backport_collections import Counter
+
 
 class Taran(object):
     """The base class for all processors that interact with SWF (Simple WorkFlow).
@@ -72,8 +74,24 @@ class Taran(object):
         self.activity_list = configuration.ACTIVITY_LIST if hasattr(configuration, 'ACTIVITY_LIST') else None
         self.decision_task = None
         self.task_token = None
-        self.log_level = configuration.LOG_LEVEL if hasattr(configuration, 'LOG_LEVEL') else logging.INFO
+        self.log_level = self.get_log_level()
         self.logger = self.get_logger()
+
+    def get_log_level(self):
+        """Return a log level depending on specified LOG_LEVEL in configuration or default to INFO"""
+        levels = {'NOTSET': 0, 'DEBUG': 10, 'INFO': 20, 'WARNING': 30, 'ERROR': 40, 'CRITICAL': 50}
+        config_specified = self.configuration.LOG_LEVEL if hasattr(self.configuration, 'LOG_LEVEL') else None
+        if config_specified:
+            if isinstance(config_specified, int) and config_specified in levels.values():
+                return config_specified
+            elif levels[config_specified]:
+                return levels.get(config_specified)
+            else:
+                output = 'Invalid log level defined. Defaulting to INFO.'
+        else:
+            output = 'Log level not defined. Defaulting to INFO.'
+        print('WARNING: {0}'.format(output))
+        return 10
 
     @staticmethod
     @contract(workflow_history='dict[>0]', scheduled_ids='list|None', activity_type='unicode|None')
