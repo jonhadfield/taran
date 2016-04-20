@@ -23,8 +23,10 @@ import inspect
 import time
 import os
 import json
-from collections import Counter
-
+try:
+    from collections import Counter
+except ImportError:
+    from backport_collections import Counter
 
 class Taran(object):
     """The base class for all processors that interact with SWF (Simple WorkFlow).
