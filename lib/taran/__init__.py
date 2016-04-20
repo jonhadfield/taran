@@ -83,7 +83,7 @@ class Taran(object):
         config_specified = self.configuration.LOG_LEVEL if hasattr(self.configuration, 'LOG_LEVEL') else None
         if isinstance(config_specified, int) and config_specified in levels.values():
             return config_specified
-        elif config_specified and levels[config_specified]:
+        elif config_specified and levels.get('config_specified'):
             return levels.get(config_specified)
         return 10
 
