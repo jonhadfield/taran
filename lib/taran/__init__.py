@@ -81,16 +81,10 @@ class Taran(object):
         """Return a log level depending on specified LOG_LEVEL in configuration or default to INFO"""
         levels = {'NOTSET': 0, 'DEBUG': 10, 'INFO': 20, 'WARNING': 30, 'ERROR': 40, 'CRITICAL': 50}
         config_specified = self.configuration.LOG_LEVEL if hasattr(self.configuration, 'LOG_LEVEL') else None
-        if config_specified:
-            if isinstance(config_specified, int) and config_specified in levels.values():
-                return config_specified
-            elif levels[config_specified]:
-                return levels.get(config_specified)
-            else:
-                output = 'Invalid log level defined. Defaulting to INFO.'
-        else:
-            output = 'Log level not defined. Defaulting to INFO.'
-        print('WARNING: {0}'.format(output))
+        if isinstance(config_specified, int) and config_specified in levels.values():
+            return config_specified
+        elif config_specified and levels[config_specified]:
+            return levels.get(config_specified)
         return 10
 
     @staticmethod
