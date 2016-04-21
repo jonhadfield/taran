@@ -43,7 +43,7 @@ def execute_command(cmd=None, cwd=None, env=None, daemonize=False):
             exit(0)
 
         if isinstance(cmd, string_types):
-            cmd = shlex.split(cmd)
+            cmd = shlex.split(cmd.encode('ascii'))
         p = subprocess.Popen(args=cmd, cwd=cwd, env=env, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              preexec_fn=lambda: os.close(pipe[1]))
         stdout = ""
@@ -90,7 +90,7 @@ def execute_command(cmd=None, cwd=None, env=None, daemonize=False):
 def run_command(cmd=None, cwd=None, env=None):
     """Interactively run the command and return any output."""
     if isinstance(cmd, string_types):
-        cmd = shlex.split(cmd)
+        cmd = shlex.split(cmd.encode('ascii'))
     output = subprocess.Popen(args=cmd, env=env, cwd=cwd, stdout=subprocess.PIPE)
     out, _ = output.communicate()
     return out.rstrip('\n')
