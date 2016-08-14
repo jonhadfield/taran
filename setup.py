@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import re
 import sys
 
 from setuptools import find_packages
@@ -8,7 +9,6 @@ from setuptools import setup
 from setuptools.command.test import test as TestCommand
 
 sys.path.insert(0, os.path.abspath('lib'))
-version = "0.0.14"
 
 with open('requirements.txt') as install_reqs_file:
     install_requires = install_reqs_file.read().splitlines()
@@ -17,11 +17,14 @@ with open('test_requirements.txt') as test_reqs_file:
     tests_require = test_reqs_file.read().splitlines()
     tests_require += install_requires
 
-
 if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     os.system('python setup.py bdist_wheel upload')
     sys.exit()
+
+with open('lib/taran/__init__.py', 'r') as fd:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+                        fd.read(), re.MULTILINE).group(1)
 
 if sys.argv[-1] == 'tag':
     os.system("git tag -a %s -m 'version %s'" % (version, version))
