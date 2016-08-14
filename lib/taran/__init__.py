@@ -2,27 +2,34 @@
 # -*- coding: utf-8 -*-
 """This module provides an abstract base class, containing common methods and
 attributes that all types of workers and foreman instances may use."""
+
 from __future__ import (absolute_import, print_function, unicode_literals)
 
+import inspect
+import json
+import logging
+import os
+import time
 from abc import ABCMeta, abstractmethod
 
 from contracts import contract
+
+from taran.helpers.aws import get_account_id
+from taran.helpers.aws.clients import get_swf_client
+from taran.helpers.aws.swf import get_activity_history
+from taran.utils.host import get_hostname
+
+__title__ = 'taran'
+__version__ = '0.0.1'
+__author__ = 'Jon Hadfield'
+__license__ = 'MIT'
+__copyright__ = 'Copyright 2016 Jon Hadfield'
 
 try:
     from botocore.exceptions import ClientError
 except ImportError:
     ClientError = None
     exit('boto3 is required but not installed.')
-
-from taran.helpers.aws import get_account_id
-from taran.helpers.aws.clients import get_swf_client
-from taran.helpers.aws.swf import get_activity_history
-from taran.utils.host import get_hostname
-import logging
-import inspect
-import time
-import os
-import json
 
 try:
     from collections import Counter
