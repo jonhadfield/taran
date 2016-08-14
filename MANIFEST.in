@@ -1,1 +1,1 @@
-include README.md tests/*py requirements.txt test_requirements.txt
+include LICENSE.txt README.md
