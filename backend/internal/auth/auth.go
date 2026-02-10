@@ -1,0 +1,77 @@
+package auth
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/hadfielj/taran/backend/internal/database"
+)
+
+type contextKey string
+
+const UserIDKey contextKey = "userID"
+
+func UserIDFromContext(ctx context.Context) string {
+	id, _ := ctx.Value(UserIDKey).(string)
+	return id
+}
+
+// WebhookAuth validates the shared secret for webhook endpoints.
+func WebhookAuth(secret string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		provided := r.Header.Get("X-Webhook-Secret")
+		if provided == "" || provided != secret {
+			writeAuthError(w, http.StatusUnauthorized, "invalid webhook secret")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// SessionAuth validates Better Auth session tokens for API endpoints.
+type SessionAuth struct {
+	Sessions database.SessionRepository
+}
+
+func (a *SessionAuth) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := extractToken(r)
+		if token == "" {
+			writeAuthError(w, http.StatusUnauthorized, "missing session token")
+			return
+		}
+
+		session, err := a.Sessions.GetByToken(r.Context(), token)
+		if err != nil {
+			writeAuthError(w, http.StatusUnauthorized, "invalid session")
+			return
+		}
+
+		if session.ExpiresAt.Before(time.Now()) {
+			writeAuthError(w, http.StatusUnauthorized, "session expired")
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), UserIDKey, session.UserID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func extractToken(r *http.Request) string {
+	if cookie, err := r.Cookie("better-auth.session_token"); err == nil {
+		return cookie.Value
+	}
+	if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
+		return strings.TrimPrefix(h, "Bearer ")
+	}
+	return ""
+}
+
+func writeAuthError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
