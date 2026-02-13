@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -34,7 +35,7 @@ func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, 
 	}
 
 	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:    anthropic.Model(p.model),
+		Model:     anthropic.Model(p.model),
 		MaxTokens: 1024,
 		System: []anthropic.TextBlockParam{
 			{Text: extractionSystemPrompt},
@@ -52,6 +53,8 @@ func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, 
 	if text == "" {
 		return nil, nil, fmt.Errorf("empty response from anthropic")
 	}
+
+	text = stripCodeFences(text)
 
 	var result ExtractionResult
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
@@ -76,7 +79,7 @@ func (p *AnthropicProvider) GenerateDigest(ctx context.Context, extractions []do
 	userPrompt := buildDigestUserPrompt(summaries, periodType)
 
 	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:    anthropic.Model(p.model),
+		Model:     anthropic.Model(p.model),
 		MaxTokens: 1024,
 		System: []anthropic.TextBlockParam{
 			{Text: digestSystemPrompt},
@@ -94,6 +97,8 @@ func (p *AnthropicProvider) GenerateDigest(ctx context.Context, extractions []do
 	if text == "" {
 		return nil, nil, fmt.Errorf("empty response from anthropic")
 	}
+
+	text = stripCodeFences(text)
 
 	var result DigestSummary
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
@@ -116,4 +121,22 @@ func extractResponseText(msg *anthropic.Message) string {
 		}
 	}
 	return ""
+}
+
+// stripCodeFences removes markdown code fences (```json ... ```) that LLMs
+// sometimes wrap around JSON responses.
+func stripCodeFences(s string) string {
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "```") {
+		// Remove opening fence (```json or ```)
+		if i := strings.Index(s, "\n"); i != -1 {
+			s = s[i+1:]
+		}
+		// Remove closing fence
+		if i := strings.LastIndex(s, "```"); i != -1 {
+			s = s[:i]
+		}
+		s = strings.TrimSpace(s)
+	}
+	return s
 }

@@ -34,6 +34,14 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/digests", deps.DigestHandler.List)
 	api.HandleFunc("GET /api/digests/{id}", deps.DigestHandler.Get)
 	api.HandleFunc("GET /api/accounts", deps.AccountHandler.List)
+	api.HandleFunc("POST /api/accounts", deps.AccountHandler.Create)
+	api.HandleFunc("DELETE /api/accounts/{id}", deps.AccountHandler.Delete)
+	api.HandleFunc("GET /api/accounts/check-username", deps.AccountHandler.CheckUsername)
+
+	// Admin routes
+	admin := http.NewServeMux()
+	admin.HandleFunc("POST /api/admin/digests/generate", deps.DigestHandler.Generate)
+	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(admin))
 
 	mux.Handle("/api/", deps.SessionAuth.Middleware(api))
 

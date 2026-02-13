@@ -12,11 +12,19 @@ import (
 
 type contextKey string
 
-const UserIDKey contextKey = "userID"
+const (
+	UserIDKey    contextKey = "userID"
+	UserEmailKey contextKey = "userEmail"
+)
 
 func UserIDFromContext(ctx context.Context) string {
 	id, _ := ctx.Value(UserIDKey).(string)
 	return id
+}
+
+func UserEmailFromContext(ctx context.Context) string {
+	email, _ := ctx.Value(UserEmailKey).(string)
+	return email
 }
 
 // WebhookAuth validates the shared secret for webhook endpoints.
@@ -33,7 +41,8 @@ func WebhookAuth(secret string, next http.Handler) http.Handler {
 
 // SessionAuth validates Better Auth session tokens for API endpoints.
 type SessionAuth struct {
-	Sessions database.SessionRepository
+	Sessions    database.SessionRepository
+	AdminEmails []string
 }
 
 func (a *SessionAuth) Middleware(next http.Handler) http.Handler {
@@ -56,7 +65,22 @@ func (a *SessionAuth) Middleware(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), UserIDKey, session.UserID)
+		ctx = context.WithValue(ctx, UserEmailKey, session.UserEmail)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// AdminOnly wraps a handler and rejects non-admin users.
+func (a *SessionAuth) AdminOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		email := strings.ToLower(UserEmailFromContext(r.Context()))
+		for _, admin := range a.AdminEmails {
+			if email == admin {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		writeAuthError(w, http.StatusForbidden, "admin access required")
 	})
 }
 

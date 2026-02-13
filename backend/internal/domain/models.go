@@ -92,6 +92,7 @@ type EmailAccount struct {
 	UserID       string
 	EmailAddress string
 	DisplayName  string
+	IsActive     bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -99,6 +100,7 @@ type EmailAccount struct {
 type Session struct {
 	ID        string
 	UserID    string
+	UserEmail string
 	Token     string
 	ExpiresAt time.Time
 }

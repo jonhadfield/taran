@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
-	Server  ServerConfig
-	DB      DatabaseConfig
-	Webhook WebhookConfig
-	LLM     LLMConfig
-	Digest  DigestConfig
-	Email   EmailConfig
+	Server      ServerConfig
+	DB          DatabaseConfig
+	Webhook     WebhookConfig
+	LLM         LLMConfig
+	Digest      DigestConfig
+	Email       EmailConfig
+	AdminEmails []string
 }
 
 type ServerConfig struct {
@@ -88,6 +90,15 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("TARAN_EMAIL_DOMAIN is required")
 	}
 
+	var adminEmails []string
+	if v := os.Getenv("TARAN_ADMIN_EMAILS"); v != "" {
+		for _, email := range strings.Split(v, ",") {
+			if trimmed := strings.TrimSpace(email); trimmed != "" {
+				adminEmails = append(adminEmails, strings.ToLower(trimmed))
+			}
+		}
+	}
+
 	return &Config{
 		Server: ServerConfig{
 			Host: envOr("TARAN_HOST", "0.0.0.0"),
@@ -115,6 +126,7 @@ func Load() (*Config, error) {
 		Email: EmailConfig{
 			Domain: emailDomain,
 		},
+		AdminEmails: adminEmails,
 	}, nil
 }
 

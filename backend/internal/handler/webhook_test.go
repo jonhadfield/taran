@@ -15,7 +15,6 @@ import (
 
 func TestIngestEmail_Success(t *testing.T) {
 	var createdEmail *domain.Email
-	var ingestedID string
 
 	h := &WebhookHandler{
 		Accounts: &testutil.MockAccountRepo{
@@ -32,7 +31,6 @@ func TestIngestEmail_Success(t *testing.T) {
 				return nil
 			},
 		},
-		OnIngest: func(id string) { ingestedID = id },
 	}
 
 	body := testutil.BuildRawEmail(testutil.RawEmailOpts{
@@ -58,9 +56,6 @@ func TestIngestEmail_Success(t *testing.T) {
 	}
 	if createdEmail.Status != domain.EmailStatusPending {
 		t.Errorf("Status = %q, want %q", createdEmail.Status, domain.EmailStatusPending)
-	}
-	if ingestedID == "" {
-		t.Error("OnIngest not called")
 	}
 }
 
@@ -219,7 +214,7 @@ func TestIngestEmail_XOriginalToHeader(t *testing.T) {
 	}
 }
 
-func TestIngestEmail_OnIngestNil(t *testing.T) {
+func TestIngestEmail_NoProvider(t *testing.T) {
 	h := &WebhookHandler{
 		Accounts: &testutil.MockAccountRepo{
 			GetByEmailAddressFn: func(_ context.Context, addr string) (*domain.EmailAccount, error) {
@@ -231,7 +226,7 @@ func TestIngestEmail_OnIngestNil(t *testing.T) {
 				return nil, fmt.Errorf("not found")
 			},
 		},
-		OnIngest: nil, // explicitly nil
+		// Provider is nil — extraction should be skipped gracefully
 	}
 
 	body := testutil.BuildRawEmail(testutil.RawEmailOpts{

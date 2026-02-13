@@ -80,34 +80,51 @@ func (p *Processor) worker(ctx context.Context, id int) {
 }
 
 func (p *Processor) processEmail(ctx context.Context, emailID string) {
+	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.provider)
+}
+
+// ProcessEmail runs LLM extraction on a single email. It can be called
+// synchronously from the webhook handler or asynchronously from the worker.
+func ProcessEmail(
+	ctx context.Context,
+	emailID string,
+	emails database.EmailRepository,
+	extractions database.ExtractionRepository,
+	provider llm.Provider,
+) {
 	logger := slog.With("emailID", emailID)
 
-	if err := p.emails.SetStatus(ctx, emailID, domain.EmailStatusProcessing); err != nil {
+	if err := emails.SetStatus(ctx, emailID, domain.EmailStatusProcessing); err != nil {
 		logger.Error("failed to set processing status", "error", err)
 		return
 	}
 
-	em, err := p.emails.GetByIDInternal(ctx, emailID)
+	em, err := emails.GetByIDInternal(ctx, emailID)
 	if err != nil {
 		logger.Error("failed to fetch email", "error", err)
-		p.emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
 		return
 	}
 
-	content := em.TextBody
-	if content == "" && em.HTMLBody != "" {
-		content = emailpkg.HTMLToText(em.HTMLBody)
+	// Prefer HTML body converted to markdown — preserves headings, links,
+	// and structure that the LLM can use for better extraction.
+	content := ""
+	if em.HTMLBody != "" {
+		content = emailpkg.HTMLToMarkdown(em.HTMLBody)
+	}
+	if content == "" {
+		content = em.TextBody
 	}
 	if content == "" {
 		logger.Warn("email has no content, skipping")
-		p.emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
 		return
 	}
 
-	result, usage, err := p.provider.ExtractEmail(ctx, em.Subject, content, em.FromAddress)
+	result, usage, err := provider.ExtractEmail(ctx, em.Subject, content, em.FromAddress)
 	if err != nil {
 		logger.Error("LLM extraction failed", "error", err)
-		p.emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
 		return
 	}
 
@@ -122,26 +139,26 @@ func (p *Processor) processEmail(ctx context.Context, emailID string) {
 		ActionItems:    result.ActionItems,
 		Sentiment:      result.Sentiment,
 		SourceCategory: result.SourceCategory,
-		Provider:       p.provider.Name(),
-		Model:          p.provider.Model(),
+		Provider:       provider.Name(),
+		Model:          provider.Model(),
 		TokensUsed:     usage.TotalTokens,
 		ProcessedAt:    now,
 		CreatedAt:      now,
 	}
 
-	if err := p.extractions.Create(ctx, extraction); err != nil {
+	if err := extractions.Create(ctx, extraction); err != nil {
 		logger.Error("failed to store extraction", "error", err)
-		p.emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
 		return
 	}
 
-	if err := p.emails.SetStatus(ctx, emailID, domain.EmailStatusProcessed); err != nil {
+	if err := emails.SetStatus(ctx, emailID, domain.EmailStatusProcessed); err != nil {
 		logger.Error("failed to set processed status", "error", err)
 		return
 	}
 
 	logger.Info("email processed",
-		"provider", p.provider.Name(),
+		"provider", provider.Name(),
 		"tokens", usage.TotalTokens,
 	)
 }

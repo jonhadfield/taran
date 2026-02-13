@@ -82,22 +82,26 @@ func main() {
 
 	// Handlers
 	webhookHandler := &handler.WebhookHandler{
-		Accounts: accountRepo,
-		Emails:   emailRepo,
-		OnIngest: proc.Enqueue,
+		Accounts:    accountRepo,
+		Emails:      emailRepo,
+		Extractions: extractionRepo,
+		Provider:    provider,
 	}
 	emailHandler := &handler.EmailHandler{
 		Emails:      emailRepo,
 		Extractions: extractionRepo,
 	}
 	digestHandler := &handler.DigestHandler{
-		Digests: digestRepo,
+		Digests:   digestRepo,
+		Generator: gen,
 	}
 	accountHandler := &handler.AccountHandler{
-		Accounts: accountRepo,
+		Accounts:    accountRepo,
+		EmailDomain: cfg.Email.Domain,
 	}
 	sessionAuth := &auth.SessionAuth{
-		Sessions: sessionRepo,
+		Sessions:    sessionRepo,
+		AdminEmails: cfg.AdminEmails,
 	}
 
 	// HTTP server

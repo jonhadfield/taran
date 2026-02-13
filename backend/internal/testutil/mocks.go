@@ -160,13 +160,22 @@ func (m *MockDigestRepo) List(ctx context.Context, userID string, opts domain.Li
 // MockAccountRepo implements database.AccountRepository for testing.
 type MockAccountRepo struct {
 	GetByEmailAddressFn func(ctx context.Context, emailAddress string) (*domain.EmailAccount, error)
+	GetByIDFn           func(ctx context.Context, userID, id string) (*domain.EmailAccount, error)
 	ListByUserFn        func(ctx context.Context, userID string) ([]domain.EmailAccount, error)
 	CreateFn            func(ctx context.Context, account *domain.EmailAccount) error
+	DeleteFn            func(ctx context.Context, userID, id string) error
 }
 
 func (m *MockAccountRepo) GetByEmailAddress(ctx context.Context, emailAddress string) (*domain.EmailAccount, error) {
 	if m.GetByEmailAddressFn != nil {
 		return m.GetByEmailAddressFn(ctx, emailAddress)
+	}
+	return nil, nil
+}
+
+func (m *MockAccountRepo) GetByID(ctx context.Context, userID, id string) (*domain.EmailAccount, error) {
+	if m.GetByIDFn != nil {
+		return m.GetByIDFn(ctx, userID, id)
 	}
 	return nil, nil
 }
@@ -181,6 +190,13 @@ func (m *MockAccountRepo) ListByUser(ctx context.Context, userID string) ([]doma
 func (m *MockAccountRepo) Create(ctx context.Context, account *domain.EmailAccount) error {
 	if m.CreateFn != nil {
 		return m.CreateFn(ctx, account)
+	}
+	return nil
+}
+
+func (m *MockAccountRepo) Delete(ctx context.Context, userID, id string) error {
+	if m.DeleteFn != nil {
+		return m.DeleteFn(ctx, userID, id)
 	}
 	return nil
 }

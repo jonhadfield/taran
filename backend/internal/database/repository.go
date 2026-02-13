@@ -33,8 +33,10 @@ type DigestRepository interface {
 
 type AccountRepository interface {
 	GetByEmailAddress(ctx context.Context, emailAddress string) (*domain.EmailAccount, error)
+	GetByID(ctx context.Context, userID, id string) (*domain.EmailAccount, error)
 	ListByUser(ctx context.Context, userID string) ([]domain.EmailAccount, error)
 	Create(ctx context.Context, account *domain.EmailAccount) error
+	Delete(ctx context.Context, userID, id string) error
 }
 
 type SessionRepository interface {

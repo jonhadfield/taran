@@ -24,8 +24,14 @@ profile.cov
 go.work
 go.work.sum
 
+# Compiled binary
+backend/taran
+
 # env file
 .env
+
+# PID files from Makefile
+.pids/
 
 # Editor/IDE
 # .idea/

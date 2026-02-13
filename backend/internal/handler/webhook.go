@@ -11,14 +11,17 @@ import (
 	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/hadfielj/taran/backend/internal/email"
+	"github.com/hadfielj/taran/backend/internal/llm"
+	"github.com/hadfielj/taran/backend/internal/worker"
 )
 
 const maxEmailSize = 25 * 1024 * 1024 // 25MB
 
 type WebhookHandler struct {
-	Accounts database.AccountRepository
-	Emails   database.EmailRepository
-	OnIngest func(emailID string)
+	Accounts    database.AccountRepository
+	Emails      database.EmailRepository
+	Extractions database.ExtractionRepository
+	Provider    llm.Provider
 }
 
 func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
@@ -81,16 +84,17 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.OnIngest != nil {
-		h.OnIngest(emailRecord.ID)
-	}
-
 	slog.Info("email ingested",
 		"id", emailRecord.ID,
 		"from", emailRecord.FromAddress,
 		"to", toAddress,
 		"subject", emailRecord.Subject,
 	)
+
+	// Process extraction synchronously so the summary is available immediately
+	if h.Provider != nil {
+		worker.ProcessEmail(r.Context(), emailRecord.ID, h.Emails, h.Extractions, h.Provider)
+	}
 
 	WriteJSON(w, http.StatusAccepted, map[string]string{
 		"status": "accepted",
