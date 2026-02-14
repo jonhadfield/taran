@@ -131,7 +131,11 @@ func main() {
 		}
 	}()
 
-	slog.Info("taran is running", "addr", cfg.Addr())
+	if cfg.Server.TLSDomain != "" {
+		slog.Info("taran is running", "https", ":443", "http", ":80", "domain", cfg.Server.TLSDomain)
+	} else {
+		slog.Info("taran is running", "addr", cfg.Addr())
+	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
