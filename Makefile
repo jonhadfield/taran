@@ -3,13 +3,10 @@
        start-frontend stop-frontend restart-frontend \
        db stop-db
 
+ROOT_DIR      := $(CURDIR)
 BACKEND_PORT  := 8080
 FRONTEND_PORT := 3002
-PID_DIR       := .pids
-BACKEND_BIN   := backend/taran
-
-$(PID_DIR):
-	@mkdir -p $(PID_DIR)
+PID_DIR       := $(ROOT_DIR)/.pids
 
 # --- All ---
 
@@ -22,14 +19,16 @@ restart: stop start
 # --- Backend ---
 
 build-backend:
-	@cd backend && go build -o taran ./cmd/taran/
+	@cd $(ROOT_DIR)/backend && go build -o taran ./cmd/taran/
 	@echo "Backend built"
 
-start-backend: build-backend $(PID_DIR)
+start-backend: build-backend
+	@mkdir -p $(PID_DIR)
 	@if [ -f $(PID_DIR)/backend.pid ] && kill -0 $$(cat $(PID_DIR)/backend.pid) 2>/dev/null; then \
 		echo "Backend already running (PID $$(cat $(PID_DIR)/backend.pid))"; \
 	else \
-		cd backend && TARAN_LOG_SYSLOG=true nohup ./taran > /dev/null 2>&1 & echo $$! > ../$(PID_DIR)/backend.pid; \
+		cd $(ROOT_DIR)/backend && TARAN_LOG_SYSLOG=true nohup ./taran > /dev/null 2>&1 & \
+		echo $$! > $(PID_DIR)/backend.pid; \
 		echo "Backend started (PID $$(cat $(PID_DIR)/backend.pid)), logging to syslog"; \
 	fi
 
@@ -52,11 +51,13 @@ restart-backend: stop-backend
 
 # --- Frontend ---
 
-start-frontend: $(PID_DIR)
+start-frontend:
+	@mkdir -p $(PID_DIR)
 	@if [ -f $(PID_DIR)/frontend.pid ] && kill -0 $$(cat $(PID_DIR)/frontend.pid) 2>/dev/null; then \
 		echo "Frontend already running (PID $$(cat $(PID_DIR)/frontend.pid))"; \
 	else \
-		cd frontend && nohup npm run dev > /dev/null 2>&1 & echo $$! > ../$(PID_DIR)/frontend.pid; \
+		cd $(ROOT_DIR)/frontend && nohup npm run dev > /dev/null 2>&1 & \
+		echo $$! > $(PID_DIR)/frontend.pid; \
 		echo "Frontend started (PID $$(cat $(PID_DIR)/frontend.pid))"; \
 	fi
 
@@ -80,7 +81,7 @@ restart-frontend: stop-frontend
 # --- Database ---
 
 db:
-	cd backend && docker compose up -d
+	cd $(ROOT_DIR)/backend && docker compose up -d
 
 stop-db:
-	cd backend && docker compose down
+	cd $(ROOT_DIR)/backend && docker compose down
