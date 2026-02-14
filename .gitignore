@@ -30,6 +30,9 @@ backend/taran
 # env file
 .env
 
+# TLS certificate cache
+certs/
+
 # PID files from Makefile
 .pids/
 

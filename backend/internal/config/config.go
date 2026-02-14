@@ -18,8 +18,10 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Host string
-	Port int
+	Host       string
+	Port       int
+	TLSDomain  string
+	TLSCertDir string
 }
 
 type DatabaseConfig struct {
@@ -101,8 +103,10 @@ func Load() (*Config, error) {
 
 	return &Config{
 		Server: ServerConfig{
-			Host: envOr("TARAN_HOST", "0.0.0.0"),
-			Port: port,
+			Host:       envOr("TARAN_HOST", "0.0.0.0"),
+			Port:       port,
+			TLSDomain:  os.Getenv("TARAN_TLS_DOMAIN"),
+			TLSCertDir: envOr("TARAN_TLS_CERT_DIR", "certs"),
 		},
 		DB: DatabaseConfig{
 			URL: dbURL,

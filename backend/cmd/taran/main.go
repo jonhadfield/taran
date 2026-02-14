@@ -114,7 +114,15 @@ func main() {
 		SessionAuth:    sessionAuth,
 	})
 	httpHandler := server.RecoveryMiddleware(server.CORSMiddleware(server.LoggingMiddleware(mux)))
-	srv := server.New(cfg.Addr(), httpHandler)
+
+	var tlsCfg *server.TLSConfig
+	if cfg.Server.TLSDomain != "" {
+		tlsCfg = &server.TLSConfig{
+			Domain:  cfg.Server.TLSDomain,
+			CertDir: cfg.Server.TLSCertDir,
+		}
+	}
+	srv := server.New(cfg.Addr(), httpHandler, tlsCfg)
 
 	go func() {
 		if err := srv.Start(); err != nil {
