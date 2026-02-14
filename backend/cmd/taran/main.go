@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
+	"log/syslog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,7 +25,16 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	var logWriter io.Writer = os.Stdout
+	if os.Getenv("TARAN_LOG_SYSLOG") == "true" {
+		sw, err := syslog.New(syslog.LOG_INFO|syslog.LOG_DAEMON, "taran")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to connect to syslog: %v\n", err)
+			os.Exit(1)
+		}
+		logWriter = sw
+	}
+	slog.SetDefault(slog.New(slog.NewJSONHandler(logWriter, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
 	cfg, err := config.Load()
 	if err != nil {
