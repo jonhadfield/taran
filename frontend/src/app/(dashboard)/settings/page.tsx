@@ -166,7 +166,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
-            <Label htmlFor="digest-email" className="flex flex-col gap-1">
+            <Label htmlFor="digest-email" className="flex flex-col items-start gap-1">
               <span>Email delivery</span>
               <span className="text-sm font-normal text-muted-foreground">
                 Receive your digest as an email each day
