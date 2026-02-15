@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  if (!sessionCookie && !pathname.startsWith("/login") && !pathname.startsWith("/api/auth")) {
+  if (!sessionCookie && !pathname.startsWith("/login") && !pathname.startsWith("/api/auth") && !pathname.startsWith("/shared")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

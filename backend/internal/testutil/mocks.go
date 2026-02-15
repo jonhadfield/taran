@@ -131,10 +131,13 @@ func (m *MockExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID str
 
 // MockDigestRepo implements database.DigestRepository for testing.
 type MockDigestRepo struct {
-	CreateFn   func(ctx context.Context, digest *domain.Digest) error
-	GetByIDFn  func(ctx context.Context, userID, id string) (*domain.Digest, error)
-	ListFn     func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
-	SetSentAtFn func(ctx context.Context, id string, sentAt time.Time) error
+	CreateFn          func(ctx context.Context, digest *domain.Digest) error
+	GetByIDFn         func(ctx context.Context, userID, id string) (*domain.Digest, error)
+	ListFn            func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
+	SetSentAtFn       func(ctx context.Context, id string, sentAt time.Time) error
+	SetShareTokenFn   func(ctx context.Context, id, userID, token string) error
+	ClearShareTokenFn func(ctx context.Context, id, userID string) error
+	GetByShareTokenFn func(ctx context.Context, token string) (*domain.Digest, error)
 }
 
 func (m *MockDigestRepo) Create(ctx context.Context, digest *domain.Digest) error {
@@ -163,6 +166,27 @@ func (m *MockDigestRepo) SetSentAt(ctx context.Context, id string, sentAt time.T
 		return m.SetSentAtFn(ctx, id, sentAt)
 	}
 	return nil
+}
+
+func (m *MockDigestRepo) SetShareToken(ctx context.Context, id, userID, token string) error {
+	if m.SetShareTokenFn != nil {
+		return m.SetShareTokenFn(ctx, id, userID, token)
+	}
+	return nil
+}
+
+func (m *MockDigestRepo) ClearShareToken(ctx context.Context, id, userID string) error {
+	if m.ClearShareTokenFn != nil {
+		return m.ClearShareTokenFn(ctx, id, userID)
+	}
+	return nil
+}
+
+func (m *MockDigestRepo) GetByShareToken(ctx context.Context, token string) (*domain.Digest, error) {
+	if m.GetByShareTokenFn != nil {
+		return m.GetByShareTokenFn(ctx, token)
+	}
+	return nil, nil
 }
 
 // MockAccountRepo implements database.AccountRepository for testing.

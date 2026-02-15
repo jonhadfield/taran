@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 	"time"
 
@@ -36,13 +38,13 @@ func (h *DigestHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 	id := r.PathValue("id")
 
-	digest, err := h.Digests.GetByID(r.Context(), userID, id)
+	d, err := h.Digests.GetByID(r.Context(), userID, id)
 	if err != nil {
 		WriteError(w, http.StatusNotFound, "digest not found")
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, digest)
+	WriteJSON(w, http.StatusOK, d)
 }
 
 func (h *DigestHandler) Generate(w http.ResponseWriter, r *http.Request) {
@@ -67,6 +69,57 @@ func (h *DigestHandler) Generate(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusUnprocessableEntity, "no emails found in the last 24 hours")
 		return
 	}
+
+	WriteJSON(w, http.StatusOK, d)
+}
+
+func (h *DigestHandler) Share(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	id := r.PathValue("id")
+
+	// Generate a random share token
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to generate token")
+		return
+	}
+	token := base64.RawURLEncoding.EncodeToString(b)
+
+	if err := h.Digests.SetShareToken(r.Context(), id, userID, token); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to share digest")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"ShareToken": token})
+}
+
+func (h *DigestHandler) Unshare(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	id := r.PathValue("id")
+
+	if err := h.Digests.ClearShareToken(r.Context(), id, userID); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to unshare digest")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *DigestHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+	if token == "" {
+		WriteError(w, http.StatusBadRequest, "missing token")
+		return
+	}
+
+	d, err := h.Digests.GetByShareToken(r.Context(), token)
+	if err != nil || d == nil {
+		WriteError(w, http.StatusNotFound, "digest not found")
+		return
+	}
+
+	// Strip sensitive fields for public view
+	d.UserID = ""
 
 	WriteJSON(w, http.StatusOK, d)
 }

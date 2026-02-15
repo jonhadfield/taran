@@ -62,7 +62,7 @@ func (r *DigestRepo) GetByID(ctx context.Context, userID, id string) (*domain.Di
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, title, summary, highlights, top_topics,
 		    period_start, period_end, period_type, email_count, provider, model,
-		    generated_at, sent_at, created_at
+		    generated_at, sent_at, created_at, share_token
 		 FROM digest WHERE id = $1 AND user_id = $2`, id, userID)
 
 	d, err := scanDigest(row)
@@ -121,7 +121,7 @@ func (r *DigestRepo) List(ctx context.Context, userID string, opts domain.ListOp
 	query := fmt.Sprintf(
 		`SELECT id, user_id, title, summary, highlights, top_topics,
 		    period_start, period_end, period_type, email_count, provider, model,
-		    generated_at, sent_at, created_at
+		    generated_at, sent_at, created_at, share_token
 		 FROM digest WHERE %s ORDER BY period_start DESC LIMIT $%d OFFSET $%d`,
 		whereClause, argIdx, argIdx+1)
 	args = append(args, limit, opts.Offset)
@@ -152,6 +152,36 @@ func (r *DigestRepo) SetSentAt(ctx context.Context, id string, sentAt time.Time)
 	return nil
 }
 
+func (r *DigestRepo) SetShareToken(ctx context.Context, id, userID, token string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE digest SET share_token = $1 WHERE id = $2 AND user_id = $3`,
+		token, id, userID)
+	if err != nil {
+		return fmt.Errorf("set share token: %w", err)
+	}
+	return nil
+}
+
+func (r *DigestRepo) ClearShareToken(ctx context.Context, id, userID string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE digest SET share_token = NULL WHERE id = $1 AND user_id = $2`,
+		id, userID)
+	if err != nil {
+		return fmt.Errorf("clear share token: %w", err)
+	}
+	return nil
+}
+
+func (r *DigestRepo) GetByShareToken(ctx context.Context, token string) (*domain.Digest, error) {
+	row := r.pool.QueryRow(ctx,
+		`SELECT id, user_id, title, summary, highlights, top_topics,
+		    period_start, period_end, period_type, email_count, provider, model,
+		    generated_at, sent_at, created_at, share_token
+		 FROM digest WHERE share_token = $1`, token)
+
+	return scanDigest(row)
+}
+
 func scanDigest(row scannable) (*domain.Digest, error) {
 	var d domain.Digest
 	var highlights, topTopics []byte
@@ -160,6 +190,7 @@ func scanDigest(row scannable) (*domain.Digest, error) {
 		&d.ID, &d.UserID, &d.Title, &d.Summary, &highlights, &topTopics,
 		&d.PeriodStart, &d.PeriodEnd, &d.PeriodType, &d.EmailCount,
 		&d.Provider, &d.Model, &d.GeneratedAt, &d.SentAt, &d.CreatedAt,
+		&d.ShareToken,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("scan digest: %w", err)

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hadfielj/taran/backend/internal/database"
+	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/hadfielj/taran/backend/internal/mailer"
 	"github.com/robfig/cron/v3"
 )
@@ -20,13 +21,8 @@ type Scheduler struct {
 	mailer      mailer.Mailer
 }
 
-func NewScheduler(cronExpr, timezone string, generator *Generator, emails database.EmailRepository, digests database.DigestRepository, preferences database.PreferenceRepository, sessions database.SessionRepository, m mailer.Mailer) (*Scheduler, error) {
-	loc, err := time.LoadLocation(timezone)
-	if err != nil {
-		loc = time.UTC
-	}
-
-	c := cron.New(cron.WithLocation(loc))
+func NewScheduler(generator *Generator, emails database.EmailRepository, digests database.DigestRepository, preferences database.PreferenceRepository, sessions database.SessionRepository, m mailer.Mailer) (*Scheduler, error) {
+	c := cron.New(cron.WithLocation(time.UTC))
 
 	s := &Scheduler{
 		cron:        c,
@@ -38,8 +34,9 @@ func NewScheduler(cronExpr, timezone string, generator *Generator, emails databa
 		mailer:      m,
 	}
 
-	_, err = c.AddFunc(cronExpr, func() {
-		s.generateDailyDigests()
+	// Run every hour on the hour
+	_, err := c.AddFunc("0 * * * *", func() {
+		s.generateDigests()
 	})
 	if err != nil {
 		return nil, err
@@ -52,7 +49,7 @@ func (s *Scheduler) Start() {
 	s.cron.Start()
 	entries := s.cron.Entries()
 	if len(entries) > 0 {
-		slog.Info("digest scheduler started", "next_run", entries[0].Next)
+		slog.Info("digest scheduler started (hourly)", "next_run", entries[0].Next)
 	}
 }
 
@@ -62,16 +59,15 @@ func (s *Scheduler) Stop() {
 	slog.Info("digest scheduler stopped")
 }
 
-func (s *Scheduler) generateDailyDigests() {
+func (s *Scheduler) generateDigests() {
 	ctx := context.Background()
+	nowUTC := time.Now().UTC()
 
-	now := time.Now()
-	periodEnd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	periodStart := periodEnd.Add(-24 * time.Hour)
+	slog.Info("digest scheduler tick", "utc_hour", nowUTC.Hour())
 
-	slog.Info("generating daily digests", "period_start", periodStart, "period_end", periodEnd)
-
-	userIDs, err := s.emails.ListActiveUserIDs(ctx, periodStart, periodEnd)
+	// Get all users who had email activity in the last 7 days (covers both daily and weekly)
+	lookback := nowUTC.Add(-7 * 24 * time.Hour)
+	userIDs, err := s.emails.ListActiveUserIDs(ctx, lookback, nowUTC)
 	if err != nil {
 		slog.Error("failed to get active users", "error", err)
 		return
@@ -80,7 +76,19 @@ func (s *Scheduler) generateDailyDigests() {
 	generated := 0
 	sent := 0
 	for _, userID := range userIDs {
-		digest, err := s.generator.GenerateForUser(ctx, userID, "daily", periodStart, periodEnd)
+		pref, err := s.preferences.Get(ctx, userID)
+		if err != nil {
+			slog.Error("failed to get user preferences", "userID", userID, "error", err)
+			continue
+		}
+
+		if !shouldGenerateForUser(pref, nowUTC) {
+			continue
+		}
+
+		periodStart, periodEnd := computePeriod(pref, nowUTC)
+
+		digest, err := s.generator.GenerateForUser(ctx, userID, pref.DigestFrequency, periodStart, periodEnd)
 		if err != nil {
 			slog.Error("failed to generate digest", "userID", userID, "error", err)
 			continue
@@ -90,16 +98,7 @@ func (s *Scheduler) generateDailyDigests() {
 		}
 		generated++
 
-		if s.mailer == nil {
-			continue
-		}
-
-		pref, err := s.preferences.Get(ctx, userID)
-		if err != nil {
-			slog.Error("failed to get user preferences", "userID", userID, "error", err)
-			continue
-		}
-		if !pref.DigestEmail {
+		if s.mailer == nil || !pref.DigestEmail {
 			continue
 		}
 
@@ -121,5 +120,44 @@ func (s *Scheduler) generateDailyDigests() {
 		sent++
 	}
 
-	slog.Info("daily digest generation complete", "users", len(userIDs), "generated", generated, "sent", sent)
+	slog.Info("digest generation complete", "users_checked", len(userIDs), "generated", generated, "sent", sent)
+}
+
+// shouldGenerateForUser checks if the current UTC hour matches the user's preferred delivery hour
+// in their timezone, and respects the frequency setting.
+func shouldGenerateForUser(pref *domain.UserPreference, nowUTC time.Time) bool {
+	loc, err := time.LoadLocation(pref.DigestTimezone)
+	if err != nil {
+		loc = time.UTC
+	}
+
+	userNow := nowUTC.In(loc)
+	if userNow.Hour() != pref.DigestHour {
+		return false
+	}
+
+	// Weekly: only generate on Monday
+	if pref.DigestFrequency == "weekly" && userNow.Weekday() != time.Monday {
+		return false
+	}
+
+	return true
+}
+
+// computePeriod returns the digest period based on the user's frequency.
+func computePeriod(pref *domain.UserPreference, nowUTC time.Time) (time.Time, time.Time) {
+	loc, err := time.LoadLocation(pref.DigestTimezone)
+	if err != nil {
+		loc = time.UTC
+	}
+
+	userNow := nowUTC.In(loc)
+	periodEnd := time.Date(userNow.Year(), userNow.Month(), userNow.Day(), userNow.Hour(), 0, 0, 0, loc).UTC()
+
+	switch pref.DigestFrequency {
+	case "weekly":
+		return periodEnd.Add(-7 * 24 * time.Hour), periodEnd
+	default:
+		return periodEnd.Add(-24 * time.Hour), periodEnd
+	}
 }

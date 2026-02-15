@@ -15,6 +15,11 @@ func TestGenerateForUser_Success(t *testing.T) {
 	var storedDigest *domain.Digest
 
 	gen := &Generator{
+		Emails: &testutil.MockEmailRepo{
+			GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+				return &domain.Email{ID: id, Subject: "Test " + id, FromName: "Sender"}, nil
+			},
+		},
 		Extractions: &testutil.MockExtractionRepo{
 			ListByUserAndPeriodFn: func(_ context.Context, _ string, _, _ time.Time) ([]domain.Extraction, error) {
 				return []domain.Extraction{
@@ -113,6 +118,11 @@ func TestGenerateForUser_LLMError(t *testing.T) {
 
 func TestGenerateForUser_StoreError(t *testing.T) {
 	gen := &Generator{
+		Emails: &testutil.MockEmailRepo{
+			GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+				return &domain.Email{ID: id, Subject: "Test"}, nil
+			},
+		},
 		Extractions: &testutil.MockExtractionRepo{
 			ListByUserAndPeriodFn: func(_ context.Context, _ string, _, _ time.Time) ([]domain.Extraction, error) {
 				return []domain.Extraction{{ID: "ext-1", EmailID: "em-1"}}, nil
@@ -139,6 +149,11 @@ func TestGenerateForUser_ItemsSortOrder(t *testing.T) {
 	var storedDigest *domain.Digest
 
 	gen := &Generator{
+		Emails: &testutil.MockEmailRepo{
+			GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+				return &domain.Email{ID: id, Subject: "Test"}, nil
+			},
+		},
 		Extractions: &testutil.MockExtractionRepo{
 			ListByUserAndPeriodFn: func(_ context.Context, _ string, _, _ time.Time) ([]domain.Extraction, error) {
 				return []domain.Extraction{

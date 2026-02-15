@@ -93,7 +93,7 @@ func main() {
 		Accounts:    accountRepo,
 		Provider:    provider,
 	}
-	sched, err := digest.NewScheduler(cfg.Digest.Cron, cfg.Digest.Timezone, gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m)
+	sched, err := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m)
 	if err != nil {
 		slog.Error("failed to create digest scheduler", "error", err)
 		os.Exit(1)

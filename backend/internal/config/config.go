@@ -45,8 +45,7 @@ type LLMConfig struct {
 }
 
 type DigestConfig struct {
-	Cron     string
-	Timezone string
+	// Per-user scheduling — no global cron/timezone needed
 }
 
 type EmailConfig struct {
@@ -143,10 +142,7 @@ func Load() (*Config, error) {
 			OllamaURL:      envOr("TARAN_OLLAMA_URL", "http://localhost:11434"),
 			OllamaModel:    os.Getenv("TARAN_OLLAMA_MODEL"),
 		},
-		Digest: DigestConfig{
-			Cron:     envOr("TARAN_DIGEST_CRON", "0 7 * * *"),
-			Timezone: envOr("TARAN_DIGEST_TIMEZONE", "UTC"),
-		},
+		Digest: DigestConfig{},
 		Email: EmailConfig{
 			Domain:       emailDomain,
 			ResendAPIKey: os.Getenv("TARAN_RESEND_API_KEY"),

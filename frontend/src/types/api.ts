@@ -69,6 +69,7 @@ export interface Digest {
   GeneratedAt: string;
   SentAt: string | null;
   CreatedAt: string;
+  ShareToken: string | null;
   Items: DigestItem[];
 }
 
@@ -93,6 +94,9 @@ export interface EmailAccount {
 export interface UserPreference {
   UserID: string;
   DigestEmail: boolean;
+  DigestFrequency: string;
+  DigestHour: number;
+  DigestTimezone: string;
   CreatedAt: string;
   UpdatedAt: string;
 }

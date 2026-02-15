@@ -27,6 +27,38 @@ import { CopyButton } from "./copy-button";
 import { SignOutButton } from "./sign-out-button";
 import { UsernameForm } from "@/components/username-form";
 
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
+  const hour = i % 12 || 12;
+  const ampm = i < 12 ? "AM" : "PM";
+  return { value: i, label: `${hour}:00 ${ampm}` };
+});
+
+const COMMON_TIMEZONES = [
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Anchorage",
+  "Pacific/Honolulu",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Asia/Tokyo",
+  "Asia/Shanghai",
+  "Asia/Kolkata",
+  "Australia/Sydney",
+  "Pacific/Auckland",
+  "UTC",
+];
+
+function detectTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return "UTC";
+  }
+}
+
 export default function SettingsPage() {
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +66,9 @@ export default function SettingsPage() {
 
   // Preferences
   const [digestEmail, setDigestEmail] = useState(false);
+  const [digestFrequency, setDigestFrequency] = useState("daily");
+  const [digestHour, setDigestHour] = useState(7);
+  const [digestTimezone, setDigestTimezone] = useState("UTC");
   const [prefLoading, setPrefLoading] = useState(true);
   const [prefSaving, setPrefSaving] = useState(false);
 
@@ -57,8 +92,11 @@ export default function SettingsPage() {
     try {
       const pref = await apiGet<UserPreference>("preferences");
       setDigestEmail(pref.DigestEmail);
+      setDigestFrequency(pref.DigestFrequency || "daily");
+      setDigestHour(pref.DigestHour ?? 7);
+      setDigestTimezone(pref.DigestTimezone || detectTimezone());
     } catch {
-      // Defaults to false
+      setDigestTimezone(detectTimezone());
     } finally {
       setPrefLoading(false);
     }
@@ -69,19 +107,40 @@ export default function SettingsPage() {
     fetchPreferences();
   }, []);
 
-  const handleToggleDigestEmail = async (checked: boolean) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestTimezone">>) => {
     setPrefSaving(true);
-    setDigestEmail(checked);
     try {
-      const updated = await apiPatch<UserPreference>("preferences", {
-        DigestEmail: checked,
-      });
+      const updated = await apiPatch<UserPreference>("preferences", updates);
       setDigestEmail(updated.DigestEmail);
+      setDigestFrequency(updated.DigestFrequency || "daily");
+      setDigestHour(updated.DigestHour ?? 7);
+      setDigestTimezone(updated.DigestTimezone || "UTC");
     } catch {
-      setDigestEmail(!checked);
+      // Revert on error by re-fetching
+      await fetchPreferences();
     } finally {
       setPrefSaving(false);
     }
+  };
+
+  const handleToggleDigestEmail = async (checked: boolean) => {
+    setDigestEmail(checked);
+    await updatePreference({ DigestEmail: checked });
+  };
+
+  const handleFrequencyChange = async (value: string) => {
+    setDigestFrequency(value);
+    await updatePreference({ DigestFrequency: value });
+  };
+
+  const handleHourChange = async (value: number) => {
+    setDigestHour(value);
+    await updatePreference({ DigestHour: value });
+  };
+
+  const handleTimezoneChange = async (value: string) => {
+    setDigestTimezone(value);
+    await updatePreference({ DigestTimezone: value });
   };
 
   const handleDelete = async () => {
@@ -98,6 +157,12 @@ export default function SettingsPage() {
       setDeleting(false);
     }
   };
+
+  // Build timezone list: user's detected TZ first, then common ones
+  const browserTz = detectTimezone();
+  const timezoneOptions = COMMON_TIMEZONES.includes(browserTz)
+    ? COMMON_TIMEZONES
+    : [browserTz, ...COMMON_TIMEZONES];
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -161,15 +226,15 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Digest Delivery</CardTitle>
           <CardDescription>
-            Get your daily digest delivered to your email inbox
+            Configure how and when you receive your digest
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
             <Label htmlFor="digest-email" className="flex flex-col items-start gap-1">
               <span>Email delivery</span>
               <span className="text-sm font-normal text-muted-foreground">
-                Receive your digest as an email each day
+                Receive your digest as an email
               </span>
             </Label>
             <Switch
@@ -179,6 +244,71 @@ export default function SettingsPage() {
               disabled={prefLoading || prefSaving}
             />
           </div>
+
+          {digestEmail && (
+            <div className="space-y-4 border-t pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="digest-frequency">Frequency</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={digestFrequency === "daily" ? "default" : "outline"}
+                    onClick={() => handleFrequencyChange("daily")}
+                    disabled={prefSaving}
+                  >
+                    Daily
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={digestFrequency === "weekly" ? "default" : "outline"}
+                    onClick={() => handleFrequencyChange("weekly")}
+                    disabled={prefSaving}
+                  >
+                    Weekly
+                  </Button>
+                </div>
+                {digestFrequency === "weekly" && (
+                  <p className="text-xs text-muted-foreground">
+                    Weekly digests are sent on Mondays
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="digest-hour">Delivery time</Label>
+                <select
+                  id="digest-hour"
+                  value={digestHour}
+                  onChange={(e) => handleHourChange(Number(e.target.value))}
+                  disabled={prefSaving}
+                  className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {HOUR_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="digest-timezone">Timezone</Label>
+                <select
+                  id="digest-timezone"
+                  value={digestTimezone}
+                  onChange={(e) => handleTimezoneChange(e.target.value)}
+                  disabled={prefSaving}
+                  className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {timezoneOptions.map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz.replace(/_/g, " ")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

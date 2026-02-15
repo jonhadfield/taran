@@ -77,7 +77,18 @@ type Digest struct {
 	GeneratedAt time.Time
 	SentAt      *time.Time
 	CreatedAt   time.Time
+	ShareToken  *string
 	Items       []DigestItem
+
+	// Transient — populated at generation time for email rendering, not persisted
+	EmailSummaries []DigestEmailSummary `json:"-"`
+}
+
+type DigestEmailSummary struct {
+	EmailID    string
+	Subject    string
+	SenderName string
+	Summary    string
 }
 
 type DigestItem struct {
@@ -99,10 +110,13 @@ type EmailAccount struct {
 }
 
 type UserPreference struct {
-	UserID      string
-	DigestEmail bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	UserID          string
+	DigestEmail     bool
+	DigestFrequency string // "daily" or "weekly"
+	DigestHour      int    // 0-23
+	DigestTimezone  string // IANA timezone
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 type Session struct {

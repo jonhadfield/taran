@@ -24,6 +24,9 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 
 	mux.HandleFunc("GET /health", handleHealth)
 
+	// Public endpoints (no auth)
+	mux.HandleFunc("GET /api/public/digests/{token}", deps.DigestHandler.GetPublic)
+
 	// Webhook (shared secret auth)
 	webhookAuth := auth.WebhookAuth(deps.WebhookSecret, http.HandlerFunc(deps.WebhookHandler.IngestEmail))
 	mux.Handle("POST /webhook/email", webhookAuth)
@@ -35,6 +38,8 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("PATCH /api/emails/{id}", deps.EmailHandler.UpdateState)
 	api.HandleFunc("GET /api/digests", deps.DigestHandler.List)
 	api.HandleFunc("GET /api/digests/{id}", deps.DigestHandler.Get)
+	api.HandleFunc("POST /api/digests/{id}/share", deps.DigestHandler.Share)
+	api.HandleFunc("DELETE /api/digests/{id}/share", deps.DigestHandler.Unshare)
 	api.HandleFunc("GET /api/accounts", deps.AccountHandler.List)
 	api.HandleFunc("POST /api/accounts", deps.AccountHandler.Create)
 	api.HandleFunc("DELETE /api/accounts/{id}", deps.AccountHandler.Delete)

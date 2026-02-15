@@ -3,10 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/database"
-	"github.com/hadfielj/taran/backend/internal/domain"
 )
 
 type PreferenceHandler struct {
@@ -26,7 +26,10 @@ func (h *PreferenceHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 type updatePreferenceRequest struct {
-	DigestEmail bool `json:"DigestEmail"`
+	DigestEmail     *bool   `json:"DigestEmail"`
+	DigestFrequency *string `json:"DigestFrequency"`
+	DigestHour      *int    `json:"DigestHour"`
+	DigestTimezone  *string `json:"DigestTimezone"`
 }
 
 func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -38,12 +41,51 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pref := &domain.UserPreference{
-		UserID:      userID,
-		DigestEmail: req.DigestEmail,
+	// Validate frequency
+	if req.DigestFrequency != nil {
+		if *req.DigestFrequency != "daily" && *req.DigestFrequency != "weekly" {
+			WriteError(w, http.StatusBadRequest, "frequency must be 'daily' or 'weekly'")
+			return
+		}
 	}
 
-	if err := h.Preferences.Upsert(r.Context(), pref); err != nil {
+	// Validate hour
+	if req.DigestHour != nil {
+		if *req.DigestHour < 0 || *req.DigestHour > 23 {
+			WriteError(w, http.StatusBadRequest, "hour must be between 0 and 23")
+			return
+		}
+	}
+
+	// Validate timezone
+	if req.DigestTimezone != nil {
+		if _, err := time.LoadLocation(*req.DigestTimezone); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid timezone")
+			return
+		}
+	}
+
+	// Load existing preference and merge
+	existing, err := h.Preferences.Get(r.Context(), userID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to get preferences")
+		return
+	}
+
+	if req.DigestEmail != nil {
+		existing.DigestEmail = *req.DigestEmail
+	}
+	if req.DigestFrequency != nil {
+		existing.DigestFrequency = *req.DigestFrequency
+	}
+	if req.DigestHour != nil {
+		existing.DigestHour = *req.DigestHour
+	}
+	if req.DigestTimezone != nil {
+		existing.DigestTimezone = *req.DigestTimezone
+	}
+
+	if err := h.Preferences.Upsert(r.Context(), existing); err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to update preferences")
 		return
 	}

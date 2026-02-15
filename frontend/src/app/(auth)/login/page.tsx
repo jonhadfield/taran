@@ -3,12 +3,13 @@
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Mail } from "lucide-react";
 import { APP_NAME } from "@/lib/config";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4 gap-8">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
@@ -42,6 +43,38 @@ export default function LoginPage() {
           </Button>
         </CardContent>
       </Card>
+
+      <div className="w-full max-w-sm space-y-3">
+        <p className="text-center text-sm text-muted-foreground">
+          See what you&apos;ll get
+        </p>
+        <Card className="opacity-90">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Your Daily Newsletter Digest</CardTitle>
+            <p className="text-xs text-muted-foreground">Feb 14 – Feb 15, 2026 · 8 emails</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              AI breakthroughs dominated today&apos;s newsletters with major announcements from leading labs. Markets reacted positively to strong earnings, while new open-source tools gained traction in the developer community.
+            </p>
+            <div>
+              <p className="text-xs font-medium mb-2">Highlights</p>
+              <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
+                <li>New reasoning model achieves state-of-the-art benchmarks</li>
+                <li>Tech earnings beat expectations across the board</li>
+                <li>Open-source framework hits 50k GitHub stars</li>
+              </ul>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {["AI", "Markets", "Open Source", "Startups"].map((topic) => (
+                <Badge key={topic} variant="secondary" className="text-xs">
+                  {topic}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

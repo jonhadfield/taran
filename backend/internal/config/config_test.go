@@ -145,12 +145,7 @@ func TestLoad_DefaultValues(t *testing.T) {
 	if cfg.LLM.Provider != "anthropic" {
 		t.Errorf("Provider = %q, want %q", cfg.LLM.Provider, "anthropic")
 	}
-	if cfg.Digest.Cron != "0 7 * * *" {
-		t.Errorf("Cron = %q, want %q", cfg.Digest.Cron, "0 7 * * *")
-	}
-	if cfg.Digest.Timezone != "UTC" {
-		t.Errorf("Timezone = %q, want %q", cfg.Digest.Timezone, "UTC")
-	}
+	// DigestConfig no longer has Cron/Timezone — scheduling is per-user
 }
 
 func TestLoad_CustomPort(t *testing.T) {

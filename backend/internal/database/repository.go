@@ -30,6 +30,9 @@ type DigestRepository interface {
 	GetByID(ctx context.Context, userID, id string) (*domain.Digest, error)
 	List(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
 	SetSentAt(ctx context.Context, id string, sentAt time.Time) error
+	SetShareToken(ctx context.Context, id, userID, token string) error
+	ClearShareToken(ctx context.Context, id, userID string) error
+	GetByShareToken(ctx context.Context, token string) (*domain.Digest, error)
 }
 
 type AccountRepository interface {

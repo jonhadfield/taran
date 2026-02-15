@@ -86,6 +86,36 @@ func buildDigestHTML(digest *domain.Digest) string {
 		b.WriteString(`</div>`)
 	}
 
+	// Email summaries
+	if len(digest.EmailSummaries) > 0 {
+		b.WriteString(`<h2 style="font-size:18px;margin-top:32px;margin-bottom:16px;">Email Summaries</h2>`)
+		for _, es := range digest.EmailSummaries {
+			b.WriteString(`<div style="margin-bottom:16px;padding:12px;border:1px solid #eee;border-radius:8px;">`)
+
+			// Subject + sender
+			b.WriteString(`<div style="font-weight:600;font-size:14px;margin-bottom:4px;">`)
+			b.WriteString(html.EscapeString(es.Subject))
+			b.WriteString(`</div>`)
+			if es.SenderName != "" {
+				b.WriteString(`<div style="font-size:12px;color:#666;margin-bottom:8px;">`)
+				b.WriteString(html.EscapeString(es.SenderName))
+				b.WriteString(`</div>`)
+			}
+
+			// Summary
+			b.WriteString(`<div style="font-size:13px;line-height:1.4;color:#333;">`)
+			b.WriteString(html.EscapeString(es.Summary))
+			b.WriteString(`</div>`)
+
+			// Link to dashboard
+			b.WriteString(`<a href="https://mailbrief.io/inbox/`)
+			b.WriteString(html.EscapeString(es.EmailID))
+			b.WriteString(`" style="display:inline-block;margin-top:8px;font-size:12px;color:#0066cc;text-decoration:none;">View in dashboard →</a>`)
+
+			b.WriteString(`</div>`)
+		}
+	}
+
 	// Footer
 	b.WriteString(`<hr style="border:none;border-top:1px solid #eee;margin-top:32px;">`)
 	b.WriteString(`<p style="color:#999;font-size:12px;">Sent by <a href="https://mailbrief.io" style="color:#999;">MailBrief</a>. `)

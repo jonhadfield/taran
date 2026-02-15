@@ -6,6 +6,7 @@ import type { Digest } from "@/types/api";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ShareButton } from "./share-button";
 
 export default async function DigestDetailPage({
   params,
@@ -32,7 +33,10 @@ export default async function DigestDetailPage({
       </Link>
 
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold">{digest.Title}</h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold">{digest.Title}</h1>
+          <ShareButton digestId={digest.ID} initialToken={digest.ShareToken} />
+        </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>
             {new Date(digest.PeriodStart).toLocaleDateString()} &ndash;{" "}

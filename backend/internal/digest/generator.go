@@ -63,6 +63,20 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		})
 	}
 
+	// Build email summaries for email rendering
+	for _, ext := range extractions {
+		email, err := g.Emails.GetByIDInternal(ctx, ext.EmailID)
+		if err != nil || email == nil {
+			continue
+		}
+		digest.EmailSummaries = append(digest.EmailSummaries, domain.DigestEmailSummary{
+			EmailID:    ext.EmailID,
+			Subject:    email.Subject,
+			SenderName: email.FromName,
+			Summary:    ext.Summary,
+		})
+	}
+
 	if err := g.Digests.Create(ctx, digest); err != nil {
 		return nil, fmt.Errorf("store digest: %w", err)
 	}
