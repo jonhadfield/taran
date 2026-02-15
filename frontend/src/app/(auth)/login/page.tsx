@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { APP_NAME } from "@/lib/config";
+import { Mail, Sparkles, BookOpen } from "lucide-react";
 
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="flex w-full max-w-sm flex-col items-center gap-10">
+      <div className="flex w-full max-w-md flex-col items-center gap-10">
         {/* Hero */}
         <div className="flex flex-col items-center gap-3 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -20,7 +21,34 @@ export default function LoginPage() {
             height={80}
           />
           <h1 className="text-4xl font-bold tracking-tight">{APP_NAME}</h1>
-          <p className="text-lg text-muted-foreground">Email, but brief.</p>
+          <p className="text-lg text-muted-foreground">
+            AI-powered digests of your newsletters, delivered daily.
+          </p>
+        </div>
+
+        {/* How it works */}
+        <div className="grid w-full grid-cols-3 gap-4 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <Mail className="h-5 w-5 text-muted-foreground" />
+            <p className="text-xs font-medium">Forward</p>
+            <p className="text-xs text-muted-foreground">
+              Send newsletters to your @mailbrief.io inbox
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <Sparkles className="h-5 w-5 text-muted-foreground" />
+            <p className="text-xs font-medium">Digest</p>
+            <p className="text-xs text-muted-foreground">
+              AI reads everything and creates a daily summary
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <BookOpen className="h-5 w-5 text-muted-foreground" />
+            <p className="text-xs font-medium">Read</p>
+            <p className="text-xs text-muted-foreground">
+              Get one concise digest instead of dozens of emails
+            </p>
+          </div>
         </div>
 
         {/* Sign in */}
@@ -50,7 +78,7 @@ export default function LoginPage() {
         {/* Demo digest preview */}
         <div className="w-full space-y-3">
           <p className="text-center text-sm text-muted-foreground">
-            See what you&apos;ll get
+            Here&apos;s what a digest looks like
           </p>
           <Card className="opacity-90">
             <CardHeader className="pb-3">
