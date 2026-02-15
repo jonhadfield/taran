@@ -112,6 +112,14 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 		args = append(args, searchTerm, searchTerm, searchTerm)
 		argIdx += 3
 	}
+	if opts.Topic != nil && *opts.Topic != "" {
+		topicJSON := fmt.Sprintf(`[%q]`, *opts.Topic)
+		where = append(where, fmt.Sprintf(
+			"EXISTS (SELECT 1 FROM extraction ex WHERE ex.email_id = email.id AND ex.topics @> $%d::jsonb)",
+			argIdx))
+		args = append(args, topicJSON)
+		argIdx++
+	}
 
 	whereClause := strings.Join(where, " AND ")
 

@@ -156,6 +156,24 @@ type UserStats struct {
 	TopSenders     []SenderCount `json:"TopSenders"`
 }
 
+type EmailFeedback struct {
+	ID        string
+	UserID    string
+	EmailID   string
+	Rating    string // "useful" or "not_useful"
+	CreatedAt time.Time
+}
+
+type AdminStats struct {
+	TotalUsers       int           `json:"TotalUsers"`
+	ActiveUsersWeek  int           `json:"ActiveUsersWeek"`
+	TotalEmails      int           `json:"TotalEmails"`
+	EmailsThisWeek   int           `json:"EmailsThisWeek"`
+	TotalDigests     int           `json:"TotalDigests"`
+	DigestsThisWeek  int           `json:"DigestsThisWeek"`
+	TopGlobalSenders []SenderCount `json:"TopGlobalSenders"`
+}
+
 type ListOptions struct {
 	Limit      int
 	Offset     int
@@ -166,4 +184,5 @@ type ListOptions struct {
 	Since      *time.Time
 	Before     *time.Time
 	Search     *string
+	Topic      *string
 }

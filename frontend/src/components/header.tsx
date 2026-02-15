@@ -15,7 +15,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Menu, LogOut, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 
-export function Header() {
+export function Header({ isAdmin }: { isAdmin?: boolean }) {
   const { data: session } = authClient.useSession();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -49,7 +49,7 @@ export function Header() {
             side="left"
             className="w-64 p-0"
           >
-            <Sidebar />
+            <Sidebar isAdmin={isAdmin} />
           </SheetContent>
         </Sheet>
       </div>

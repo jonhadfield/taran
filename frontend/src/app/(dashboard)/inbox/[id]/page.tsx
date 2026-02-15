@@ -7,6 +7,7 @@ import { ArrowLeft, Sparkles, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
+import { FeedbackButtons } from "./feedback-buttons";
 
 export default async function EmailDetailPage({
   params,
@@ -138,6 +139,10 @@ export default async function EmailDetailPage({
               )}
             </CardContent>
           </Card>
+        )}
+
+        {email.extraction && (
+          <FeedbackButtons emailId={id} />
         )}
 
         <Card>

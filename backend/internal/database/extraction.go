@@ -74,6 +74,28 @@ func (r *ExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID string,
 	return extractions, nil
 }
 
+func (r *ExtractionRepo) ListTopicsByUser(ctx context.Context, userID string) ([]string, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT DISTINCT topic FROM extraction e
+		 JOIN email em ON em.id = e.email_id
+		 CROSS JOIN LATERAL jsonb_array_elements_text(e.topics) AS topic
+		 WHERE em.user_id = $1 ORDER BY topic`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list topics: %w", err)
+	}
+	defer rows.Close()
+
+	var topics []string
+	for rows.Next() {
+		var t string
+		if err := rows.Scan(&t); err != nil {
+			return nil, fmt.Errorf("scan topic: %w", err)
+		}
+		topics = append(topics, t)
+	}
+	return topics, nil
+}
+
 func scanExtraction(row scannable) (*domain.Extraction, error) {
 	var e domain.Extraction
 	var keyPoints, topics, links, actionItems []byte

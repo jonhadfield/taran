@@ -25,6 +25,12 @@ type ExtractionRepository interface {
 	Create(ctx context.Context, extraction *domain.Extraction) error
 	GetByEmailID(ctx context.Context, emailID string) (*domain.Extraction, error)
 	ListByUserAndPeriod(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error)
+	ListTopicsByUser(ctx context.Context, userID string) ([]string, error)
+}
+
+type FeedbackRepository interface {
+	Upsert(ctx context.Context, fb *domain.EmailFeedback) error
+	GetByEmailID(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error)
 }
 
 type DigestRepository interface {

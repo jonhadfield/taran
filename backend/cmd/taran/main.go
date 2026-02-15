@@ -66,6 +66,7 @@ func main() {
 	sessionRepo := database.NewSessionRepo(pool)
 	preferenceRepo := database.NewPreferenceRepo(pool)
 	senderPrefRepo := database.NewSenderPreferenceRepo(pool)
+	feedbackRepo := database.NewFeedbackRepo(pool)
 
 	// LLM Provider
 	provider, err := newLLMProvider(cfg)
@@ -132,6 +133,15 @@ func main() {
 	preferenceHandler := &handler.PreferenceHandler{
 		Preferences: preferenceRepo,
 	}
+	topicHandler := &handler.TopicHandler{
+		Extractions: extractionRepo,
+	}
+	feedbackHandler := &handler.FeedbackHandler{
+		Feedback: feedbackRepo,
+	}
+	adminStatsHandler := &handler.AdminStatsHandler{
+		Pool: pool,
+	}
 	sessionAuth := &auth.SessionAuth{
 		Sessions:    sessionRepo,
 		AdminEmails: cfg.AdminEmails,
@@ -148,6 +158,9 @@ func main() {
 		PreferenceHandler: preferenceHandler,
 		SenderHandler:     senderHandler,
 		StatsHandler:      statsHandler,
+		TopicHandler:      topicHandler,
+		FeedbackHandler:   feedbackHandler,
+		AdminStatsHandler: adminStatsHandler,
 		SessionAuth:       sessionAuth,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)

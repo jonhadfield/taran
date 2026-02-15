@@ -122,6 +122,7 @@ type MockExtractionRepo struct {
 	CreateFn              func(ctx context.Context, extraction *domain.Extraction) error
 	GetByEmailIDFn        func(ctx context.Context, emailID string) (*domain.Extraction, error)
 	ListByUserAndPeriodFn func(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error)
+	ListTopicsByUserFn    func(ctx context.Context, userID string) ([]string, error)
 }
 
 func (m *MockExtractionRepo) Create(ctx context.Context, extraction *domain.Extraction) error {
@@ -141,6 +142,33 @@ func (m *MockExtractionRepo) GetByEmailID(ctx context.Context, emailID string) (
 func (m *MockExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error) {
 	if m.ListByUserAndPeriodFn != nil {
 		return m.ListByUserAndPeriodFn(ctx, userID, from, to)
+	}
+	return nil, nil
+}
+
+func (m *MockExtractionRepo) ListTopicsByUser(ctx context.Context, userID string) ([]string, error) {
+	if m.ListTopicsByUserFn != nil {
+		return m.ListTopicsByUserFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+// MockFeedbackRepo implements database.FeedbackRepository for testing.
+type MockFeedbackRepo struct {
+	UpsertFn       func(ctx context.Context, fb *domain.EmailFeedback) error
+	GetByEmailIDFn func(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error)
+}
+
+func (m *MockFeedbackRepo) Upsert(ctx context.Context, fb *domain.EmailFeedback) error {
+	if m.UpsertFn != nil {
+		return m.UpsertFn(ctx, fb)
+	}
+	return nil
+}
+
+func (m *MockFeedbackRepo) GetByEmailID(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error) {
+	if m.GetByEmailIDFn != nil {
+		return m.GetByEmailIDFn(ctx, userID, emailID)
 	}
 	return nil, nil
 }

@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { usePolling } from "@/hooks/use-polling";
+import { apiGet } from "@/lib/api";
 import type { Email, ListResponse } from "@/types/api";
+import { Badge } from "@/components/ui/badge";
 import { Inbox, Search, X } from "lucide-react";
 import { APP_NAME } from "@/lib/config";
 import Link from "next/link";
@@ -25,12 +27,13 @@ function getAvatarColor(name: string) {
   return avatarColors[charCode % avatarColors.length];
 }
 
-function buildQueryString(filter: string, search: string) {
+function buildQueryString(filter: string, search: string, topic: string) {
   const params = ["limit=50"];
   if (filter === "unread") params.push("is_read=false");
   if (filter === "starred") params.push("is_starred=true");
   if (filter === "archived") params.push("is_archived=true");
   if (search) params.push(`search=${encodeURIComponent(search)}`);
+  if (topic) params.push(`topic=${encodeURIComponent(topic)}`);
   return params.join("&");
 }
 
@@ -49,8 +52,16 @@ export function InboxList({
   const [filter, setFilter] = useState(initialFilter);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [activeTopic, setActiveTopic] = useState("");
+  const [topics, setTopics] = useState<string[]>([]);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const queryString = buildQueryString(filter, debouncedSearch);
+  const queryString = buildQueryString(filter, debouncedSearch, activeTopic);
+
+  useEffect(() => {
+    apiGet<string[]>("topics")
+      .then(setTopics)
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -104,6 +115,28 @@ export function InboxList({
       </div>
 
       <InboxFilters value={filter} onChange={handleFilterChange} />
+
+      {topics.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          <Badge
+            variant={activeTopic === "" ? "default" : "outline"}
+            className="cursor-pointer"
+            onClick={() => setActiveTopic("")}
+          >
+            All
+          </Badge>
+          {topics.map((topic) => (
+            <Badge
+              key={topic}
+              variant={activeTopic === topic ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setActiveTopic(activeTopic === topic ? "" : topic)}
+            >
+              {topic}
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {emails.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">

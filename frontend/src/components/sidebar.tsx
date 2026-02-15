@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Inbox, BookOpen, Settings, Users } from "lucide-react";
+import { Home, Inbox, BookOpen, Settings, Users, Shield } from "lucide-react";
 import Image from "next/image";
 import { APP_NAME } from "@/lib/config";
 
@@ -18,7 +18,7 @@ const bottomNav = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar({ className }: { className?: string }) {
+export function Sidebar({ className, isAdmin }: { className?: string; isAdmin?: boolean }) {
   const pathname = usePathname();
 
   const isActive = (href: string) =>
@@ -66,6 +66,7 @@ export function Sidebar({ className }: { className?: string }) {
 
       {/* Bottom navigation */}
       <nav className="flex flex-col gap-1 border-t px-3 py-3">
+        {isAdmin && navLink({ href: "/admin", label: "Admin", icon: Shield })}
         {bottomNav.map(navLink)}
       </nav>
     </div>

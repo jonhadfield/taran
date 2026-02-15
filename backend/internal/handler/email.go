@@ -43,6 +43,9 @@ func (h *EmailHandler) List(w http.ResponseWriter, r *http.Request) {
 	if v := r.URL.Query().Get("search"); v != "" {
 		opts.Search = &v
 	}
+	if v := r.URL.Query().Get("topic"); v != "" {
+		opts.Topic = &v
+	}
 
 	emails, total, err := h.Emails.List(r.Context(), userID, opts)
 	if err != nil {

@@ -121,6 +121,24 @@ export interface UserStats {
   TopSenders: SenderCount[];
 }
 
+export interface EmailFeedback {
+  ID: string;
+  UserID: string;
+  EmailID: string;
+  Rating: "useful" | "not_useful" | null;
+  CreatedAt: string;
+}
+
+export interface AdminStats {
+  TotalUsers: number;
+  ActiveUsersWeek: number;
+  TotalEmails: number;
+  EmailsThisWeek: number;
+  TotalDigests: number;
+  DigestsThisWeek: number;
+  TopGlobalSenders: SenderCount[];
+}
+
 export interface ListResponse<T> {
   data: T[];
   total: number;
