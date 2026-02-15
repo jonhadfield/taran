@@ -36,6 +36,9 @@ certs/
 # PID files from Makefile
 .pids/
 
+# Vercel
+.vercel/
+
 # Editor/IDE
 # .idea/
 # .vscode/
