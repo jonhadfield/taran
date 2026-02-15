@@ -11,6 +11,7 @@ func setRequiredEnv(t *testing.T) {
 	t.Setenv("TARAN_WEBHOOK_SECRET", "test-secret")
 	t.Setenv("TARAN_ANTHROPIC_API_KEY", "sk-test-key")
 	t.Setenv("TARAN_EMAIL_DOMAIN", "test.example.com")
+	t.Setenv("TARAN_API_KEY", "test-api-key")
 }
 
 func TestLoad_AllRequired(t *testing.T) {
@@ -80,6 +81,38 @@ func TestLoad_MissingEmailDomain(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "TARAN_EMAIL_DOMAIN") {
 		t.Errorf("error = %q, want to contain %q", err.Error(), "TARAN_EMAIL_DOMAIN")
+	}
+}
+
+func TestLoad_MissingAPIKey(t *testing.T) {
+	setRequiredEnv(t)
+	t.Setenv("TARAN_API_KEY", "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "TARAN_API_KEY") {
+		t.Errorf("error = %q, want to contain %q", err.Error(), "TARAN_API_KEY")
+	}
+}
+
+func TestLoad_AllowedOrigins(t *testing.T) {
+	setRequiredEnv(t)
+	t.Setenv("TARAN_ALLOWED_ORIGINS", "https://example.com, https://www.example.com")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(cfg.Server.AllowedOrigins) != 2 {
+		t.Fatalf("AllowedOrigins len = %d, want 2", len(cfg.Server.AllowedOrigins))
+	}
+	if cfg.Server.AllowedOrigins[0] != "https://example.com" {
+		t.Errorf("AllowedOrigins[0] = %q, want %q", cfg.Server.AllowedOrigins[0], "https://example.com")
+	}
+	if cfg.Server.AllowedOrigins[1] != "https://www.example.com" {
+		t.Errorf("AllowedOrigins[1] = %q, want %q", cfg.Server.AllowedOrigins[1], "https://www.example.com")
 	}
 }
 

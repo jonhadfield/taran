@@ -78,7 +78,7 @@ func TestIngestEmail_UnknownRecipient(t *testing.T) {
 	h := &WebhookHandler{
 		Accounts: &testutil.MockAccountRepo{
 			GetByEmailAddressFn: func(_ context.Context, _ string) (*domain.EmailAccount, error) {
-				return nil, fmt.Errorf("not found")
+				return nil, nil
 			},
 		},
 		Emails: &testutil.MockEmailRepo{},

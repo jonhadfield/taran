@@ -46,6 +46,11 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 
 	account, err := h.Accounts.GetByEmailAddress(r.Context(), toAddress)
 	if err != nil {
+		slog.Error("failed to look up account", "to", toAddress, "error", err)
+		WriteError(w, http.StatusInternalServerError, "account lookup failed")
+		return
+	}
+	if account == nil {
 		slog.Warn("no account for address", "to", toAddress)
 		WriteError(w, http.StatusNotFound, "unknown recipient")
 		return

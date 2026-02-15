@@ -6,26 +6,43 @@ import (
 	"testing"
 )
 
-func TestCORSMiddleware_SetsHeaders(t *testing.T) {
+func TestCORSMiddleware_AllowedOrigin(t *testing.T) {
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	handler := CORSMiddleware(inner)
+	cors := CORSMiddleware([]string{"https://example.com", "https://www.example.com"})
+	handler := cors(inner)
 	req := httptest.NewRequest("GET", "/test", nil)
+	req.Header.Set("Origin", "https://example.com")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
-	headers := map[string]string{
-		"Access-Control-Allow-Origin":      "*",
-		"Access-Control-Allow-Methods":     "GET, POST, PATCH, DELETE, OPTIONS",
-		"Access-Control-Allow-Headers":     "Content-Type, Authorization",
-		"Access-Control-Allow-Credentials": "true",
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "https://example.com" {
+		t.Errorf("Allow-Origin = %q, want %q", got, "https://example.com")
 	}
-	for key, want := range headers {
-		if got := rec.Header().Get(key); got != want {
-			t.Errorf("%s = %q, want %q", key, got, want)
-		}
+	if got := rec.Header().Get("Access-Control-Allow-Credentials"); got != "true" {
+		t.Errorf("Allow-Credentials = %q, want %q", got, "true")
+	}
+	if got := rec.Header().Get("Access-Control-Allow-Headers"); got != "Content-Type, Authorization, X-API-Key" {
+		t.Errorf("Allow-Headers = %q, want %q", got, "Content-Type, Authorization, X-API-Key")
+	}
+}
+
+func TestCORSMiddleware_DisallowedOrigin(t *testing.T) {
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	cors := CORSMiddleware([]string{"https://example.com"})
+	handler := cors(inner)
+	req := httptest.NewRequest("GET", "/test", nil)
+	req.Header.Set("Origin", "https://evil.com")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Errorf("Allow-Origin = %q, want empty", got)
 	}
 }
 
@@ -35,8 +52,10 @@ func TestCORSMiddleware_PreflightReturns204(t *testing.T) {
 		called = true
 	})
 
-	handler := CORSMiddleware(inner)
+	cors := CORSMiddleware([]string{"https://example.com"})
+	handler := cors(inner)
 	req := httptest.NewRequest("OPTIONS", "/test", nil)
+	req.Header.Set("Origin", "https://example.com")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -54,7 +73,8 @@ func TestCORSMiddleware_PassesThrough(t *testing.T) {
 		w.Write([]byte("ok"))
 	})
 
-	handler := CORSMiddleware(inner)
+	cors := CORSMiddleware(nil)
+	handler := cors(inner)
 	req := httptest.NewRequest("GET", "/test", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)

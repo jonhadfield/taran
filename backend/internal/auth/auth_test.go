@@ -14,6 +14,69 @@ import (
 	"github.com/hadfielj/taran/backend/internal/testutil"
 )
 
+func TestAPIKeyAuth_ValidKey(t *testing.T) {
+	called := false
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	handler := auth.APIKeyAuth("test-api-key", inner)
+	req := httptest.NewRequest("GET", "/api/test", nil)
+	req.Header.Set("X-API-Key", "test-api-key")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !called {
+		t.Error("inner handler was not called")
+	}
+}
+
+func TestAPIKeyAuth_InvalidKey(t *testing.T) {
+	called := false
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	})
+
+	handler := auth.APIKeyAuth("test-api-key", inner)
+	req := httptest.NewRequest("GET", "/api/test", nil)
+	req.Header.Set("X-API-Key", "wrong-key")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+	if called {
+		t.Error("inner handler should not be called")
+	}
+}
+
+func TestAPIKeyAuth_MissingKey(t *testing.T) {
+	called := false
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	})
+
+	handler := auth.APIKeyAuth("test-api-key", inner)
+	req := httptest.NewRequest("GET", "/api/test", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+	if called {
+		t.Error("inner handler should not be called")
+	}
+}
+
 func TestWebhookAuth_ValidSecret(t *testing.T) {
 	called := false
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

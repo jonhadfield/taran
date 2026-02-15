@@ -18,10 +18,12 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Host       string
-	Port       int
-	TLSDomain  string
-	TLSCertDir string
+	Host           string
+	Port           int
+	TLSDomain      string
+	TLSCertDir     string
+	APIKey         string
+	AllowedOrigins []string
 }
 
 type DatabaseConfig struct {
@@ -87,6 +89,20 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("unsupported LLM provider: %s", provider)
 	}
 
+	apiKey := os.Getenv("TARAN_API_KEY")
+	if apiKey == "" {
+		return nil, fmt.Errorf("TARAN_API_KEY is required")
+	}
+
+	var allowedOrigins []string
+	if v := os.Getenv("TARAN_ALLOWED_ORIGINS"); v != "" {
+		for _, origin := range strings.Split(v, ",") {
+			if trimmed := strings.TrimSpace(origin); trimmed != "" {
+				allowedOrigins = append(allowedOrigins, trimmed)
+			}
+		}
+	}
+
 	emailDomain := os.Getenv("TARAN_EMAIL_DOMAIN")
 	if emailDomain == "" {
 		return nil, fmt.Errorf("TARAN_EMAIL_DOMAIN is required")
@@ -103,10 +119,12 @@ func Load() (*Config, error) {
 
 	return &Config{
 		Server: ServerConfig{
-			Host:       envOr("TARAN_HOST", "0.0.0.0"),
-			Port:       port,
-			TLSDomain:  os.Getenv("TARAN_TLS_DOMAIN"),
-			TLSCertDir: envOr("TARAN_TLS_CERT_DIR", "certs"),
+			Host:           envOr("TARAN_HOST", "0.0.0.0"),
+			Port:           port,
+			TLSDomain:      os.Getenv("TARAN_TLS_DOMAIN"),
+			TLSCertDir:     envOr("TARAN_TLS_CERT_DIR", "certs"),
+			APIKey:         apiKey,
+			AllowedOrigins: allowedOrigins,
 		},
 		DB: DatabaseConfig{
 			URL: dbURL,

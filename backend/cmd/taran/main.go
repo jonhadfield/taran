@@ -118,13 +118,15 @@ func main() {
 	// HTTP server
 	mux := server.NewRouter(server.RouterDeps{
 		WebhookSecret:  cfg.Webhook.Secret,
+		APIKey:         cfg.Server.APIKey,
 		WebhookHandler: webhookHandler,
 		EmailHandler:   emailHandler,
 		DigestHandler:  digestHandler,
 		AccountHandler: accountHandler,
 		SessionAuth:    sessionAuth,
 	})
-	httpHandler := server.RecoveryMiddleware(server.CORSMiddleware(server.LoggingMiddleware(mux)))
+	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
+	httpHandler := server.RecoveryMiddleware(cors(server.LoggingMiddleware(mux)))
 
 	var tlsCfg *server.TLSConfig
 	if cfg.Server.TLSDomain != "" {

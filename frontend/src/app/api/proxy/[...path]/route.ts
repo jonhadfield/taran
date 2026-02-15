@@ -2,9 +2,11 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
+const API_KEY = process.env.API_KEY || "";
 
 async function proxyRequest(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
+
   const backendPath = `/api/${path.join("/")}`;
   const url = new URL(backendPath, BACKEND_URL);
 
@@ -13,7 +15,9 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
   });
 
   const cookieStore = await cookies();
-  const rawCookie = cookieStore.get("better-auth.session_token")?.value;
+  const rawCookie =
+    cookieStore.get("better-auth.session_token")?.value ??
+    cookieStore.get("__Secure-better-auth.session_token")?.value;
 
   if (!rawCookie) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -21,11 +25,12 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
 
   // Better Auth signs cookies as "token.hmac_signature" — strip the signature
   const parts = rawCookie.split(".");
-  const sessionToken = parts.length > 1 ? parts.slice(0, -1).join(".") : rawCookie;
+  const sessionToken = parts.length > 1 ? parts.slice(0, -1).join(".")  : rawCookie;
 
   const headers: HeadersInit = {
     "Authorization": `Bearer ${sessionToken}`,
     "Content-Type": "application/json",
+    "X-API-Key": API_KEY,
   };
 
   const fetchOptions: RequestInit = {

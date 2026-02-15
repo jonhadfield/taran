@@ -1,10 +1,13 @@
 import { cookies } from "next/headers";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
+const API_KEY = process.env.API_KEY || "";
 
 export async function serverFetch<T>(path: string): Promise<T> {
   const cookieStore = await cookies();
-  const rawCookie = cookieStore.get("better-auth.session_token")?.value;
+  const rawCookie =
+    cookieStore.get("better-auth.session_token")?.value ??
+    cookieStore.get("__Secure-better-auth.session_token")?.value;
 
   if (!rawCookie) {
     throw new Error("Not authenticated");
@@ -17,6 +20,7 @@ export async function serverFetch<T>(path: string): Promise<T> {
   const res = await fetch(`${BACKEND_URL}/api/${path}`, {
     headers: {
       Authorization: `Bearer ${sessionToken}`,
+      "X-API-Key": API_KEY,
     },
     cache: "no-store",
   });

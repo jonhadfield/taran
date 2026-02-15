@@ -27,6 +27,18 @@ func UserEmailFromContext(ctx context.Context) string {
 	return email
 }
 
+// APIKeyAuth validates the X-API-Key header against the configured key.
+func APIKeyAuth(apiKey string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		provided := r.Header.Get("X-API-Key")
+		if provided == "" || provided != apiKey {
+			writeAuthError(w, http.StatusUnauthorized, "invalid or missing API key")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // WebhookAuth validates the shared secret for webhook endpoints.
 func WebhookAuth(secret string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

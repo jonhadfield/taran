@@ -10,6 +10,7 @@ import (
 
 type RouterDeps struct {
 	WebhookSecret  string
+	APIKey         string
 	WebhookHandler *handler.WebhookHandler
 	EmailHandler   *handler.EmailHandler
 	DigestHandler  *handler.DigestHandler
@@ -43,7 +44,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	admin.HandleFunc("POST /api/admin/digests/generate", deps.DigestHandler.Generate)
 	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(admin))
 
-	mux.Handle("/api/", deps.SessionAuth.Middleware(api))
+	mux.Handle("/api/", auth.APIKeyAuth(deps.APIKey, deps.SessionAuth.Middleware(api)))
 
 	return mux
 }
