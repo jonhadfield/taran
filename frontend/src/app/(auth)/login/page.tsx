@@ -2,25 +2,29 @@
 
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail } from "lucide-react";
 import { APP_NAME } from "@/lib/config";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4 gap-8">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
-            <Mail className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <CardTitle className="text-2xl">{APP_NAME}</CardTitle>
-          <CardDescription>
-            Sign in to access your email digests
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
+      <div className="flex w-full max-w-sm flex-col items-center gap-10">
+        {/* Hero */}
+        <div className="flex flex-col items-center gap-3 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.svg"
+            alt={`${APP_NAME} logo`}
+            width={80}
+            height={80}
+          />
+          <h1 className="text-4xl font-bold tracking-tight">{APP_NAME}</h1>
+          <p className="text-lg text-muted-foreground">Email, but brief.</p>
+        </div>
+
+        {/* Sign in */}
+        <div className="w-full space-y-3">
           <Button
             variant="outline"
             className="w-full"
@@ -41,39 +45,40 @@ export default function LoginPage() {
             <GitHubIcon />
             Continue with GitHub
           </Button>
-        </CardContent>
-      </Card>
+        </div>
 
-      <div className="w-full max-w-sm space-y-3">
-        <p className="text-center text-sm text-muted-foreground">
-          See what you&apos;ll get
-        </p>
-        <Card className="opacity-90">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Your Daily Newsletter Digest</CardTitle>
-            <p className="text-xs text-muted-foreground">Feb 14 – Feb 15, 2026 · 8 emails</p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              AI breakthroughs dominated today&apos;s newsletters with major announcements from leading labs. Markets reacted positively to strong earnings, while new open-source tools gained traction in the developer community.
-            </p>
-            <div>
-              <p className="text-xs font-medium mb-2">Highlights</p>
-              <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
-                <li>New reasoning model achieves state-of-the-art benchmarks</li>
-                <li>Tech earnings beat expectations across the board</li>
-                <li>Open-source framework hits 50k GitHub stars</li>
-              </ul>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {["AI", "Markets", "Open Source", "Startups"].map((topic) => (
-                <Badge key={topic} variant="secondary" className="text-xs">
-                  {topic}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Demo digest preview */}
+        <div className="w-full space-y-3">
+          <p className="text-center text-sm text-muted-foreground">
+            See what you&apos;ll get
+          </p>
+          <Card className="opacity-90">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Your Daily Newsletter Digest</CardTitle>
+              <p className="text-xs text-muted-foreground">Feb 14 &ndash; Feb 15, 2026 &middot; 8 emails</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                AI breakthroughs dominated today&apos;s newsletters with major announcements from leading labs. Markets reacted positively to strong earnings, while new open-source tools gained traction in the developer community.
+              </p>
+              <div>
+                <p className="text-xs font-medium mb-2">Highlights</p>
+                <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
+                  <li>New reasoning model achieves state-of-the-art benchmarks</li>
+                  <li>Tech earnings beat expectations across the board</li>
+                  <li>Open-source framework hits 50k GitHub stars</li>
+                </ul>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {["AI", "Markets", "Open Source", "Startups"].map((topic) => (
+                  <Badge key={topic} variant="secondary" className="text-xs">
+                    {topic}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
