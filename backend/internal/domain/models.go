@@ -98,6 +98,13 @@ type EmailAccount struct {
 	UpdatedAt    time.Time
 }
 
+type UserPreference struct {
+	UserID      string
+	DigestEmail bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 type Session struct {
 	ID        string
 	UserID    string

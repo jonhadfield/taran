@@ -30,3 +30,13 @@ func (r *SessionRepo) GetByToken(ctx context.Context, token string) (*domain.Ses
 	}
 	return &s, nil
 }
+
+func (r *SessionRepo) GetUserEmail(ctx context.Context, userID string) (string, error) {
+	var email string
+	err := r.pool.QueryRow(ctx,
+		`SELECT email FROM "user" WHERE id = $1`, userID).Scan(&email)
+	if err != nil {
+		return "", fmt.Errorf("get user email: %w", err)
+	}
+	return email, nil
+}

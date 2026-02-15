@@ -19,7 +19,7 @@ export interface Email {
   UpdatedAt: string;
 }
 
-export type EmailStatus = "pending" | "processing" | "processed" | "failed";
+export type EmailStatus = "pending" | "processing" | "processed" | "failed" | "skipped";
 
 export interface EmailState {
   IsRead?: boolean;
@@ -86,6 +86,13 @@ export interface EmailAccount {
   EmailAddress: string;
   DisplayName: string;
   IsActive: boolean;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
+export interface UserPreference {
+  UserID: string;
+  DigestEmail: boolean;
   CreatedAt: string;
   UpdatedAt: string;
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -140,6 +141,15 @@ func (r *DigestRepo) List(ctx context.Context, userID string, opts domain.ListOp
 		digests = append(digests, *d)
 	}
 	return digests, total, nil
+}
+
+func (r *DigestRepo) SetSentAt(ctx context.Context, id string, sentAt time.Time) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE digest SET sent_at = $1 WHERE id = $2`, sentAt, id)
+	if err != nil {
+		return fmt.Errorf("set sent_at: %w", err)
+	}
+	return nil
 }
 
 func scanDigest(row scannable) (*domain.Digest, error) {

@@ -17,6 +17,7 @@ import (
 	"github.com/hadfielj/taran/backend/internal/digest"
 	"github.com/hadfielj/taran/backend/internal/handler"
 	"github.com/hadfielj/taran/backend/internal/llm"
+	"github.com/hadfielj/taran/backend/internal/mailer"
 	"github.com/hadfielj/taran/backend/internal/server"
 	"github.com/hadfielj/taran/backend/internal/worker"
 	"github.com/joho/godotenv"
@@ -63,6 +64,7 @@ func main() {
 	extractionRepo := database.NewExtractionRepo(pool)
 	digestRepo := database.NewDigestRepo(pool)
 	sessionRepo := database.NewSessionRepo(pool)
+	preferenceRepo := database.NewPreferenceRepo(pool)
 
 	// LLM Provider
 	provider, err := newLLMProvider(cfg)
@@ -76,6 +78,13 @@ func main() {
 	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, provider)
 	proc.Start(ctx)
 
+	// Mailer (optional — disabled if no Resend API key)
+	var m mailer.Mailer
+	if cfg.Email.ResendAPIKey != "" {
+		m = mailer.NewResendMailer(cfg.Email.ResendAPIKey, cfg.Email.FromAddress)
+		slog.Info("digest email delivery enabled via Resend")
+	}
+
 	// Digest scheduler
 	gen := &digest.Generator{
 		Emails:      emailRepo,
@@ -84,7 +93,7 @@ func main() {
 		Accounts:    accountRepo,
 		Provider:    provider,
 	}
-	sched, err := digest.NewScheduler(cfg.Digest.Cron, cfg.Digest.Timezone, gen, emailRepo)
+	sched, err := digest.NewScheduler(cfg.Digest.Cron, cfg.Digest.Timezone, gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m)
 	if err != nil {
 		slog.Error("failed to create digest scheduler", "error", err)
 		os.Exit(1)
@@ -110,6 +119,9 @@ func main() {
 		Accounts:    accountRepo,
 		EmailDomain: cfg.Email.Domain,
 	}
+	preferenceHandler := &handler.PreferenceHandler{
+		Preferences: preferenceRepo,
+	}
 	sessionAuth := &auth.SessionAuth{
 		Sessions:    sessionRepo,
 		AdminEmails: cfg.AdminEmails,
@@ -117,13 +129,14 @@ func main() {
 
 	// HTTP server
 	mux := server.NewRouter(server.RouterDeps{
-		WebhookSecret:  cfg.Webhook.Secret,
-		APIKey:         cfg.Server.APIKey,
-		WebhookHandler: webhookHandler,
-		EmailHandler:   emailHandler,
-		DigestHandler:  digestHandler,
-		AccountHandler: accountHandler,
-		SessionAuth:    sessionAuth,
+		WebhookSecret:     cfg.Webhook.Secret,
+		APIKey:            cfg.Server.APIKey,
+		WebhookHandler:    webhookHandler,
+		EmailHandler:      emailHandler,
+		DigestHandler:     digestHandler,
+		AccountHandler:    accountHandler,
+		PreferenceHandler: preferenceHandler,
+		SessionAuth:       sessionAuth,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	httpHandler := server.RecoveryMiddleware(cors(server.LoggingMiddleware(mux)))

@@ -131,9 +131,10 @@ func (m *MockExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID str
 
 // MockDigestRepo implements database.DigestRepository for testing.
 type MockDigestRepo struct {
-	CreateFn  func(ctx context.Context, digest *domain.Digest) error
-	GetByIDFn func(ctx context.Context, userID, id string) (*domain.Digest, error)
-	ListFn    func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
+	CreateFn   func(ctx context.Context, digest *domain.Digest) error
+	GetByIDFn  func(ctx context.Context, userID, id string) (*domain.Digest, error)
+	ListFn     func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
+	SetSentAtFn func(ctx context.Context, id string, sentAt time.Time) error
 }
 
 func (m *MockDigestRepo) Create(ctx context.Context, digest *domain.Digest) error {
@@ -155,6 +156,13 @@ func (m *MockDigestRepo) List(ctx context.Context, userID string, opts domain.Li
 		return m.ListFn(ctx, userID, opts)
 	}
 	return nil, 0, nil
+}
+
+func (m *MockDigestRepo) SetSentAt(ctx context.Context, id string, sentAt time.Time) error {
+	if m.SetSentAtFn != nil {
+		return m.SetSentAtFn(ctx, id, sentAt)
+	}
+	return nil
 }
 
 // MockAccountRepo implements database.AccountRepository for testing.
@@ -203,7 +211,8 @@ func (m *MockAccountRepo) Delete(ctx context.Context, userID, id string) error {
 
 // MockSessionRepo implements database.SessionRepository for testing.
 type MockSessionRepo struct {
-	GetByTokenFn func(ctx context.Context, token string) (*domain.Session, error)
+	GetByTokenFn   func(ctx context.Context, token string) (*domain.Session, error)
+	GetUserEmailFn func(ctx context.Context, userID string) (string, error)
 }
 
 func (m *MockSessionRepo) GetByToken(ctx context.Context, token string) (*domain.Session, error) {
@@ -211,6 +220,45 @@ func (m *MockSessionRepo) GetByToken(ctx context.Context, token string) (*domain
 		return m.GetByTokenFn(ctx, token)
 	}
 	return nil, nil
+}
+
+func (m *MockSessionRepo) GetUserEmail(ctx context.Context, userID string) (string, error) {
+	if m.GetUserEmailFn != nil {
+		return m.GetUserEmailFn(ctx, userID)
+	}
+	return "test@example.com", nil
+}
+
+// MockPreferenceRepo implements database.PreferenceRepository for testing.
+type MockPreferenceRepo struct {
+	GetFn    func(ctx context.Context, userID string) (*domain.UserPreference, error)
+	UpsertFn func(ctx context.Context, pref *domain.UserPreference) error
+}
+
+func (m *MockPreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPreference, error) {
+	if m.GetFn != nil {
+		return m.GetFn(ctx, userID)
+	}
+	return &domain.UserPreference{UserID: userID}, nil
+}
+
+func (m *MockPreferenceRepo) Upsert(ctx context.Context, pref *domain.UserPreference) error {
+	if m.UpsertFn != nil {
+		return m.UpsertFn(ctx, pref)
+	}
+	return nil
+}
+
+// MockMailer implements mailer.Mailer for testing.
+type MockMailer struct {
+	SendDigestFn func(ctx context.Context, toEmail, toName string, digest *domain.Digest) error
+}
+
+func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, digest *domain.Digest) error {
+	if m.SendDigestFn != nil {
+		return m.SendDigestFn(ctx, toEmail, toName, digest)
+	}
+	return nil
 }
 
 // MockProvider implements llm.Provider for testing.

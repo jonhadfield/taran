@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet, apiDelete } from "@/lib/api";
+import { apiGet, apiDelete, apiPatch } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2, Trash2 } from "lucide-react";
-import type { EmailAccount, ListResponse } from "@/types/api";
+import type { EmailAccount, ListResponse, UserPreference } from "@/types/api";
 import { CopyButton } from "./copy-button";
 import { SignOutButton } from "./sign-out-button";
 import { UsernameForm } from "@/components/username-form";
@@ -29,6 +31,11 @@ export default function SettingsPage() {
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Preferences
+  const [digestEmail, setDigestEmail] = useState(false);
+  const [prefLoading, setPrefLoading] = useState(true);
+  const [prefSaving, setPrefSaving] = useState(false);
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<EmailAccount | null>(null);
@@ -46,9 +53,36 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchPreferences = async () => {
+    try {
+      const pref = await apiGet<UserPreference>("preferences");
+      setDigestEmail(pref.DigestEmail);
+    } catch {
+      // Defaults to false
+    } finally {
+      setPrefLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchAccounts();
+    fetchPreferences();
   }, []);
+
+  const handleToggleDigestEmail = async (checked: boolean) => {
+    setPrefSaving(true);
+    setDigestEmail(checked);
+    try {
+      const updated = await apiPatch<UserPreference>("preferences", {
+        DigestEmail: checked,
+      });
+      setDigestEmail(updated.DigestEmail);
+    } catch {
+      setDigestEmail(!checked);
+    } finally {
+      setPrefSaving(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -120,6 +154,31 @@ export default function SettingsPage() {
               </div>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Digest Delivery</CardTitle>
+          <CardDescription>
+            Get your daily digest delivered to your email inbox
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="digest-email" className="flex flex-col gap-1">
+              <span>Email delivery</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                Receive your digest as an email each day
+              </span>
+            </Label>
+            <Switch
+              id="digest-email"
+              checked={digestEmail}
+              onCheckedChange={handleToggleDigestEmail}
+              disabled={prefLoading || prefSaving}
+            />
+          </div>
         </CardContent>
       </Card>
 

@@ -50,7 +50,9 @@ type DigestConfig struct {
 }
 
 type EmailConfig struct {
-	Domain string
+	Domain       string
+	ResendAPIKey string
+	FromAddress  string
 }
 
 func Load() (*Config, error) {
@@ -146,7 +148,9 @@ func Load() (*Config, error) {
 			Timezone: envOr("TARAN_DIGEST_TIMEZONE", "UTC"),
 		},
 		Email: EmailConfig{
-			Domain: emailDomain,
+			Domain:       emailDomain,
+			ResendAPIKey: os.Getenv("TARAN_RESEND_API_KEY"),
+			FromAddress:  envOr("TARAN_EMAIL_FROM", "MailBrief <digest@mailbrief.io>"),
 		},
 		AdminEmails: adminEmails,
 	}, nil

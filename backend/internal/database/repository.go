@@ -29,6 +29,7 @@ type DigestRepository interface {
 	Create(ctx context.Context, digest *domain.Digest) error
 	GetByID(ctx context.Context, userID, id string) (*domain.Digest, error)
 	List(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
+	SetSentAt(ctx context.Context, id string, sentAt time.Time) error
 }
 
 type AccountRepository interface {
@@ -39,6 +40,12 @@ type AccountRepository interface {
 	Delete(ctx context.Context, userID, id string) error
 }
 
+type PreferenceRepository interface {
+	Get(ctx context.Context, userID string) (*domain.UserPreference, error)
+	Upsert(ctx context.Context, pref *domain.UserPreference) error
+}
+
 type SessionRepository interface {
 	GetByToken(ctx context.Context, token string) (*domain.Session, error)
+	GetUserEmail(ctx context.Context, userID string) (string, error)
 }

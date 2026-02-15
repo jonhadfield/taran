@@ -8,7 +8,9 @@ require (
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/jhillyerd/enmime v1.3.0
 	github.com/joho/godotenv v1.5.1
+	github.com/resend/resend-go/v2 v2.28.0
 	github.com/robfig/cron/v3 v3.0.1
+	golang.org/x/crypto v0.48.0
 	golang.org/x/net v0.50.0
 )
 
@@ -28,7 +30,6 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 )

@@ -3,6 +3,7 @@ import { isAdmin } from "@/lib/admin";
 import type { Digest, ListResponse } from "@/types/api";
 import { GenerateDigestButton } from "./generate-digest-button";
 import { DigestList } from "./digest-list";
+import { DeliveryPrompt } from "./delivery-prompt";
 
 export default async function DigestsPage() {
   let digests: Digest[] = [];
@@ -21,6 +22,8 @@ export default async function DigestsPage() {
         <h1 className="text-2xl font-bold text-balance">Digests</h1>
         {admin && <GenerateDigestButton />}
       </div>
+
+      {digests.length > 0 && <DeliveryPrompt />}
 
       <DigestList initialDigests={digests} />
     </div>

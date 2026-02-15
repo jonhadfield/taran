@@ -9,13 +9,14 @@ import (
 )
 
 type RouterDeps struct {
-	WebhookSecret  string
-	APIKey         string
-	WebhookHandler *handler.WebhookHandler
-	EmailHandler   *handler.EmailHandler
-	DigestHandler  *handler.DigestHandler
-	AccountHandler *handler.AccountHandler
-	SessionAuth    *auth.SessionAuth
+	WebhookSecret     string
+	APIKey            string
+	WebhookHandler    *handler.WebhookHandler
+	EmailHandler      *handler.EmailHandler
+	DigestHandler     *handler.DigestHandler
+	AccountHandler    *handler.AccountHandler
+	PreferenceHandler *handler.PreferenceHandler
+	SessionAuth       *auth.SessionAuth
 }
 
 func NewRouter(deps RouterDeps) *http.ServeMux {
@@ -38,6 +39,8 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("POST /api/accounts", deps.AccountHandler.Create)
 	api.HandleFunc("DELETE /api/accounts/{id}", deps.AccountHandler.Delete)
 	api.HandleFunc("GET /api/accounts/check-username", deps.AccountHandler.CheckUsername)
+	api.HandleFunc("GET /api/preferences", deps.PreferenceHandler.Get)
+	api.HandleFunc("PATCH /api/preferences", deps.PreferenceHandler.Update)
 
 	// Admin routes
 	admin := http.NewServeMux()
