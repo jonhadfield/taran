@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { usePolling } from "@/hooks/use-polling";
 import type { Email, ListResponse } from "@/types/api";
 import { Inbox } from "lucide-react";
@@ -24,6 +25,14 @@ function getAvatarColor(name: string) {
   return avatarColors[charCode % avatarColors.length];
 }
 
+function buildQueryString(filter: string) {
+  const params = ["limit=50"];
+  if (filter === "unread") params.push("is_read=false");
+  if (filter === "starred") params.push("is_starred=true");
+  if (filter === "archived") params.push("is_archived=true");
+  return params.join("&");
+}
+
 interface InboxListProps {
   initialEmails: Email[];
   initialTotal: number;
@@ -34,9 +43,11 @@ interface InboxListProps {
 export function InboxList({
   initialEmails,
   initialTotal,
-  filter,
-  queryString,
+  filter: initialFilter,
 }: InboxListProps) {
+  const [filter, setFilter] = useState(initialFilter);
+  const queryString = buildQueryString(filter);
+
   const res = usePolling<ListResponse<Email>>(
     `emails?${queryString}`,
     { data: initialEmails, total: initialTotal }
@@ -45,6 +56,12 @@ export function InboxList({
   const emails = res.data || [];
   const total = res.total;
 
+  const handleFilterChange = useCallback((value: string) => {
+    setFilter(value);
+    const url = value === "all" ? "/inbox" : `/inbox?filter=${value}`;
+    window.history.replaceState(null, "", url);
+  }, []);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -52,7 +69,7 @@ export function InboxList({
         <span className="text-sm text-muted-foreground">{total} emails</span>
       </div>
 
-      <InboxFilters />
+      <InboxFilters value={filter} onChange={handleFilterChange} />
 
       {emails.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">

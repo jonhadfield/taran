@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { apiGet } from "@/lib/api";
 
 export function usePolling<T>(
@@ -9,21 +9,31 @@ export function usePolling<T>(
   intervalMs = 15_000
 ): T {
   const [data, setData] = useState(initialData);
-  const pathRef = useRef(path);
-  pathRef.current = path;
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Fetch immediately when path changes
+    apiGet<T>(path)
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .catch(() => {});
+
     const id = setInterval(async () => {
       try {
-        const res = await apiGet<T>(pathRef.current);
-        setData(res);
+        const res = await apiGet<T>(path);
+        if (!cancelled) setData(res);
       } catch {
         // Keep showing stale data on error
       }
     }, intervalMs);
 
-    return () => clearInterval(id);
-  }, [intervalMs]);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [path, intervalMs]);
 
   return data;
 }
