@@ -40,6 +40,9 @@ func (h *EmailHandler) List(w http.ResponseWriter, r *http.Request) {
 		b := v == "true"
 		opts.IsArchived = &b
 	}
+	if v := r.URL.Query().Get("search"); v != "" {
+		opts.Search = &v
+	}
 
 	emails, total, err := h.Emails.List(r.Context(), userID, opts)
 	if err != nil {

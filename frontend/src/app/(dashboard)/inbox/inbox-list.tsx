@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { usePolling } from "@/hooks/use-polling";
 import type { Email, ListResponse } from "@/types/api";
-import { Inbox } from "lucide-react";
+import { Inbox, Search, X } from "lucide-react";
 import { APP_NAME } from "@/lib/config";
 import Link from "next/link";
 import { InboxFilters } from "./inbox-filters";
@@ -25,11 +25,12 @@ function getAvatarColor(name: string) {
   return avatarColors[charCode % avatarColors.length];
 }
 
-function buildQueryString(filter: string) {
+function buildQueryString(filter: string, search: string) {
   const params = ["limit=50"];
   if (filter === "unread") params.push("is_read=false");
   if (filter === "starred") params.push("is_starred=true");
   if (filter === "archived") params.push("is_archived=true");
+  if (search) params.push(`search=${encodeURIComponent(search)}`);
   return params.join("&");
 }
 
@@ -46,7 +47,20 @@ export function InboxList({
   filter: initialFilter,
 }: InboxListProps) {
   const [filter, setFilter] = useState(initialFilter);
-  const queryString = buildQueryString(filter);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queryString = buildQueryString(filter, debouncedSearch);
+
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, 300);
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchInput]);
 
   const res = usePolling<ListResponse<Email>>(
     `emails?${queryString}`,
@@ -67,6 +81,26 @@ export function InboxList({
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-balance">Inbox</h1>
         <span className="text-sm text-muted-foreground">{total} emails</span>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Search by subject or sender..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-8 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        />
+        {searchInput && (
+          <button
+            onClick={() => setSearchInput("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        )}
       </div>
 
       <InboxFilters value={filter} onChange={handleFilterChange} />
@@ -104,7 +138,7 @@ export function InboxList({
 
                 {/* Avatar */}
                 <div
-                  className={`flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white ${getAvatarColor(senderName)}`}
+                  className={`hidden sm:flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white ${getAvatarColor(senderName)}`}
                 >
                   {initial}
                 </div>

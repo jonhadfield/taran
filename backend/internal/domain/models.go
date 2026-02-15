@@ -127,6 +127,35 @@ type Session struct {
 	ExpiresAt time.Time
 }
 
+type SenderPreference struct {
+	ID          string
+	UserID      string
+	FromAddress string
+	Status      string // "normal", "muted", "blocked", "favorite"
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type SenderInfo struct {
+	FromAddress string `json:"FromAddress"`
+	FromName    string `json:"FromName"`
+	EmailCount  int    `json:"EmailCount"`
+	Status      string `json:"Status"`
+}
+
+type SenderCount struct {
+	FromAddress string `json:"FromAddress"`
+	FromName    string `json:"FromName"`
+	Count       int    `json:"Count"`
+}
+
+type UserStats struct {
+	EmailsThisWeek int           `json:"EmailsThisWeek"`
+	EmailsLastWeek int           `json:"EmailsLastWeek"`
+	TotalEmails    int           `json:"TotalEmails"`
+	TopSenders     []SenderCount `json:"TopSenders"`
+}
+
 type ListOptions struct {
 	Limit      int
 	Offset     int
@@ -136,4 +165,5 @@ type ListOptions struct {
 	IsArchived *bool
 	Since      *time.Time
 	Before     *time.Time
+	Search     *string
 }

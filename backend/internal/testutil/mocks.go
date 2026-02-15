@@ -26,6 +26,8 @@ type MockEmailRepo struct {
 	ListPendingFn       func(ctx context.Context, limit int) ([]domain.Email, error)
 	SetStatusFn         func(ctx context.Context, id string, status domain.EmailStatus) error
 	ListActiveUserIDsFn func(ctx context.Context, from, to time.Time) ([]string, error)
+	CountByPeriodFn     func(ctx context.Context, userID string, from, to time.Time) (int, error)
+	TopSendersFn        func(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
 
 	mu             sync.Mutex
 	SetStatusCalls []SetStatusCall
@@ -97,6 +99,20 @@ func (m *MockEmailRepo) SetStatus(ctx context.Context, id string, status domain.
 func (m *MockEmailRepo) ListActiveUserIDs(ctx context.Context, from, to time.Time) ([]string, error) {
 	if m.ListActiveUserIDsFn != nil {
 		return m.ListActiveUserIDsFn(ctx, from, to)
+	}
+	return nil, nil
+}
+
+func (m *MockEmailRepo) CountByPeriod(ctx context.Context, userID string, from, to time.Time) (int, error) {
+	if m.CountByPeriodFn != nil {
+		return m.CountByPeriodFn(ctx, userID, from, to)
+	}
+	return 0, nil
+}
+
+func (m *MockEmailRepo) TopSenders(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error) {
+	if m.TopSendersFn != nil {
+		return m.TopSendersFn(ctx, userID, from, to, limit)
 	}
 	return nil, nil
 }
@@ -283,6 +299,42 @@ func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, dig
 		return m.SendDigestFn(ctx, toEmail, toName, digest)
 	}
 	return nil
+}
+
+// MockSenderPreferenceRepo implements database.SenderPreferenceRepository for testing.
+type MockSenderPreferenceRepo struct {
+	UpsertFn              func(ctx context.Context, pref *domain.SenderPreference) error
+	GetByAddressFn        func(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error)
+	ListByUserFn          func(ctx context.Context, userID string) ([]domain.SenderPreference, error)
+	ListBlockedAddressesFn func(ctx context.Context, userID string) ([]string, error)
+}
+
+func (m *MockSenderPreferenceRepo) Upsert(ctx context.Context, pref *domain.SenderPreference) error {
+	if m.UpsertFn != nil {
+		return m.UpsertFn(ctx, pref)
+	}
+	return nil
+}
+
+func (m *MockSenderPreferenceRepo) GetByAddress(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error) {
+	if m.GetByAddressFn != nil {
+		return m.GetByAddressFn(ctx, userID, fromAddress)
+	}
+	return nil, nil
+}
+
+func (m *MockSenderPreferenceRepo) ListByUser(ctx context.Context, userID string) ([]domain.SenderPreference, error) {
+	if m.ListByUserFn != nil {
+		return m.ListByUserFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockSenderPreferenceRepo) ListBlockedAddresses(ctx context.Context, userID string) ([]string, error) {
+	if m.ListBlockedAddressesFn != nil {
+		return m.ListBlockedAddressesFn(ctx, userID)
+	}
+	return nil, nil
 }
 
 // MockProvider implements llm.Provider for testing.

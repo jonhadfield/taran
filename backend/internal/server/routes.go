@@ -16,6 +16,8 @@ type RouterDeps struct {
 	DigestHandler     *handler.DigestHandler
 	AccountHandler    *handler.AccountHandler
 	PreferenceHandler *handler.PreferenceHandler
+	SenderHandler     *handler.SenderHandler
+	StatsHandler      *handler.StatsHandler
 	SessionAuth       *auth.SessionAuth
 }
 
@@ -46,6 +48,10 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/accounts/check-username", deps.AccountHandler.CheckUsername)
 	api.HandleFunc("GET /api/preferences", deps.PreferenceHandler.Get)
 	api.HandleFunc("PATCH /api/preferences", deps.PreferenceHandler.Update)
+	api.HandleFunc("GET /api/senders", deps.SenderHandler.List)
+	api.HandleFunc("PATCH /api/senders", deps.SenderHandler.Update)
+	api.HandleFunc("GET /api/stats", deps.StatsHandler.Get)
+	api.HandleFunc("POST /api/digests/generate", deps.DigestHandler.Generate)
 
 	// Admin routes
 	admin := http.NewServeMux()

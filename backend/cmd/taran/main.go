@@ -65,6 +65,7 @@ func main() {
 	digestRepo := database.NewDigestRepo(pool)
 	sessionRepo := database.NewSessionRepo(pool)
 	preferenceRepo := database.NewPreferenceRepo(pool)
+	senderPrefRepo := database.NewSenderPreferenceRepo(pool)
 
 	// LLM Provider
 	provider, err := newLLMProvider(cfg)
@@ -75,7 +76,7 @@ func main() {
 	slog.Info("LLM provider configured", "provider", provider.Name(), "model", provider.Model())
 
 	// Background worker
-	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, provider)
+	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, provider, senderPrefRepo)
 	proc.Start(ctx)
 
 	// Mailer (optional — disabled if no Resend API key)
@@ -92,6 +93,7 @@ func main() {
 		Digests:     digestRepo,
 		Accounts:    accountRepo,
 		Provider:    provider,
+		SenderPrefs: senderPrefRepo,
 	}
 	sched, err := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m)
 	if err != nil {
@@ -106,6 +108,7 @@ func main() {
 		Emails:      emailRepo,
 		Extractions: extractionRepo,
 		Provider:    provider,
+		SenderPrefs: senderPrefRepo,
 	}
 	emailHandler := &handler.EmailHandler{
 		Emails:      emailRepo,
@@ -118,6 +121,13 @@ func main() {
 	accountHandler := &handler.AccountHandler{
 		Accounts:    accountRepo,
 		EmailDomain: cfg.Email.Domain,
+	}
+	senderHandler := &handler.SenderHandler{
+		Emails:      emailRepo,
+		SenderPrefs: senderPrefRepo,
+	}
+	statsHandler := &handler.StatsHandler{
+		Emails: emailRepo,
 	}
 	preferenceHandler := &handler.PreferenceHandler{
 		Preferences: preferenceRepo,
@@ -136,6 +146,8 @@ func main() {
 		DigestHandler:     digestHandler,
 		AccountHandler:    accountHandler,
 		PreferenceHandler: preferenceHandler,
+		SenderHandler:     senderHandler,
+		StatsHandler:      statsHandler,
 		SessionAuth:       sessionAuth,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)

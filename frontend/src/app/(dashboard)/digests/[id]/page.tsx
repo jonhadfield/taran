@@ -33,7 +33,7 @@ export default async function DigestDetailPage({
       </Link>
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <h1 className="text-2xl font-bold">{digest.Title}</h1>
           <ShareButton digestId={digest.ID} initialToken={digest.ShareToken} />
         </div>

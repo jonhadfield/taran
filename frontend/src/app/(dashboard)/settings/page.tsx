@@ -26,6 +26,7 @@ import type { EmailAccount, ListResponse, UserPreference } from "@/types/api";
 import { CopyButton } from "./copy-button";
 import { SignOutButton } from "./sign-out-button";
 import { UsernameForm } from "@/components/username-form";
+import { ForwardingGuide } from "@/components/forwarding-guide";
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
   const hour = i % 12 || 12;
@@ -283,7 +284,7 @@ export default function SettingsPage() {
                   value={digestHour}
                   onChange={(e) => handleHourChange(Number(e.target.value))}
                   disabled={prefSaving}
-                  className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-9 w-full max-w-full sm:max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
                   {HOUR_OPTIONS.map(({ value, label }) => (
                     <option key={value} value={value}>{label}</option>
@@ -298,7 +299,7 @@ export default function SettingsPage() {
                   value={digestTimezone}
                   onChange={(e) => handleTimezoneChange(e.target.value)}
                   disabled={prefSaving}
-                  className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-9 w-full max-w-full sm:max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
                   {timezoneOptions.map((tz) => (
                     <option key={tz} value={tz}>
@@ -311,6 +312,20 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {accounts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Forwarding Setup</CardTitle>
+            <CardDescription>
+              Learn how to forward newsletters from your email provider
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ForwardingGuide emailAddress={accounts[0]?.EmailAddress} />
+          </CardContent>
+        </Card>
+      )}
 
       <Separator />
 

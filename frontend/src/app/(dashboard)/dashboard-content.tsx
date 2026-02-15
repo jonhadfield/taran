@@ -3,8 +3,8 @@
 import { usePolling } from "@/hooks/use-polling";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Email, Digest, ListResponse } from "@/types/api";
-import { Inbox, BookOpen, Mail } from "lucide-react";
+import type { Email, Digest, ListResponse, UserStats } from "@/types/api";
+import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown } from "lucide-react";
 import { APP_NAME } from "@/lib/config";
 import Link from "next/link";
 
@@ -33,11 +33,16 @@ export function DashboardContent({
     "emails?is_read=false&limit=1",
     { data: [], total: initialUnreadCount }
   );
+  const stats = usePolling<UserStats>(
+    "stats",
+    { EmailsThisWeek: 0, EmailsLastWeek: 0, TotalEmails: 0, TopSenders: [] }
+  );
 
   const emails = emailRes.data || [];
-  const emailTotal = emailRes.total;
   const digests = digestRes.data || [];
   const unreadCount = unreadRes.total;
+
+  const weekDiff = stats.EmailsThisWeek - stats.EmailsLastWeek;
 
   return (
     <div className="space-y-8">
@@ -51,8 +56,20 @@ export function DashboardContent({
               <Mail className="size-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{emailTotal}</p>
-              <p className="text-sm text-muted-foreground">Total Emails</p>
+              <p className="text-2xl font-bold">{stats.EmailsThisWeek}</p>
+              <p className="text-sm text-muted-foreground">This Week</p>
+              {stats.EmailsLastWeek > 0 && (
+                <div className="flex items-center gap-1 mt-0.5">
+                  {weekDiff >= 0 ? (
+                    <TrendingUp className="size-3 text-emerald-500" />
+                  ) : (
+                    <TrendingDown className="size-3 text-rose-500" />
+                  )}
+                  <span className={`text-xs ${weekDiff >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                    {weekDiff >= 0 ? "+" : ""}{weekDiff} vs last week
+                  </span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -75,12 +92,41 @@ export function DashboardContent({
               <BookOpen className="size-6 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{digests.length}</p>
-              <p className="text-sm text-muted-foreground">Digests</p>
+              <p className="text-2xl font-bold">{stats.TotalEmails}</p>
+              <p className="text-sm text-muted-foreground">Total Emails</p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Top Senders */}
+      {stats.TopSenders && stats.TopSenders.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Top Senders This Week</h2>
+          <div className="divide-y rounded-lg border">
+            {stats.TopSenders.map((sender) => (
+              <div
+                key={sender.FromAddress}
+                className="flex items-center justify-between gap-3 px-4 py-2.5"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {sender.FromName || sender.FromAddress}
+                  </p>
+                  {sender.FromName && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {sender.FromAddress}
+                    </p>
+                  )}
+                </div>
+                <Badge variant="secondary" className="shrink-0 text-xs">
+                  {sender.Count}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Latest Digests */}
       {digests.length > 0 && (

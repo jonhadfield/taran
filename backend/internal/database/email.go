@@ -104,6 +104,14 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 		args = append(args, *opts.Before)
 		argIdx++
 	}
+	if opts.Search != nil && *opts.Search != "" {
+		searchTerm := "%" + *opts.Search + "%"
+		where = append(where, fmt.Sprintf(
+			"(subject ILIKE $%d OR from_name ILIKE $%d OR from_address ILIKE $%d)",
+			argIdx, argIdx+1, argIdx+2))
+		args = append(args, searchTerm, searchTerm, searchTerm)
+		argIdx += 3
+	}
 
 	whereClause := strings.Join(where, " AND ")
 
@@ -231,6 +239,39 @@ func (r *EmailRepo) ListActiveUserIDs(ctx context.Context, from, to time.Time) (
 		ids = append(ids, id)
 	}
 	return ids, nil
+}
+
+func (r *EmailRepo) CountByPeriod(ctx context.Context, userID string, from, to time.Time) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx,
+		"SELECT COUNT(*) FROM email WHERE user_id = $1 AND received_at >= $2 AND received_at < $3",
+		userID, from, to).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count by period: %w", err)
+	}
+	return count, nil
+}
+
+func (r *EmailRepo) TopSenders(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT from_address, from_name, COUNT(*) as cnt
+		 FROM email WHERE user_id = $1 AND received_at >= $2 AND received_at < $3
+		 GROUP BY from_address, from_name ORDER BY cnt DESC LIMIT $4`,
+		userID, from, to, limit)
+	if err != nil {
+		return nil, fmt.Errorf("top senders: %w", err)
+	}
+	defer rows.Close()
+
+	var senders []domain.SenderCount
+	for rows.Next() {
+		var s domain.SenderCount
+		if err := rows.Scan(&s.FromAddress, &s.FromName, &s.Count); err != nil {
+			return nil, fmt.Errorf("scan sender count: %w", err)
+		}
+		senders = append(senders, s)
+	}
+	return senders, nil
 }
 
 type scannable interface {

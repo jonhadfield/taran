@@ -17,6 +17,8 @@ type EmailRepository interface {
 	ListPending(ctx context.Context, limit int) ([]domain.Email, error)
 	SetStatus(ctx context.Context, id string, status domain.EmailStatus) error
 	ListActiveUserIDs(ctx context.Context, from, to time.Time) ([]string, error)
+	CountByPeriod(ctx context.Context, userID string, from, to time.Time) (int, error)
+	TopSenders(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
 }
 
 type ExtractionRepository interface {
@@ -51,4 +53,11 @@ type PreferenceRepository interface {
 type SessionRepository interface {
 	GetByToken(ctx context.Context, token string) (*domain.Session, error)
 	GetUserEmail(ctx context.Context, userID string) (string, error)
+}
+
+type SenderPreferenceRepository interface {
+	Upsert(ctx context.Context, pref *domain.SenderPreference) error
+	GetByAddress(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error)
+	ListByUser(ctx context.Context, userID string) ([]domain.SenderPreference, error)
+	ListBlockedAddresses(ctx context.Context, userID string) ([]string, error)
 }

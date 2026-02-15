@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Inbox, BookOpen, Settings } from "lucide-react";
+import { Home, Inbox, BookOpen, Settings, Users } from "lucide-react";
 import Image from "next/image";
 import { APP_NAME } from "@/lib/config";
 
@@ -11,6 +11,7 @@ const mainNav = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/digests", label: "Digests", icon: BookOpen },
+  { href: "/senders", label: "Senders", icon: Users },
 ];
 
 const bottomNav = [

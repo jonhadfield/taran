@@ -16,7 +16,7 @@ export function GenerateDigestButton() {
     setLoading(true);
     setError(null);
     try {
-      const digest = await apiPost<Digest>("admin/digests/generate", {});
+      const digest = await apiPost<Digest>("digests/generate", {});
       router.push(`/digests/${digest.ID}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate digest");

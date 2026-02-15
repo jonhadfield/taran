@@ -35,7 +35,7 @@ func TestProcessor_ProcessEmail_Success(t *testing.T) {
 		},
 	}
 
-	proc := NewProcessor(10, 1, emails, extractions, provider)
+	proc := NewProcessor(10, 1, emails, extractions, provider, nil)
 	ctx := context.Background()
 	proc.Start(ctx)
 
@@ -71,7 +71,7 @@ func TestProcessor_ProcessEmail_LLMError(t *testing.T) {
 		},
 	}
 
-	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, provider)
+	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, provider, nil)
 	proc.Start(context.Background())
 
 	proc.Enqueue("email-1")
@@ -100,7 +100,7 @@ func TestProcessor_ProcessEmail_NoContent(t *testing.T) {
 		},
 	}
 
-	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, &testutil.MockProvider{})
+	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, &testutil.MockProvider{}, nil)
 	proc.Start(context.Background())
 
 	proc.Enqueue("email-1")
@@ -140,7 +140,7 @@ func TestProcessor_ProcessEmail_HTMLFallback(t *testing.T) {
 		},
 	}
 
-	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, provider)
+	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, provider, nil)
 	proc.Start(context.Background())
 
 	proc.Enqueue("email-1")
@@ -162,7 +162,7 @@ func TestProcessor_Enqueue_QueueFull(t *testing.T) {
 	}
 
 	// Buffer of 1, don't start workers so queue fills up
-	proc := NewProcessor(1, 1, emails, &testutil.MockExtractionRepo{}, &testutil.MockProvider{})
+	proc := NewProcessor(1, 1, emails, &testutil.MockExtractionRepo{}, &testutil.MockProvider{}, nil)
 	// Don't call Start — queue will never drain
 
 	proc.Enqueue("email-1") // fills the buffer
@@ -208,7 +208,7 @@ func TestProcessor_ProcessEmail_TriageSkips(t *testing.T) {
 		},
 	}
 
-	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, provider)
+	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, provider, nil)
 	proc.Start(context.Background())
 
 	proc.Enqueue("email-1")
@@ -256,7 +256,7 @@ func TestProcessor_ProcessEmail_TriageFailsOpen(t *testing.T) {
 		},
 	}
 
-	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, provider)
+	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, provider, nil)
 	proc.Start(context.Background())
 
 	proc.Enqueue("email-1")
@@ -292,7 +292,7 @@ func TestProcessor_ConcurrentProcessing(t *testing.T) {
 		},
 	}
 
-	proc := NewProcessor(10, 2, emails, &testutil.MockExtractionRepo{}, provider)
+	proc := NewProcessor(10, 2, emails, &testutil.MockExtractionRepo{}, provider, nil)
 	proc.Start(context.Background())
 
 	for i := 0; i < 6; i++ {

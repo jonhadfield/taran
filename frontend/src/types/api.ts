@@ -101,6 +101,26 @@ export interface UserPreference {
   UpdatedAt: string;
 }
 
+export interface SenderInfo {
+  FromAddress: string;
+  FromName: string;
+  EmailCount: number;
+  Status: string;
+}
+
+export interface SenderCount {
+  FromAddress: string;
+  FromName: string;
+  Count: number;
+}
+
+export interface UserStats {
+  EmailsThisWeek: number;
+  EmailsLastWeek: number;
+  TotalEmails: number;
+  TopSenders: SenderCount[];
+}
+
 export interface ListResponse<T> {
   data: T[];
   total: number;

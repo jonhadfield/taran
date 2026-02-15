@@ -16,6 +16,7 @@ import { CopyButton } from "../settings/copy-button";
 import { Mail, ArrowRight, Check } from "lucide-react";
 import type { EmailAccount, ListResponse } from "@/types/api";
 import { APP_NAME } from "@/lib/config";
+import { ForwardingGuide } from "@/components/forwarding-guide";
 
 const EMAIL_DOMAIN = process.env.NEXT_PUBLIC_EMAIL_DOMAIN || "mailbrief.io";
 
@@ -124,6 +125,8 @@ export default function OnboardingPage() {
                   ))}
                 </div>
               </div>
+
+              <ForwardingGuide emailAddress={emailAddress} />
 
               <Button className="w-full" onClick={() => router.push("/inbox")}>
                 Go to Dashboard

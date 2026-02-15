@@ -59,6 +59,32 @@ func (h *DigestHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	periodEnd := now
 	periodStart := now.Add(-24 * time.Hour)
 
+	if v := r.URL.Query().Get("period_start"); v != "" {
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid period_start format, use RFC3339")
+			return
+		}
+		periodStart = t
+	}
+	if v := r.URL.Query().Get("period_end"); v != "" {
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid period_end format, use RFC3339")
+			return
+		}
+		periodEnd = t
+	}
+
+	if !periodEnd.After(periodStart) {
+		WriteError(w, http.StatusBadRequest, "period_end must be after period_start")
+		return
+	}
+	if periodEnd.Sub(periodStart) > 30*24*time.Hour {
+		WriteError(w, http.StatusBadRequest, "date range cannot exceed 30 days")
+		return
+	}
+
 	d, err := h.Generator.GenerateForUser(r.Context(), userID, "daily", periodStart, periodEnd)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to generate digest")
@@ -66,7 +92,7 @@ func (h *DigestHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if d == nil {
-		WriteError(w, http.StatusUnprocessableEntity, "no emails found in the last 24 hours")
+		WriteError(w, http.StatusUnprocessableEntity, "no emails found in the selected period")
 		return
 	}
 

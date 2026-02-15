@@ -18,6 +18,7 @@ type Processor struct {
 	emails      database.EmailRepository
 	extractions database.ExtractionRepository
 	provider    llm.Provider
+	senderPrefs database.SenderPreferenceRepository
 	wg          sync.WaitGroup
 	concurrency int
 }
@@ -27,12 +28,14 @@ func NewProcessor(
 	emails database.EmailRepository,
 	extractions database.ExtractionRepository,
 	provider llm.Provider,
+	senderPrefs database.SenderPreferenceRepository,
 ) *Processor {
 	return &Processor{
 		queue:       make(chan string, bufferSize),
 		emails:      emails,
 		extractions: extractions,
 		provider:    provider,
+		senderPrefs: senderPrefs,
 		concurrency: concurrency,
 	}
 }
@@ -80,7 +83,7 @@ func (p *Processor) worker(ctx context.Context, id int) {
 }
 
 func (p *Processor) processEmail(ctx context.Context, emailID string) {
-	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.provider)
+	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.provider, p.senderPrefs)
 }
 
 // ProcessEmail runs LLM extraction on a single email. It can be called
@@ -91,6 +94,7 @@ func ProcessEmail(
 	emails database.EmailRepository,
 	extractions database.ExtractionRepository,
 	provider llm.Provider,
+	senderPrefs database.SenderPreferenceRepository,
 ) {
 	logger := slog.With("emailID", emailID)
 
@@ -104,6 +108,16 @@ func ProcessEmail(
 		logger.Error("failed to fetch email", "error", err)
 		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
 		return
+	}
+
+	// Check if sender is blocked
+	if senderPrefs != nil {
+		pref, _ := senderPrefs.GetByAddress(ctx, em.UserID, em.FromAddress)
+		if pref != nil && pref.Status == "blocked" {
+			logger.Info("sender is blocked, skipping", "from", em.FromAddress)
+			emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped)
+			return
+		}
 	}
 
 	// Prefer HTML body converted to markdown — preserves headings, links,
