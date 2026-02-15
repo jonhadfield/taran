@@ -95,6 +95,7 @@ func main() {
 		Accounts:    accountRepo,
 		Provider:    provider,
 		SenderPrefs: senderPrefRepo,
+		Feedback:    feedbackRepo,
 	}
 	sched, err := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m)
 	if err != nil {

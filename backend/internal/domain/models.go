@@ -164,6 +164,18 @@ type EmailFeedback struct {
 	CreatedAt time.Time
 }
 
+type SenderFeedbackStat struct {
+	FromAddress    string
+	UsefulCount    int
+	NotUsefulCount int
+}
+
+type TopicFeedbackStat struct {
+	Topic          string
+	UsefulCount    int
+	NotUsefulCount int
+}
+
 type AdminStats struct {
 	TotalUsers       int           `json:"TotalUsers"`
 	ActiveUsersWeek  int           `json:"ActiveUsersWeek"`

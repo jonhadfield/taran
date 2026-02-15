@@ -155,8 +155,10 @@ func (m *MockExtractionRepo) ListTopicsByUser(ctx context.Context, userID string
 
 // MockFeedbackRepo implements database.FeedbackRepository for testing.
 type MockFeedbackRepo struct {
-	UpsertFn       func(ctx context.Context, fb *domain.EmailFeedback) error
-	GetByEmailIDFn func(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error)
+	UpsertFn          func(ctx context.Context, fb *domain.EmailFeedback) error
+	GetByEmailIDFn    func(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error)
+	GetSenderStatsFn  func(ctx context.Context, userID string) ([]domain.SenderFeedbackStat, error)
+	GetTopicStatsFn   func(ctx context.Context, userID string) ([]domain.TopicFeedbackStat, error)
 }
 
 func (m *MockFeedbackRepo) Upsert(ctx context.Context, fb *domain.EmailFeedback) error {
@@ -169,6 +171,20 @@ func (m *MockFeedbackRepo) Upsert(ctx context.Context, fb *domain.EmailFeedback)
 func (m *MockFeedbackRepo) GetByEmailID(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error) {
 	if m.GetByEmailIDFn != nil {
 		return m.GetByEmailIDFn(ctx, userID, emailID)
+	}
+	return nil, nil
+}
+
+func (m *MockFeedbackRepo) GetSenderStats(ctx context.Context, userID string) ([]domain.SenderFeedbackStat, error) {
+	if m.GetSenderStatsFn != nil {
+		return m.GetSenderStatsFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockFeedbackRepo) GetTopicStats(ctx context.Context, userID string) ([]domain.TopicFeedbackStat, error) {
+	if m.GetTopicStatsFn != nil {
+		return m.GetTopicStatsFn(ctx, userID)
 	}
 	return nil, nil
 }
@@ -369,7 +385,7 @@ func (m *MockSenderPreferenceRepo) ListBlockedAddresses(ctx context.Context, use
 type MockProvider struct {
 	TriageEmailFn    func(ctx context.Context, subject, fromAddress, contentPreview string) (*llm.TriageResult, *llm.Usage, error)
 	ExtractEmailFn   func(ctx context.Context, subject, content, fromAddress string) (*llm.ExtractionResult, *llm.Usage, error)
-	GenerateDigestFn func(ctx context.Context, extractions []domain.Extraction, periodType string) (*llm.DigestSummary, *llm.Usage, error)
+	GenerateDigestFn func(ctx context.Context, extractions []domain.Extraction, periodType string, opts *llm.DigestOptions) (*llm.DigestSummary, *llm.Usage, error)
 	NameVal          string
 	ModelVal         string
 }
@@ -388,9 +404,9 @@ func (m *MockProvider) ExtractEmail(ctx context.Context, subject, content, fromA
 	return &llm.ExtractionResult{Summary: "test summary"}, &llm.Usage{TotalTokens: 10}, nil
 }
 
-func (m *MockProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string) (*llm.DigestSummary, *llm.Usage, error) {
+func (m *MockProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *llm.DigestOptions) (*llm.DigestSummary, *llm.Usage, error) {
 	if m.GenerateDigestFn != nil {
-		return m.GenerateDigestFn(ctx, extractions, periodType)
+		return m.GenerateDigestFn(ctx, extractions, periodType, opts)
 	}
 	return &llm.DigestSummary{Title: "Test Digest", Summary: "test"}, &llm.Usage{TotalTokens: 10}, nil
 }

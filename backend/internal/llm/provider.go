@@ -34,10 +34,15 @@ type TriageResult struct {
 	Reason  string `json:"reason"`
 }
 
+type DigestOptions struct {
+	PreferredTopics     []string
+	LessPreferredTopics []string
+}
+
 type Provider interface {
 	TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*TriageResult, *Usage, error)
 	ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error)
-	GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string) (*DigestSummary, *Usage, error)
+	GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error)
 	Name() string
 	Model() string
 }

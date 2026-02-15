@@ -46,3 +46,60 @@ func (r *FeedbackRepo) GetByEmailID(ctx context.Context, userID, emailID string)
 	}
 	return &fb, nil
 }
+
+func (r *FeedbackRepo) GetSenderStats(ctx context.Context, userID string) ([]domain.SenderFeedbackStat, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT em.from_address,
+		        COUNT(*) FILTER (WHERE f.rating = 'useful'),
+		        COUNT(*) FILTER (WHERE f.rating = 'not_useful')
+		 FROM email_feedback f
+		 JOIN email em ON em.id = f.email_id
+		 WHERE f.user_id = $1
+		 GROUP BY em.from_address
+		 HAVING COUNT(*) >= 2`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get sender feedback stats: %w", err)
+	}
+	defer rows.Close()
+
+	var stats []domain.SenderFeedbackStat
+	for rows.Next() {
+		var s domain.SenderFeedbackStat
+		if err := rows.Scan(&s.FromAddress, &s.UsefulCount, &s.NotUsefulCount); err != nil {
+			return nil, fmt.Errorf("scan sender feedback stat: %w", err)
+		}
+		stats = append(stats, s)
+	}
+	return stats, rows.Err()
+}
+
+func (r *FeedbackRepo) GetTopicStats(ctx context.Context, userID string) ([]domain.TopicFeedbackStat, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT topic,
+		        COUNT(*) FILTER (WHERE f.rating = 'useful'),
+		        COUNT(*) FILTER (WHERE f.rating = 'not_useful')
+		 FROM email_feedback f
+		 JOIN extraction e ON e.email_id = f.email_id
+		 CROSS JOIN LATERAL jsonb_array_elements_text(e.topics) AS topic
+		 WHERE f.user_id = $1
+		 GROUP BY topic
+		 HAVING COUNT(*) >= 2`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get topic feedback stats: %w", err)
+	}
+	defer rows.Close()
+
+	var stats []domain.TopicFeedbackStat
+	for rows.Next() {
+		var s domain.TopicFeedbackStat
+		if err := rows.Scan(&s.Topic, &s.UsefulCount, &s.NotUsefulCount); err != nil {
+			return nil, fmt.Errorf("scan topic feedback stat: %w", err)
+		}
+		stats = append(stats, s)
+	}
+	return stats, rows.Err()
+}

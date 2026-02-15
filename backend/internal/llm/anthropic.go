@@ -109,13 +109,8 @@ func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, 
 	return &result, usage, nil
 }
 
-func (p *AnthropicProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string) (*DigestSummary, *Usage, error) {
-	summaries := make([]string, len(extractions))
-	for i, e := range extractions {
-		summaries[i] = e.Summary
-	}
-
-	userPrompt := buildDigestUserPrompt(summaries, periodType)
+func (p *AnthropicProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error) {
+	userPrompt := buildDigestUserPrompt(extractions, periodType, opts)
 
 	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     anthropic.Model(p.model),

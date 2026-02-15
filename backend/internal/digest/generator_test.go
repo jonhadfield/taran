@@ -37,7 +37,7 @@ func TestGenerateForUser_Success(t *testing.T) {
 		Provider: &testutil.MockProvider{
 			NameVal:  "test-provider",
 			ModelVal: "test-model",
-			GenerateDigestFn: func(_ context.Context, _ []domain.Extraction, _ string) (*llm.DigestSummary, *llm.Usage, error) {
+			GenerateDigestFn: func(_ context.Context, _ []domain.Extraction, _ string, _ *llm.DigestOptions) (*llm.DigestSummary, *llm.Usage, error) {
 				return &llm.DigestSummary{
 					Title:      "Daily Digest",
 					Summary:    "Two emails today",
@@ -101,7 +101,7 @@ func TestGenerateForUser_LLMError(t *testing.T) {
 			},
 		},
 		Provider: &testutil.MockProvider{
-			GenerateDigestFn: func(_ context.Context, _ []domain.Extraction, _ string) (*llm.DigestSummary, *llm.Usage, error) {
+			GenerateDigestFn: func(_ context.Context, _ []domain.Extraction, _ string, _ *llm.DigestOptions) (*llm.DigestSummary, *llm.Usage, error) {
 				return nil, nil, fmt.Errorf("LLM error")
 			},
 		},

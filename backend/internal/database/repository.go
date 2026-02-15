@@ -31,6 +31,8 @@ type ExtractionRepository interface {
 type FeedbackRepository interface {
 	Upsert(ctx context.Context, fb *domain.EmailFeedback) error
 	GetByEmailID(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error)
+	GetSenderStats(ctx context.Context, userID string) ([]domain.SenderFeedbackStat, error)
+	GetTopicStats(ctx context.Context, userID string) ([]domain.TopicFeedbackStat, error)
 }
 
 type DigestRepository interface {

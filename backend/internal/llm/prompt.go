@@ -1,6 +1,11 @@
 package llm
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/hadfielj/taran/backend/internal/domain"
+)
 
 const extractionSystemPrompt = `You are an email analysis assistant. Analyze the following email and extract structured information.
 
@@ -24,6 +29,8 @@ func buildExtractionUserPrompt(subject, content, fromAddress string) string {
 }
 
 const digestSystemPrompt = `You are a digest summarization assistant. Given multiple email extraction summaries, create a unified digest.
+
+When user topic preferences are provided, give more prominence to preferred topics in the highlights and summary. De-emphasize (but do not completely exclude) less preferred topics.
 
 Respond with a JSON object containing exactly these fields:
 - title: a short descriptive title for this digest (e.g. "Daily Digest - Tech & Business")
@@ -65,10 +72,25 @@ func buildTriageUserPrompt(subject, fromAddress, contentPreview string) string {
 	return fmt.Sprintf("Subject: %s\nFrom: %s\n\nContent preview:\n%s", subject, fromAddress, contentPreview)
 }
 
-func buildDigestUserPrompt(summaries []string, periodType string) string {
+func buildDigestUserPrompt(extractions []domain.Extraction, periodType string, opts *DigestOptions) string {
 	prompt := fmt.Sprintf("Period: %s digest\n\nEmail summaries:\n\n", periodType)
-	for i, s := range summaries {
-		prompt += fmt.Sprintf("--- Email %d ---\n%s\n\n", i+1, s)
+	for i, e := range extractions {
+		prompt += fmt.Sprintf("--- Email %d ---\n%s\n", i+1, e.Summary)
+		if len(e.Topics) > 0 {
+			prompt += fmt.Sprintf("Topics: %s\n", strings.Join(e.Topics, ", "))
+		}
+		prompt += "\n"
 	}
+
+	if opts != nil && (len(opts.PreferredTopics) > 0 || len(opts.LessPreferredTopics) > 0) {
+		prompt += "User topic preferences:\n"
+		if len(opts.PreferredTopics) > 0 {
+			prompt += fmt.Sprintf("- Preferred topics: %s\n", strings.Join(opts.PreferredTopics, ", "))
+		}
+		if len(opts.LessPreferredTopics) > 0 {
+			prompt += fmt.Sprintf("- Less preferred topics: %s\n", strings.Join(opts.LessPreferredTopics, ", "))
+		}
+	}
+
 	return prompt
 }
