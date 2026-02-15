@@ -121,6 +121,20 @@ func ProcessEmail(
 		return
 	}
 
+	// Triage: cheap LLM call to decide if this email is worth extracting.
+	contentPreview := content
+	if len(contentPreview) > 500 {
+		contentPreview = contentPreview[:500]
+	}
+	triageResult, _, triageErr := provider.TriageEmail(ctx, em.Subject, em.FromAddress, contentPreview)
+	if triageErr != nil {
+		logger.Warn("triage failed, proceeding to extraction", "error", triageErr)
+	} else if !triageResult.Extract {
+		logger.Info("triage skipped email", "reason", triageResult.Reason)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped)
+		return
+	}
+
 	result, usage, err := provider.ExtractEmail(ctx, em.Subject, content, em.FromAddress)
 	if err != nil {
 		logger.Error("LLM extraction failed", "error", err)

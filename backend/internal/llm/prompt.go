@@ -33,6 +33,35 @@ Respond with a JSON object containing exactly these fields:
 
 Respond ONLY with valid JSON. No markdown fences, no explanation.`
 
+const triageSystemPrompt = `You are an email triage assistant. Decide whether an email should be fully analyzed or skipped.
+
+SKIP these types of emails (extract: false):
+- Subscription confirmations ("confirm your subscription", "verify your email")
+- Email verification / account activation emails
+- Auto-replies and out-of-office messages
+- Delivery status notifications (bounces, failures)
+- Unsubscribe confirmations
+- Password reset emails
+- Two-factor authentication codes
+- Pure spam or phishing attempts
+- Calendar invitations with no substantive content
+- Read receipts
+
+EXTRACT these types of emails (extract: true):
+- Newsletters with editorial content
+- Curated digests and roundups
+- Personal emails with substantive content
+- Industry updates and reports
+- Blog post notifications with content
+- Product announcements with detail
+
+Respond ONLY with valid JSON: {"extract": true/false, "reason": "brief reason"}
+No markdown fences, no explanation outside the JSON.`
+
+func buildTriageUserPrompt(subject, fromAddress, contentPreview string) string {
+	return fmt.Sprintf("Subject: %s\nFrom: %s\n\nContent preview:\n%s", subject, fromAddress, contentPreview)
+}
+
 func buildDigestUserPrompt(summaries []string, periodType string) string {
 	prompt := fmt.Sprintf("Period: %s digest\n\nEmail summaries:\n\n", periodType)
 	for i, s := range summaries {

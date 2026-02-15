@@ -29,7 +29,13 @@ type Usage struct {
 	TotalTokens  int
 }
 
+type TriageResult struct {
+	Extract bool   `json:"extract"`
+	Reason  string `json:"reason"`
+}
+
 type Provider interface {
+	TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*TriageResult, *Usage, error)
 	ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error)
 	GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string) (*DigestSummary, *Usage, error)
 	Name() string

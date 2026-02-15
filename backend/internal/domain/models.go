@@ -9,6 +9,7 @@ const (
 	EmailStatusProcessing EmailStatus = "processing"
 	EmailStatusProcessed  EmailStatus = "processed"
 	EmailStatusFailed     EmailStatus = "failed"
+	EmailStatusSkipped    EmailStatus = "skipped"
 )
 
 type Email struct {

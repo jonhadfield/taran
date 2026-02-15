@@ -27,6 +27,45 @@ func NewAnthropicProvider(apiKey, model string) *AnthropicProvider {
 func (p *AnthropicProvider) Name() string  { return "anthropic" }
 func (p *AnthropicProvider) Model() string { return p.model }
 
+func (p *AnthropicProvider) TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*TriageResult, *Usage, error) {
+	userPrompt := buildTriageUserPrompt(subject, fromAddress, contentPreview)
+
+	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
+		Model:     anthropic.Model(p.model),
+		MaxTokens: 100,
+		System: []anthropic.TextBlockParam{
+			{Text: triageSystemPrompt},
+		},
+		Messages: []anthropic.MessageParam{{
+			Role:    anthropic.MessageParamRoleUser,
+			Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(userPrompt)},
+		}},
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("anthropic triage: %w", err)
+	}
+
+	text := extractResponseText(msg)
+	if text == "" {
+		return nil, nil, fmt.Errorf("empty response from anthropic triage")
+	}
+
+	text = stripCodeFences(text)
+
+	var result TriageResult
+	if err := json.Unmarshal([]byte(text), &result); err != nil {
+		return nil, nil, fmt.Errorf("parse triage result: %w (response: %s)", err, text)
+	}
+
+	usage := &Usage{
+		InputTokens:  int(msg.Usage.InputTokens),
+		OutputTokens: int(msg.Usage.OutputTokens),
+		TotalTokens:  int(msg.Usage.InputTokens + msg.Usage.OutputTokens),
+	}
+
+	return &result, usage, nil
+}
+
 func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
 	userPrompt := buildExtractionUserPrompt(subject, content, fromAddress)
 

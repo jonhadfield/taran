@@ -182,6 +182,97 @@ func TestProcessor_Enqueue_QueueFull(t *testing.T) {
 	}
 }
 
+func TestProcessor_ProcessEmail_TriageSkips(t *testing.T) {
+	extractCalled := false
+
+	emails := &testutil.MockEmailRepo{
+		GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+			return &domain.Email{
+				ID:          id,
+				Subject:     "Confirm your subscription",
+				TextBody:    "Click here to confirm",
+				FromAddress: "noreply@example.com",
+			}, nil
+		},
+		ListPendingFn: func(_ context.Context, _ int) ([]domain.Email, error) {
+			return nil, nil
+		},
+	}
+	provider := &testutil.MockProvider{
+		TriageEmailFn: func(_ context.Context, _, _, _ string) (*llm.TriageResult, *llm.Usage, error) {
+			return &llm.TriageResult{Extract: false, Reason: "subscription confirmation"}, &llm.Usage{TotalTokens: 5}, nil
+		},
+		ExtractEmailFn: func(_ context.Context, _, _, _ string) (*llm.ExtractionResult, *llm.Usage, error) {
+			extractCalled = true
+			return &llm.ExtractionResult{Summary: "test"}, &llm.Usage{TotalTokens: 10}, nil
+		},
+	}
+
+	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, provider)
+	proc.Start(context.Background())
+
+	proc.Enqueue("email-1")
+	proc.Stop()
+
+	if extractCalled {
+		t.Error("ExtractEmail should not be called when triage skips")
+	}
+
+	found := false
+	for _, call := range emails.SetStatusCalls {
+		if call.ID == "email-1" && call.Status == domain.EmailStatusSkipped {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected SetStatus(email-1, skipped)")
+	}
+}
+
+func TestProcessor_ProcessEmail_TriageFailsOpen(t *testing.T) {
+	extractCalled := false
+
+	emails := &testutil.MockEmailRepo{
+		GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+			return &domain.Email{
+				ID:          id,
+				Subject:     "Weekly Newsletter",
+				TextBody:    "Content here",
+				FromAddress: "news@example.com",
+			}, nil
+		},
+		ListPendingFn: func(_ context.Context, _ int) ([]domain.Email, error) {
+			return nil, nil
+		},
+	}
+	provider := &testutil.MockProvider{
+		TriageEmailFn: func(_ context.Context, _, _, _ string) (*llm.TriageResult, *llm.Usage, error) {
+			return nil, nil, fmt.Errorf("triage API error")
+		},
+		ExtractEmailFn: func(_ context.Context, _, _, _ string) (*llm.ExtractionResult, *llm.Usage, error) {
+			extractCalled = true
+			return &llm.ExtractionResult{Summary: "Extracted"}, &llm.Usage{TotalTokens: 50}, nil
+		},
+	}
+
+	proc := NewProcessor(10, 1, emails, &testutil.MockExtractionRepo{}, provider)
+	proc.Start(context.Background())
+
+	proc.Enqueue("email-1")
+	proc.Stop()
+
+	if !extractCalled {
+		t.Error("ExtractEmail should still be called when triage fails (fail open)")
+	}
+
+	// Should end with processed status, not failed
+	last := emails.SetStatusCalls[len(emails.SetStatusCalls)-1]
+	if last.ID != "email-1" || last.Status != domain.EmailStatusProcessed {
+		t.Errorf("last status = {%q, %q}, want {email-1, processed}", last.ID, last.Status)
+	}
+}
+
 func TestProcessor_ConcurrentProcessing(t *testing.T) {
 	var processedCount atomic.Int32
 

@@ -215,10 +215,18 @@ func (m *MockSessionRepo) GetByToken(ctx context.Context, token string) (*domain
 
 // MockProvider implements llm.Provider for testing.
 type MockProvider struct {
+	TriageEmailFn    func(ctx context.Context, subject, fromAddress, contentPreview string) (*llm.TriageResult, *llm.Usage, error)
 	ExtractEmailFn   func(ctx context.Context, subject, content, fromAddress string) (*llm.ExtractionResult, *llm.Usage, error)
 	GenerateDigestFn func(ctx context.Context, extractions []domain.Extraction, periodType string) (*llm.DigestSummary, *llm.Usage, error)
 	NameVal          string
 	ModelVal         string
+}
+
+func (m *MockProvider) TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*llm.TriageResult, *llm.Usage, error) {
+	if m.TriageEmailFn != nil {
+		return m.TriageEmailFn(ctx, subject, fromAddress, contentPreview)
+	}
+	return &llm.TriageResult{Extract: true, Reason: "default mock triage"}, &llm.Usage{TotalTokens: 5}, nil
 }
 
 func (m *MockProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*llm.ExtractionResult, *llm.Usage, error) {
