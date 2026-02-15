@@ -56,6 +56,7 @@ func (r *ExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID string,
 		 FROM extraction e
 		 JOIN email em ON em.id = e.email_id
 		 WHERE em.user_id = $1 AND em.received_at >= $2 AND em.received_at < $3
+		   AND e.source_category NOT IN ('notification', 'transactional', 'marketing')
 		 ORDER BY em.received_at DESC`, userID, from, to)
 	if err != nil {
 		return nil, fmt.Errorf("list extractions: %w", err)

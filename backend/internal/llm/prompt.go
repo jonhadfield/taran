@@ -38,6 +38,7 @@ const triageSystemPrompt = `You are an email triage assistant. Decide whether an
 SKIP these types of emails (extract: false):
 - Subscription confirmations ("confirm your subscription", "verify your email")
 - Email verification / account activation emails
+- Sign-up notifications ("welcome to...", "your account has been created")
 - Auto-replies and out-of-office messages
 - Delivery status notifications (bounces, failures)
 - Unsubscribe confirmations
@@ -46,6 +47,8 @@ SKIP these types of emails (extract: false):
 - Pure spam or phishing attempts
 - Calendar invitations with no substantive content
 - Read receipts
+- Transactional emails (order confirmations, shipping updates, receipts)
+- Marketing / promotional blasts with no editorial content
 
 EXTRACT these types of emails (extract: true):
 - Newsletters with editorial content
