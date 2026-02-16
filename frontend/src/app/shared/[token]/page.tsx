@@ -9,11 +9,12 @@ import { APP_NAME } from "@/lib/config";
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 const API_KEY = process.env.API_KEY || "";
 
+export const revalidate = 300;
+
 async function fetchPublicDigest(token: string): Promise<Digest | null> {
   try {
     const res = await fetch(`${BACKEND_URL}/api/public/digests/${token}`, {
       headers: { "X-API-Key": API_KEY },
-      cache: "no-store",
     });
     if (!res.ok) return null;
     return res.json();

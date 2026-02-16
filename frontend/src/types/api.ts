@@ -144,3 +144,11 @@ export interface ListResponse<T> {
   data: T[];
   total: number;
 }
+
+export interface DashboardData {
+  emails: Email[];
+  emailTotal: number;
+  digests: Digest[];
+  unreadCount: number;
+  stats: UserStats;
+}

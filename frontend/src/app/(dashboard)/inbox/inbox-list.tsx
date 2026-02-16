@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { usePolling } from "@/hooks/use-polling";
-import { apiGet } from "@/lib/api";
 import type { Email, ListResponse } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
 import { Inbox, Search, X } from "lucide-react";
@@ -42,26 +41,22 @@ interface InboxListProps {
   initialTotal: number;
   filter: string;
   queryString: string;
+  initialTopics: string[];
 }
 
 export function InboxList({
   initialEmails,
   initialTotal,
   filter: initialFilter,
+  initialTopics,
 }: InboxListProps) {
   const [filter, setFilter] = useState(initialFilter);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTopic, setActiveTopic] = useState("");
-  const [topics, setTopics] = useState<string[]>([]);
+  const topics = initialTopics;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryString = buildQueryString(filter, debouncedSearch, activeTopic);
-
-  useEffect(() => {
-    apiGet<string[]>("topics")
-      .then(setTopics)
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);

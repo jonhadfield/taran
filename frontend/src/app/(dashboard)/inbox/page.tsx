@@ -18,13 +18,16 @@ export default async function InboxPage({
 
   let emails: Email[] = [];
   let total = 0;
+  let topics: string[] = [];
 
   try {
-    const res = await serverFetch<ListResponse<Email>>(
-      `emails?${queryString}`
-    );
-    emails = res.data || [];
-    total = res.total;
+    const [emailRes, topicsRes] = await Promise.all([
+      serverFetch<ListResponse<Email>>(`emails?${queryString}`),
+      serverFetch<string[]>("topics").catch(() => [] as string[]),
+    ]);
+    emails = emailRes.data || [];
+    total = emailRes.total;
+    topics = topicsRes;
   } catch {
     // Will show empty state
   }
@@ -35,6 +38,7 @@ export default async function InboxPage({
       initialTotal={total}
       filter={filter}
       queryString={queryString}
+      initialTopics={topics}
     />
   );
 }

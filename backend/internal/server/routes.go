@@ -21,6 +21,7 @@ type RouterDeps struct {
 	TopicHandler      *handler.TopicHandler
 	FeedbackHandler   *handler.FeedbackHandler
 	AdminStatsHandler *handler.AdminStatsHandler
+	DashboardHandler  *handler.DashboardHandler
 	SessionAuth       *auth.SessionAuth
 }
 
@@ -38,6 +39,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 
 	// API routes (session auth)
 	api := http.NewServeMux()
+	api.HandleFunc("GET /api/dashboard", deps.DashboardHandler.Get)
 	api.HandleFunc("GET /api/emails", deps.EmailHandler.List)
 	api.HandleFunc("GET /api/emails/{id}", deps.EmailHandler.Get)
 	api.HandleFunc("PATCH /api/emails/{id}", deps.EmailHandler.UpdateState)

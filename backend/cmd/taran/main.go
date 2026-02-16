@@ -140,6 +140,10 @@ func main() {
 	feedbackHandler := &handler.FeedbackHandler{
 		Feedback: feedbackRepo,
 	}
+	dashboardHandler := &handler.DashboardHandler{
+		Emails:  emailRepo,
+		Digests: digestRepo,
+	}
 	adminStatsHandler := &handler.AdminStatsHandler{
 		Pool: pool,
 	}
@@ -161,6 +165,7 @@ func main() {
 		StatsHandler:      statsHandler,
 		TopicHandler:      topicHandler,
 		FeedbackHandler:   feedbackHandler,
+		DashboardHandler:  dashboardHandler,
 		AdminStatsHandler: adminStatsHandler,
 		SessionAuth:       sessionAuth,
 	})

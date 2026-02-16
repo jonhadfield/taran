@@ -8,7 +8,27 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
 import { FeedbackButtons } from "./feedback-buttons";
-import sanitizeHtml from "sanitize-html";
+import dynamic from "next/dynamic";
+
+const EmailContentCard = dynamic(
+  () => import("./email-content-card").then((mod) => mod.EmailContentCard),
+  {
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Email Content</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse space-y-3">
+            <div className="h-4 bg-muted rounded w-3/4" />
+            <div className="h-4 bg-muted rounded w-full" />
+            <div className="h-4 bg-muted rounded w-5/6" />
+          </div>
+        </CardContent>
+      </Card>
+    ),
+  }
+);
 
 function isSafeURL(url: string): boolean {
   try {
@@ -167,29 +187,7 @@ export default async function EmailDetailPage({
           <FeedbackButtons emailId={id} />
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Email Content</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {email.HTMLBody ? (
-              <div
-                className="prose prose-sm max-w-none rounded-md bg-white p-4 text-black"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(email.HTMLBody, {
-                  allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
-                  allowedAttributes: {
-                    ...sanitizeHtml.defaults.allowedAttributes,
-                    "*": ["style", "class"],
-                  },
-                }) }}
-              />
-            ) : (
-              <pre className="whitespace-pre-wrap text-sm font-mono">
-                {email.TextBody}
-              </pre>
-            )}
-          </CardContent>
-        </Card>
+        <EmailContentCard htmlBody={email.HTMLBody} textBody={email.TextBody} />
       </div>
     </div>
   );

@@ -65,9 +65,21 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
 
   const data = await response.text();
 
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": response.headers.get("Content-Type") || "application/json",
+  };
+
+  if (request.method === "GET") {
+    responseHeaders["Cache-Control"] = "private, no-cache";
+    const etag = response.headers.get("ETag");
+    if (etag) responseHeaders["ETag"] = etag;
+    const lastModified = response.headers.get("Last-Modified");
+    if (lastModified) responseHeaders["Last-Modified"] = lastModified;
+  }
+
   return new NextResponse(data, {
     status: response.status,
-    headers: { "Content-Type": response.headers.get("Content-Type") || "application/json" },
+    headers: responseHeaders,
   });
 }
 

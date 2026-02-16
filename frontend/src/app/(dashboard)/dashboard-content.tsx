@@ -3,44 +3,22 @@
 import { usePolling } from "@/hooks/use-polling";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Email, Digest, ListResponse, UserStats } from "@/types/api";
+import type { DashboardData } from "@/types/api";
 import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown } from "lucide-react";
 import { APP_NAME } from "@/lib/config";
 import Link from "next/link";
 
 interface DashboardContentProps {
-  initialEmails: Email[];
-  initialEmailTotal: number;
-  initialDigests: Digest[];
-  initialUnreadCount: number;
+  initialData: DashboardData;
 }
 
-export function DashboardContent({
-  initialEmails,
-  initialEmailTotal,
-  initialDigests,
-  initialUnreadCount,
-}: DashboardContentProps) {
-  const emailRes = usePolling<ListResponse<Email>>(
-    "emails?limit=5",
-    { data: initialEmails, total: initialEmailTotal }
-  );
-  const digestRes = usePolling<ListResponse<Digest>>(
-    "digests?limit=3",
-    { data: initialDigests, total: initialDigests.length }
-  );
-  const unreadRes = usePolling<ListResponse<Email>>(
-    "emails?is_read=false&limit=1",
-    { data: [], total: initialUnreadCount }
-  );
-  const stats = usePolling<UserStats>(
-    "stats",
-    { EmailsThisWeek: 0, EmailsLastWeek: 0, TotalEmails: 0, TopSenders: [] }
-  );
+export function DashboardContent({ initialData }: DashboardContentProps) {
+  const data = usePolling<DashboardData>("dashboard", initialData);
 
-  const emails = emailRes.data || [];
-  const digests = digestRes.data || [];
-  const unreadCount = unreadRes.total;
+  const emails = data.emails || [];
+  const digests = data.digests || [];
+  const unreadCount = data.unreadCount;
+  const stats = data.stats;
 
   const weekDiff = stats.EmailsThisWeek - stats.EmailsLastWeek;
 

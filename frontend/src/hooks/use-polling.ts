@@ -6,7 +6,7 @@ import { apiGet } from "@/lib/api";
 export function usePolling<T>(
   path: string,
   initialData: T,
-  intervalMs = 15_000
+  intervalMs = 60_000
 ): T {
   const [data, setData] = useState(initialData);
 
