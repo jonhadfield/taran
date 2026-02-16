@@ -140,6 +140,19 @@ export interface AdminStats {
   TopGlobalSenders: SenderCount[];
 }
 
+export interface Invite {
+  ID: string;
+  Email: string;
+  InvitedBy: string;
+  CreatedAt: string;
+  AcceptedAt: string | null;
+}
+
+export interface AccessCheck {
+  hasAccess: boolean;
+  reason: "admin" | "invited" | "not_invited";
+}
+
 export interface ListResponse<T> {
   data: T[];
   total: number;

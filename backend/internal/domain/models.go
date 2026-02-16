@@ -187,6 +187,14 @@ type AdminStats struct {
 	TopGlobalSenders []SenderCount `json:"TopGlobalSenders"`
 }
 
+type Invite struct {
+	ID         string
+	Email      string
+	InvitedBy  string
+	CreatedAt  time.Time
+	AcceptedAt *time.Time
+}
+
 type ListOptions struct {
 	Limit      int
 	Offset     int

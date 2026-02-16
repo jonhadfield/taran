@@ -22,6 +22,7 @@ type RouterDeps struct {
 	FeedbackHandler   *handler.FeedbackHandler
 	AdminStatsHandler *handler.AdminStatsHandler
 	DashboardHandler  *handler.DashboardHandler
+	InviteHandler     *handler.InviteHandler
 	SessionAuth       *auth.SessionAuth
 }
 
@@ -60,11 +61,14 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/topics", deps.TopicHandler.List)
 	api.HandleFunc("POST /api/emails/{id}/feedback", deps.FeedbackHandler.Upsert)
 	api.HandleFunc("GET /api/emails/{id}/feedback", deps.FeedbackHandler.Get)
+	api.HandleFunc("GET /api/access", deps.InviteHandler.CheckAccess)
 
 	// Admin routes
 	admin := http.NewServeMux()
 	admin.HandleFunc("POST /api/admin/digests/generate", deps.DigestHandler.Generate)
 	admin.HandleFunc("GET /api/admin/stats", deps.AdminStatsHandler.Get)
+	admin.HandleFunc("POST /api/admin/invites", deps.InviteHandler.Create)
+	admin.HandleFunc("GET /api/admin/invites", deps.InviteHandler.List)
 	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(admin))
 
 	mux.Handle("/api/", auth.APIKeyAuth(deps.APIKey, deps.SessionAuth.Middleware(api)))

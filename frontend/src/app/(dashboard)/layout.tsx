@@ -1,6 +1,9 @@
+import { redirect } from "next/navigation";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { isAdmin } from "@/lib/admin";
+import { serverFetch } from "@/lib/server-api";
+import type { AccessCheck } from "@/types/api";
 
 export default async function DashboardLayout({
   children,
@@ -8,6 +11,18 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const admin = await isAdmin();
+
+  if (!admin) {
+    try {
+      const access = await serverFetch<AccessCheck>("access");
+      if (!access.hasAccess) {
+        redirect("/not-invited");
+      }
+    } catch {
+      // If the access check fails (e.g. backend down), deny access
+      redirect("/not-invited");
+    }
+  }
 
   return (
     <div className="min-h-screen">

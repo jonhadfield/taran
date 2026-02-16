@@ -63,6 +63,13 @@ type SessionRepository interface {
 	GetUserEmail(ctx context.Context, userID string) (string, error)
 }
 
+type InviteRepository interface {
+	GetByEmail(ctx context.Context, email string) (*domain.Invite, error)
+	Create(ctx context.Context, invite *domain.Invite) error
+	List(ctx context.Context) ([]domain.Invite, error)
+	MarkAccepted(ctx context.Context, email string) error
+}
+
 type SenderPreferenceRepository interface {
 	Upsert(ctx context.Context, pref *domain.SenderPreference) error
 	GetByAddress(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error)

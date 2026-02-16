@@ -39,6 +39,47 @@ func (m *ResendMailer) SendDigest(ctx context.Context, toEmail, toName string, d
 	return nil
 }
 
+func (m *ResendMailer) SendInvite(ctx context.Context, toEmail, fromName string) error {
+	htmlBody := buildInviteHTML(fromName)
+
+	params := &resend.SendEmailRequest{
+		From:    m.fromAddress,
+		To:      []string{toEmail},
+		Subject: "You're invited to MailBrief",
+		Html:    htmlBody,
+	}
+
+	_, err := m.client.Emails.SendWithContext(ctx, params)
+	if err != nil {
+		return fmt.Errorf("send invite email: %w", err)
+	}
+	return nil
+}
+
+func buildInviteHTML(fromName string) string {
+	var b strings.Builder
+
+	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"></head>`)
+	b.WriteString(`<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;">`)
+
+	b.WriteString(`<h1 style="font-size:24px;margin-bottom:8px;">You're invited to MailBrief</h1>`)
+
+	b.WriteString(`<p style="font-size:16px;line-height:1.5;">`)
+	b.WriteString(html.EscapeString(fromName))
+	b.WriteString(` has invited you to join MailBrief — AI-powered digests of your newsletters, delivered daily.</p>`)
+
+	b.WriteString(`<p style="font-size:16px;line-height:1.5;">Sign in to get started:</p>`)
+
+	b.WriteString(`<a href="https://mailbrief.io/login" style="display:inline-block;background:#0066cc;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:16px;font-weight:500;">Sign in to MailBrief</a>`)
+
+	b.WriteString(`<hr style="border:none;border-top:1px solid #eee;margin-top:32px;">`)
+	b.WriteString(`<p style="color:#999;font-size:12px;">Sent by <a href="https://mailbrief.io" style="color:#999;">MailBrief</a></p>`)
+
+	b.WriteString(`</body></html>`)
+
+	return b.String()
+}
+
 func buildDigestHTML(digest *domain.Digest) string {
 	var b strings.Builder
 

@@ -24,6 +24,9 @@ export default function LoginPage() {
           <p className="text-lg text-muted-foreground">
             AI-powered digests of your newsletters, delivered daily.
           </p>
+          <p className="text-sm font-medium text-muted-foreground/80">
+            Currently invite-only
+          </p>
         </div>
 
         {/* How it works */}

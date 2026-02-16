@@ -67,6 +67,7 @@ func main() {
 	preferenceRepo := database.NewPreferenceRepo(pool)
 	senderPrefRepo := database.NewSenderPreferenceRepo(pool)
 	feedbackRepo := database.NewFeedbackRepo(pool)
+	inviteRepo := database.NewInviteRepo(pool)
 
 	// LLM Provider
 	provider, err := newLLMProvider(cfg)
@@ -147,6 +148,11 @@ func main() {
 	adminStatsHandler := &handler.AdminStatsHandler{
 		Pool: pool,
 	}
+	inviteHandler := &handler.InviteHandler{
+		Invites:     inviteRepo,
+		AdminEmails: cfg.AdminEmails,
+		Mailer:      m,
+	}
 	sessionAuth := &auth.SessionAuth{
 		Sessions:    sessionRepo,
 		AdminEmails: cfg.AdminEmails,
@@ -166,6 +172,7 @@ func main() {
 		TopicHandler:      topicHandler,
 		FeedbackHandler:   feedbackHandler,
 		DashboardHandler:  dashboardHandler,
+		InviteHandler:     inviteHandler,
 		AdminStatsHandler: adminStatsHandler,
 		SessionAuth:       sessionAuth,
 	})

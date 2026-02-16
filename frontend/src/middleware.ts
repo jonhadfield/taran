@@ -9,7 +9,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  if (!sessionCookie && !pathname.startsWith("/login") && !pathname.startsWith("/api/auth") && !pathname.startsWith("/shared")) {
+  if (sessionCookie && pathname === "/not-invited") {
+    // Allow authenticated users to see the not-invited page
+    return NextResponse.next();
+  }
+
+  if (!sessionCookie && !pathname.startsWith("/login") && !pathname.startsWith("/not-invited") && !pathname.startsWith("/api/auth") && !pathname.startsWith("/shared")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
