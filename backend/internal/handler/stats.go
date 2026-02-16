@@ -42,7 +42,8 @@ func (h *StatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, total, err := h.Emails.List(ctx, userID, domain.ListOptions{Limit: 1})
+	processed := domain.EmailStatusProcessed
+	_, total, err := h.Emails.List(ctx, userID, domain.ListOptions{Limit: 1, Status: &processed})
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to count total emails")
 		return

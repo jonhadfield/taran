@@ -252,7 +252,7 @@ func (r *EmailRepo) ListActiveUserIDs(ctx context.Context, from, to time.Time) (
 func (r *EmailRepo) CountByPeriod(ctx context.Context, userID string, from, to time.Time) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx,
-		"SELECT COUNT(*) FROM email WHERE user_id = $1 AND received_at >= $2 AND received_at < $3",
+		"SELECT COUNT(*) FROM email WHERE user_id = $1 AND received_at >= $2 AND received_at < $3 AND status = 'processed'",
 		userID, from, to).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count by period: %w", err)
@@ -263,7 +263,7 @@ func (r *EmailRepo) CountByPeriod(ctx context.Context, userID string, from, to t
 func (r *EmailRepo) TopSenders(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT from_address, from_name, COUNT(*) as cnt
-		 FROM email WHERE user_id = $1 AND received_at >= $2 AND received_at < $3
+		 FROM email WHERE user_id = $1 AND received_at >= $2 AND received_at < $3 AND status = 'processed'
 		 GROUP BY from_address, from_name ORDER BY cnt DESC LIMIT $4`,
 		userID, from, to, limit)
 	if err != nil {
