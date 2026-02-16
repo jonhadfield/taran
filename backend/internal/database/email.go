@@ -231,7 +231,7 @@ func (r *EmailRepo) SetStatus(ctx context.Context, id string, status domain.Emai
 
 func (r *EmailRepo) ListActiveUserIDs(ctx context.Context, from, to time.Time) ([]string, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT DISTINCT user_id FROM email WHERE received_at >= $1 AND received_at < $2`,
+		`SELECT DISTINCT user_id FROM email WHERE received_at >= $1 AND received_at < $2 AND status = 'processed'`,
 		from, to)
 	if err != nil {
 		return nil, fmt.Errorf("list active user IDs: %w", err)
