@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -36,7 +35,7 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 
 	var req updatePreferenceRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := LimitedJSONDecoder(r).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}

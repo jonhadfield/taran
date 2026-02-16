@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -80,7 +79,7 @@ func (h *EmailHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	var state domain.EmailState
-	if err := json.NewDecoder(r.Body).Decode(&state); err != nil {
+	if err := LimitedJSONDecoder(r).Decode(&state); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}

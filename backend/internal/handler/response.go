@@ -26,3 +26,11 @@ func WriteJSON(w http.ResponseWriter, status int, v any) {
 func WriteError(w http.ResponseWriter, status int, msg string) {
 	WriteJSON(w, status, ErrorResponse{Error: msg})
 }
+
+// maxJSONBody limits the request body to 1MB for JSON API endpoints.
+const maxJSONBodySize = 1 << 20 // 1 MB
+
+func LimitedJSONDecoder(r *http.Request) *json.Decoder {
+	r.Body = http.MaxBytesReader(nil, r.Body, maxJSONBodySize)
+	return json.NewDecoder(r.Body)
+}

@@ -1,14 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/domain"
-	"github.com/google/uuid"
 )
 
 type FeedbackHandler struct {
@@ -22,7 +21,7 @@ func (h *FeedbackHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Rating string `json:"Rating"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := LimitedJSONDecoder(r).Decode(&body); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}

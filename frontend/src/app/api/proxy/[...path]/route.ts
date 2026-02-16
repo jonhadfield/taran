@@ -2,7 +2,15 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
-const API_KEY = process.env.API_KEY || "";
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} environment variable is required`);
+  }
+  return value;
+}
+
+const API_KEY = requireEnv("API_KEY");
 
 async function proxyRequest(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;

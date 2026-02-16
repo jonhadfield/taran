@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -80,7 +79,7 @@ func (h *SenderHandler) Update(w http.ResponseWriter, r *http.Request) {
 		FromAddress string `json:"FromAddress"`
 		Status      string `json:"Status"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := LimitedJSONDecoder(r).Decode(&body); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}

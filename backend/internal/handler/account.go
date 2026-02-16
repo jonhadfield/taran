@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -54,7 +53,7 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 
 	var req createAccountRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := LimitedJSONDecoder(r).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}

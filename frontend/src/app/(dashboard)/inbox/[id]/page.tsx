@@ -8,6 +8,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
 import { FeedbackButtons } from "./feedback-buttons";
+import DOMPurify from "isomorphic-dompurify";
+
+function isSafeURL(url: string): boolean {
+  try {
+    const parsed = new URL(url, "https://placeholder.invalid");
+    return parsed.protocol === "https:" || parsed.protocol === "http:" || parsed.protocol === "mailto:";
+  } catch {
+    return false;
+  }
+}
 
 export default async function EmailDetailPage({
   params,
@@ -118,7 +128,7 @@ export default async function EmailDetailPage({
                     {email.extraction.Links.map((link, i) => (
                       <li key={i}>
                         <a
-                          href={link.url}
+                          href={isSafeURL(link.url) ? link.url : "#"}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:underline"
@@ -153,7 +163,7 @@ export default async function EmailDetailPage({
             {email.HTMLBody ? (
               <div
                 className="prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: email.HTMLBody }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.HTMLBody, { FORBID_TAGS: ["style"] }) }}
               />
             ) : (
               <pre className="whitespace-pre-wrap text-sm font-mono">

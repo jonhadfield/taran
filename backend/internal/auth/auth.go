@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -31,7 +32,7 @@ func UserEmailFromContext(ctx context.Context) string {
 func APIKeyAuth(apiKey string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		provided := r.Header.Get("X-API-Key")
-		if provided == "" || provided != apiKey {
+		if provided == "" || subtle.ConstantTimeCompare([]byte(provided), []byte(apiKey)) != 1 {
 			writeAuthError(w, http.StatusUnauthorized, "invalid or missing API key")
 			return
 		}
@@ -43,7 +44,7 @@ func APIKeyAuth(apiKey string, next http.Handler) http.Handler {
 func WebhookAuth(secret string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		provided := r.Header.Get("X-Webhook-Secret")
-		if provided == "" || provided != secret {
+		if provided == "" || subtle.ConstantTimeCompare([]byte(provided), []byte(secret)) != 1 {
 			writeAuthError(w, http.StatusUnauthorized, "invalid webhook secret")
 			return
 		}
