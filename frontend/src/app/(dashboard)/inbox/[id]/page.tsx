@@ -162,7 +162,7 @@ export default async function EmailDetailPage({
           <CardContent>
             {email.HTMLBody ? (
               <div
-                className="prose prose-sm max-w-none dark:prose-invert"
+                className="prose prose-sm max-w-none rounded-md bg-white p-4 text-black"
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(email.HTMLBody, {
                   allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
                   allowedAttributes: {
