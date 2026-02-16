@@ -26,6 +26,7 @@ type Email struct {
 	ReceivedAt     time.Time
 	DateHeader     time.Time
 	Status         EmailStatus
+	StatusReason   string
 	IsRead         bool
 	IsStarred      bool
 	IsArchived     bool

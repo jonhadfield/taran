@@ -98,7 +98,7 @@ func ProcessEmail(
 ) {
 	logger := slog.With("emailID", emailID)
 
-	if err := emails.SetStatus(ctx, emailID, domain.EmailStatusProcessing); err != nil {
+	if err := emails.SetStatus(ctx, emailID, domain.EmailStatusProcessing, ""); err != nil {
 		logger.Error("failed to set processing status", "error", err)
 		return
 	}
@@ -106,7 +106,7 @@ func ProcessEmail(
 	em, err := emails.GetByIDInternal(ctx, emailID)
 	if err != nil {
 		logger.Error("failed to fetch email", "error", err)
-		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "failed to fetch email")
 		return
 	}
 
@@ -115,7 +115,7 @@ func ProcessEmail(
 		pref, _ := senderPrefs.GetByAddress(ctx, em.UserID, em.FromAddress)
 		if pref != nil && pref.Status == "blocked" {
 			logger.Info("sender is blocked, skipping", "from", em.FromAddress)
-			emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped)
+			emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped, "sender is blocked")
 			return
 		}
 	}
@@ -131,7 +131,7 @@ func ProcessEmail(
 	}
 	if content == "" {
 		logger.Warn("email has no content, skipping")
-		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "email has no content")
 		return
 	}
 
@@ -145,14 +145,14 @@ func ProcessEmail(
 		logger.Warn("triage failed, proceeding to extraction", "error", triageErr)
 	} else if !triageResult.Extract {
 		logger.Info("triage skipped email", "reason", triageResult.Reason)
-		emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped, triageResult.Reason)
 		return
 	}
 
 	result, usage, err := provider.ExtractEmail(ctx, em.Subject, content, em.FromAddress)
 	if err != nil {
 		logger.Error("LLM extraction failed", "error", err)
-		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "extraction failed")
 		return
 	}
 
@@ -176,11 +176,11 @@ func ProcessEmail(
 
 	if err := extractions.Create(ctx, extraction); err != nil {
 		logger.Error("failed to store extraction", "error", err)
-		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "failed to store extraction")
 		return
 	}
 
-	if err := emails.SetStatus(ctx, emailID, domain.EmailStatusProcessed); err != nil {
+	if err := emails.SetStatus(ctx, emailID, domain.EmailStatusProcessed, ""); err != nil {
 		logger.Error("failed to set processed status", "error", err)
 		return
 	}

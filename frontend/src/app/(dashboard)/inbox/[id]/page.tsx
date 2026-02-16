@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { EmailResponse } from "@/types/api";
-import { ArrowLeft, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Sparkles, CheckCircle2, Info } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
@@ -66,6 +66,18 @@ export default async function EmailDetailPage({
         </div>
 
         <Separator />
+
+        {!email.extraction && (email.Status === "skipped" || email.Status === "failed") && email.StatusReason && (
+          <div className="flex items-start gap-3 rounded-lg border border-muted bg-muted/50 p-4">
+            <Info className="size-5 shrink-0 text-muted-foreground mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">
+                {email.Status === "skipped" ? "Email skipped" : "Processing failed"}
+              </p>
+              <p className="text-sm text-muted-foreground">{email.StatusReason}</p>
+            </div>
+          </div>
+        )}
 
         {email.extraction && (
           <Card className="border-t-2 border-t-indigo-500">

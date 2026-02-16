@@ -188,9 +188,21 @@ export function InboxList({
                       {new Date(email.ReceivedAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {email.Subject}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm text-muted-foreground truncate">
+                      {email.Subject}
+                    </p>
+                    {email.Status === "skipped" && (
+                      <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
+                        Skipped
+                      </Badge>
+                    )}
+                    {email.Status === "failed" && (
+                      <Badge variant="outline" className="shrink-0 text-xs text-destructive">
+                        Failed
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
                 {/* Actions - visible on hover */}

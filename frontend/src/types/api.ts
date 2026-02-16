@@ -12,6 +12,7 @@ export interface Email {
   ReceivedAt: string;
   DateHeader: string;
   Status: EmailStatus;
+  StatusReason: string;
   IsRead: boolean;
   IsStarred: boolean;
   IsArchived: boolean;

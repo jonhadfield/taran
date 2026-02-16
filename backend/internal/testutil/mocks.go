@@ -13,6 +13,7 @@ import (
 type SetStatusCall struct {
 	ID     string
 	Status domain.EmailStatus
+	Reason string
 }
 
 // MockEmailRepo implements database.EmailRepository for testing.
@@ -24,7 +25,7 @@ type MockEmailRepo struct {
 	UpdateStateFn       func(ctx context.Context, userID, id string, state domain.EmailState) error
 	GetByMessageIDFn    func(ctx context.Context, messageID string) (*domain.Email, error)
 	ListPendingFn       func(ctx context.Context, limit int) ([]domain.Email, error)
-	SetStatusFn         func(ctx context.Context, id string, status domain.EmailStatus) error
+	SetStatusFn         func(ctx context.Context, id string, status domain.EmailStatus, reason string) error
 	ListActiveUserIDsFn func(ctx context.Context, from, to time.Time) ([]string, error)
 	CountByPeriodFn     func(ctx context.Context, userID string, from, to time.Time) (int, error)
 	TopSendersFn        func(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
@@ -86,12 +87,12 @@ func (m *MockEmailRepo) ListPending(ctx context.Context, limit int) ([]domain.Em
 	return nil, nil
 }
 
-func (m *MockEmailRepo) SetStatus(ctx context.Context, id string, status domain.EmailStatus) error {
+func (m *MockEmailRepo) SetStatus(ctx context.Context, id string, status domain.EmailStatus, reason string) error {
 	m.mu.Lock()
-	m.SetStatusCalls = append(m.SetStatusCalls, SetStatusCall{ID: id, Status: status})
+	m.SetStatusCalls = append(m.SetStatusCalls, SetStatusCall{ID: id, Status: status, Reason: reason})
 	m.mu.Unlock()
 	if m.SetStatusFn != nil {
-		return m.SetStatusFn(ctx, id, status)
+		return m.SetStatusFn(ctx, id, status, reason)
 	}
 	return nil
 }

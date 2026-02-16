@@ -15,7 +15,7 @@ type EmailRepository interface {
 	UpdateState(ctx context.Context, userID, id string, state domain.EmailState) error
 	GetByMessageID(ctx context.Context, messageID string) (*domain.Email, error)
 	ListPending(ctx context.Context, limit int) ([]domain.Email, error)
-	SetStatus(ctx context.Context, id string, status domain.EmailStatus) error
+	SetStatus(ctx context.Context, id string, status domain.EmailStatus, reason string) error
 	ListActiveUserIDs(ctx context.Context, from, to time.Time) ([]string, error)
 	CountByPeriod(ctx context.Context, userID string, from, to time.Time) (int, error)
 	TopSenders(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
