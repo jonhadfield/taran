@@ -8,7 +8,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
 import { FeedbackButtons } from "./feedback-buttons";
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
 function isSafeURL(url: string): boolean {
   try {
@@ -163,7 +163,13 @@ export default async function EmailDetailPage({
             {email.HTMLBody ? (
               <div
                 className="prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.HTMLBody, { FORBID_TAGS: ["style"] }) }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(email.HTMLBody, {
+                  allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
+                  allowedAttributes: {
+                    ...sanitizeHtml.defaults.allowedAttributes,
+                    "*": ["style", "class"],
+                  },
+                }) }}
               />
             ) : (
               <pre className="whitespace-pre-wrap text-sm font-mono">
