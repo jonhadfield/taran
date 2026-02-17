@@ -32,15 +32,20 @@ export function DigestList({ initialDigests }: DigestListProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 @sm:grid-cols-2">
+        <div className="space-y-4">
           {digests.map((digest) => (
             <Link key={digest.ID} href={`/digests/${digest.ID}`}>
-              <Card className="h-full border-l-4 border-l-indigo-500 hover:shadow-md transition-shadow">
+              <Card className="border-l-4 border-l-indigo-500 hover:shadow-md transition-shadow">
                 <CardContent className="p-6 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-medium">{digest.Title}</h3>
-                    <Badge variant="secondary">{digest.EmailCount} emails</Badge>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>
+                      {new Date(digest.PeriodStart).toLocaleDateString()} &ndash;{" "}
+                      {new Date(digest.PeriodEnd).toLocaleDateString()}
+                    </span>
+                    <span>&middot;</span>
+                    <span>{digest.EmailCount} emails</span>
                   </div>
+                  <h3 className="font-medium">{digest.Title}</h3>
                   <p className="text-sm text-muted-foreground line-clamp-3">
                     {digest.Summary}
                   </p>
@@ -53,10 +58,6 @@ export function DigestList({ initialDigests }: DigestListProps) {
                       ))}
                     </div>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(digest.PeriodStart).toLocaleDateString()} &ndash;{" "}
-                    {new Date(digest.PeriodEnd).toLocaleDateString()}
-                  </p>
                 </CardContent>
               </Card>
             </Link>
