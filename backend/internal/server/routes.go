@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/handler"
@@ -31,16 +32,16 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 
 	mux.HandleFunc("GET /health", handleHealth)
 
-	// Public endpoints (no auth)
-	mux.HandleFunc("GET /api/public/digests/{token}", deps.DigestHandler.GetPublic)
-	mux.HandleFunc("POST /api/public/unsubscribe", deps.PreferenceHandler.Unsubscribe)
-
 	// Webhook (shared secret auth)
 	webhookAuth := auth.WebhookAuth(deps.WebhookSecret, http.HandlerFunc(deps.WebhookHandler.IngestEmail))
 	mux.Handle("POST /webhook/email", webhookAuth)
 
-	// API routes (session auth)
+	// API routes (session auth) — public endpoints registered here but skipped by auth
 	api := http.NewServeMux()
+
+	// Public endpoints (no auth — skipped by publicPathAuth wrapper below)
+	api.HandleFunc("GET /api/public/digests/{token}", deps.DigestHandler.GetPublic)
+	api.HandleFunc("POST /api/public/unsubscribe", deps.PreferenceHandler.Unsubscribe)
 	api.HandleFunc("GET /api/dashboard", deps.DashboardHandler.Get)
 	api.HandleFunc("GET /api/emails", deps.EmailHandler.List)
 	api.HandleFunc("GET /api/emails/{id}", deps.EmailHandler.Get)
@@ -73,9 +74,21 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	admin.HandleFunc("GET /api/admin/invites", deps.InviteHandler.List)
 	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(admin))
 
-	mux.Handle("/api/", auth.APIKeyAuth(deps.APIKey, deps.SessionAuth.Middleware(api)))
+	authedAPI := publicPathSkip(auth.APIKeyAuth(deps.APIKey, deps.SessionAuth.Middleware(api)), api)
+	mux.Handle("/api/", authedAPI)
 
 	return mux
+}
+
+// publicPathSkip bypasses auth for /api/public/ paths, forwarding directly to the handler.
+func publicPathSkip(authed, raw http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/public/") {
+			raw.ServeHTTP(w, r)
+			return
+		}
+		authed.ServeHTTP(w, r)
+	})
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
