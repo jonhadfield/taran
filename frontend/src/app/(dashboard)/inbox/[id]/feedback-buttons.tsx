@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet, apiPost, apiDelete } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,12 +25,17 @@ export function FeedbackButtons({ emailId }: FeedbackButtonsProps) {
 
   const handleFeedback = async (value: "useful" | "not_useful") => {
     setLoading(true);
+    const prevRating = rating;
     const newRating = rating === value ? null : value;
     setRating(newRating);
     try {
-      await apiPost(`emails/${emailId}/feedback`, { Rating: newRating ?? value });
+      if (newRating === null) {
+        await apiDelete(`emails/${emailId}/feedback`);
+      } else {
+        await apiPost(`emails/${emailId}/feedback`, { Rating: newRating });
+      }
     } catch {
-      setRating(rating);
+      setRating(prevRating);
     } finally {
       setLoading(false);
     }

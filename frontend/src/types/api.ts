@@ -165,10 +165,17 @@ export interface ListResponse<T> {
   total: number;
 }
 
+export interface ProcessingStats {
+  PendingCount: number;
+  ProcessingCount: number;
+  FailedCount: number;
+}
+
 export interface DashboardData {
   emails: Email[];
   emailTotal: number;
   digests: Digest[];
   unreadCount: number;
   stats: UserStats;
+  processing: ProcessingStats;
 }

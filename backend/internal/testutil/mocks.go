@@ -29,6 +29,8 @@ type MockEmailRepo struct {
 	ListActiveUserIDsFn func(ctx context.Context, from, to time.Time) ([]string, error)
 	CountByPeriodFn     func(ctx context.Context, userID string, from, to time.Time) (int, error)
 	TopSendersFn        func(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
+	ListSendersFn       func(ctx context.Context, userID string) ([]domain.SenderInfo, error)
+	CountByStatusFn     func(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
 
 	mu             sync.Mutex
 	SetStatusCalls []SetStatusCall
@@ -118,6 +120,20 @@ func (m *MockEmailRepo) TopSenders(ctx context.Context, userID string, from, to 
 	return nil, nil
 }
 
+func (m *MockEmailRepo) ListSenders(ctx context.Context, userID string) ([]domain.SenderInfo, error) {
+	if m.ListSendersFn != nil {
+		return m.ListSendersFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockEmailRepo) CountByStatus(ctx context.Context, userID string) (map[domain.EmailStatus]int, error) {
+	if m.CountByStatusFn != nil {
+		return m.CountByStatusFn(ctx, userID)
+	}
+	return nil, nil
+}
+
 // MockExtractionRepo implements database.ExtractionRepository for testing.
 type MockExtractionRepo struct {
 	CreateFn              func(ctx context.Context, extraction *domain.Extraction) error
@@ -157,6 +173,7 @@ func (m *MockExtractionRepo) ListTopicsByUser(ctx context.Context, userID string
 // MockFeedbackRepo implements database.FeedbackRepository for testing.
 type MockFeedbackRepo struct {
 	UpsertFn          func(ctx context.Context, fb *domain.EmailFeedback) error
+	DeleteFn          func(ctx context.Context, userID, emailID string) error
 	GetByEmailIDFn    func(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error)
 	GetSenderStatsFn  func(ctx context.Context, userID string) ([]domain.SenderFeedbackStat, error)
 	GetTopicStatsFn   func(ctx context.Context, userID string) ([]domain.TopicFeedbackStat, error)
@@ -165,6 +182,13 @@ type MockFeedbackRepo struct {
 func (m *MockFeedbackRepo) Upsert(ctx context.Context, fb *domain.EmailFeedback) error {
 	if m.UpsertFn != nil {
 		return m.UpsertFn(ctx, fb)
+	}
+	return nil
+}
+
+func (m *MockFeedbackRepo) Delete(ctx context.Context, userID, emailID string) error {
+	if m.DeleteFn != nil {
+		return m.DeleteFn(ctx, userID, emailID)
 	}
 	return nil
 }
@@ -337,11 +361,19 @@ func (m *MockPreferenceRepo) Upsert(ctx context.Context, pref *domain.UserPrefer
 // MockMailer implements mailer.Mailer for testing.
 type MockMailer struct {
 	SendDigestFn func(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error
+	SendInviteFn func(ctx context.Context, toEmail, fromName string) error
 }
 
 func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error {
 	if m.SendDigestFn != nil {
 		return m.SendDigestFn(ctx, toEmail, toName, digest, unsubscribeURL)
+	}
+	return nil
+}
+
+func (m *MockMailer) SendInvite(ctx context.Context, toEmail, fromName string) error {
+	if m.SendInviteFn != nil {
+		return m.SendInviteFn(ctx, toEmail, fromName)
 	}
 	return nil
 }

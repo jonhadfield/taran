@@ -4,7 +4,7 @@ import { usePolling } from "@/hooks/use-polling";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { DashboardData } from "@/types/api";
-import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown } from "lucide-react";
+import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, Loader2, AlertCircle } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import Link from "next/link";
 
@@ -21,7 +21,10 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
   const unreadCount = data.unreadCount;
   const stats = data.stats;
 
+  const processing = data.processing;
   const weekDiff = stats.EmailsThisWeek - stats.EmailsLastWeek;
+  const inFlightCount = (processing?.PendingCount ?? 0) + (processing?.ProcessingCount ?? 0);
+  const failedCount = processing?.FailedCount ?? 0;
 
   return (
     <div className="space-y-8">
@@ -77,6 +80,24 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
           </CardContent>
         </Card>
       </div>
+
+      {/* Processing status */}
+      {(inFlightCount > 0 || failedCount > 0) && (
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          {inFlightCount > 0 && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" />
+              <span>{inFlightCount} email{inFlightCount !== 1 ? "s" : ""} processing...</span>
+            </div>
+          )}
+          {failedCount > 0 && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <AlertCircle className="size-3.5" />
+              <span>{failedCount} failed</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Top Senders */}
       {stats.TopSenders && stats.TopSenders.length > 0 && (

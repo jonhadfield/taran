@@ -93,6 +93,13 @@ func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"></head>`)
 	b.WriteString(`<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;">`)
 
+	// View in browser link
+	if digest.ShareToken != nil {
+		b.WriteString(`<p style="font-size:12px;color:#666;margin-bottom:16px;"><a href="https://mailbrief.io/shared/`)
+		b.WriteString(html.EscapeString(*digest.ShareToken))
+		b.WriteString(`" style="color:#0066cc;text-decoration:none;">View in browser &rarr;</a></p>`)
+	}
+
 	// Title
 	b.WriteString(`<h1 style="font-size:24px;margin-bottom:8px;">`)
 	b.WriteString(html.EscapeString(digest.Title))

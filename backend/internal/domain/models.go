@@ -177,6 +177,12 @@ type TopicFeedbackStat struct {
 	NotUsefulCount int
 }
 
+type ProcessingStats struct {
+	PendingCount    int `json:"PendingCount"`
+	ProcessingCount int `json:"ProcessingCount"`
+	FailedCount     int `json:"FailedCount"`
+}
+
 type AdminStats struct {
 	TotalUsers       int           `json:"TotalUsers"`
 	ActiveUsersWeek  int           `json:"ActiveUsersWeek"`

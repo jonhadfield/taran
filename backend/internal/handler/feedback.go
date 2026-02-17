@@ -47,6 +47,18 @@ func (h *FeedbackHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, fb)
 }
 
+func (h *FeedbackHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	emailID := r.PathValue("id")
+
+	if err := h.Feedback.Delete(r.Context(), userID, emailID); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to delete feedback")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
 func (h *FeedbackHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 	emailID := r.PathValue("id")

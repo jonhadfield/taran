@@ -22,6 +22,7 @@ export default async function DashboardPage() {
     digests: [],
     unreadCount: 0,
     stats: { EmailsThisWeek: 0, EmailsLastWeek: 0, TotalEmails: 0, TopSenders: [] },
+    processing: { PendingCount: 0, ProcessingCount: 0, FailedCount: 0 },
   };
 
   let initialData = emptyData;

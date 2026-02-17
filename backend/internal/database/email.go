@@ -282,6 +282,48 @@ func (r *EmailRepo) TopSenders(ctx context.Context, userID string, from, to time
 	return senders, nil
 }
 
+func (r *EmailRepo) ListSenders(ctx context.Context, userID string) ([]domain.SenderInfo, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT from_address, COALESCE(MAX(from_name), '') as from_name, COUNT(*) as cnt
+		 FROM email WHERE user_id = $1 GROUP BY from_address ORDER BY cnt DESC`,
+		userID)
+	if err != nil {
+		return nil, fmt.Errorf("list senders: %w", err)
+	}
+	defer rows.Close()
+
+	var senders []domain.SenderInfo
+	for rows.Next() {
+		var s domain.SenderInfo
+		if err := rows.Scan(&s.FromAddress, &s.FromName, &s.EmailCount); err != nil {
+			return nil, fmt.Errorf("scan sender info: %w", err)
+		}
+		senders = append(senders, s)
+	}
+	return senders, nil
+}
+
+func (r *EmailRepo) CountByStatus(ctx context.Context, userID string) (map[domain.EmailStatus]int, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT status, COUNT(*) FROM email WHERE user_id = $1 GROUP BY status`,
+		userID)
+	if err != nil {
+		return nil, fmt.Errorf("count by status: %w", err)
+	}
+	defer rows.Close()
+
+	counts := make(map[domain.EmailStatus]int)
+	for rows.Next() {
+		var status domain.EmailStatus
+		var count int
+		if err := rows.Scan(&status, &count); err != nil {
+			return nil, fmt.Errorf("scan status count: %w", err)
+		}
+		counts[status] = count
+	}
+	return counts, nil
+}
+
 type scannable interface {
 	Scan(dest ...any) error
 }

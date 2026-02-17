@@ -30,6 +30,17 @@ func (r *FeedbackRepo) Upsert(ctx context.Context, fb *domain.EmailFeedback) err
 	return nil
 }
 
+func (r *FeedbackRepo) Delete(ctx context.Context, userID, emailID string) error {
+	_, err := r.pool.Exec(ctx,
+		`DELETE FROM email_feedback WHERE user_id = $1 AND email_id = $2`,
+		userID, emailID,
+	)
+	if err != nil {
+		return fmt.Errorf("delete feedback: %w", err)
+	}
+	return nil
+}
+
 func (r *FeedbackRepo) GetByEmailID(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, email_id, rating, created_at

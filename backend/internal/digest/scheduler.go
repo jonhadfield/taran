@@ -2,6 +2,8 @@ package digest
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"log/slog"
 	"time"
 
@@ -110,6 +112,21 @@ func (s *Scheduler) generateDigests() {
 		if err != nil {
 			slog.Error("failed to get user email", "userID", userID, "error", err)
 			continue
+		}
+
+		// Auto-generate share token for "view in browser" link
+		if digest.ShareToken == nil {
+			tokenBytes := make([]byte, 16)
+			if _, err := rand.Read(tokenBytes); err != nil {
+				slog.Error("failed to generate share token", "digestID", digest.ID, "error", err)
+			} else {
+				token := hex.EncodeToString(tokenBytes)
+				if err := s.digests.SetShareToken(ctx, digest.ID, userID, token); err != nil {
+					slog.Error("failed to set share token", "digestID", digest.ID, "error", err)
+				} else {
+					digest.ShareToken = &token
+				}
+			}
 		}
 
 		var unsubURL string

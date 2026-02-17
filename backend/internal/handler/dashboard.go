@@ -16,11 +16,12 @@ type DashboardHandler struct {
 }
 
 type DashboardResponse struct {
-	Emails      []domain.Email    `json:"emails"`
-	EmailTotal  int               `json:"emailTotal"`
-	Digests     []domain.Digest   `json:"digests"`
-	UnreadCount int               `json:"unreadCount"`
-	Stats       domain.UserStats  `json:"stats"`
+	Emails     []domain.Email          `json:"emails"`
+	EmailTotal int                     `json:"emailTotal"`
+	Digests    []domain.Digest         `json:"digests"`
+	UnreadCount int                    `json:"unreadCount"`
+	Stats      domain.UserStats        `json:"stats"`
+	Processing domain.ProcessingStats  `json:"processing"`
 }
 
 func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -82,6 +83,24 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 		}
 		mu.Lock()
 		resp.UnreadCount = total
+		mu.Unlock()
+	}()
+
+	// Fetch processing stats
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		counts, err := h.Emails.CountByStatus(ctx, userID)
+		if err != nil {
+			setErr(err)
+			return
+		}
+		mu.Lock()
+		resp.Processing = domain.ProcessingStats{
+			PendingCount:    counts[domain.EmailStatusPending],
+			ProcessingCount: counts[domain.EmailStatusProcessing],
+			FailedCount:     counts[domain.EmailStatusFailed],
+		}
 		mu.Unlock()
 	}()
 

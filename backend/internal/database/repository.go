@@ -19,6 +19,8 @@ type EmailRepository interface {
 	ListActiveUserIDs(ctx context.Context, from, to time.Time) ([]string, error)
 	CountByPeriod(ctx context.Context, userID string, from, to time.Time) (int, error)
 	TopSenders(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
+	ListSenders(ctx context.Context, userID string) ([]domain.SenderInfo, error)
+	CountByStatus(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
 }
 
 type ExtractionRepository interface {
@@ -30,6 +32,7 @@ type ExtractionRepository interface {
 
 type FeedbackRepository interface {
 	Upsert(ctx context.Context, fb *domain.EmailFeedback) error
+	Delete(ctx context.Context, userID, emailID string) error
 	GetByEmailID(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error)
 	GetSenderStats(ctx context.Context, userID string) ([]domain.SenderFeedbackStat, error)
 	GetTopicStats(ctx context.Context, userID string) ([]domain.TopicFeedbackStat, error)

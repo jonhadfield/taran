@@ -19,32 +19,13 @@ type SenderHandler struct {
 func (h *SenderHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 
-	// Get all emails for the user to aggregate senders
-	emails, _, err := h.Emails.List(r.Context(), userID, domain.ListOptions{Limit: 10000})
+	senders, err := h.Emails.ListSenders(r.Context(), userID)
 	if err != nil {
-		WriteError(w, http.StatusInternalServerError, "failed to list emails")
+		WriteError(w, http.StatusInternalServerError, "failed to list senders")
 		return
 	}
 
-	// Aggregate senders
-	type senderAgg struct {
-		FromName string
-		Count    int
-	}
-	senderMap := make(map[string]*senderAgg)
-	for _, e := range emails {
-		agg, ok := senderMap[e.FromAddress]
-		if !ok {
-			senderMap[e.FromAddress] = &senderAgg{FromName: e.FromName, Count: 1}
-		} else {
-			agg.Count++
-			if agg.FromName == "" && e.FromName != "" {
-				agg.FromName = e.FromName
-			}
-		}
-	}
-
-	// Get sender preferences
+	// Merge sender preference status
 	prefs, err := h.SenderPrefs.ListByUser(r.Context(), userID)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to list sender preferences")
@@ -55,19 +36,12 @@ func (h *SenderHandler) List(w http.ResponseWriter, r *http.Request) {
 		prefMap[p.FromAddress] = p.Status
 	}
 
-	// Build response
-	var senders []domain.SenderInfo
-	for addr, agg := range senderMap {
-		status := "normal"
-		if s, ok := prefMap[addr]; ok {
-			status = s
+	for i := range senders {
+		if s, ok := prefMap[senders[i].FromAddress]; ok {
+			senders[i].Status = s
+		} else {
+			senders[i].Status = "normal"
 		}
-		senders = append(senders, domain.SenderInfo{
-			FromAddress: addr,
-			FromName:    agg.FromName,
-			EmailCount:  agg.Count,
-			Status:      status,
-		})
 	}
 
 	WriteJSON(w, http.StatusOK, senders)
@@ -148,16 +122,16 @@ func (h *SenderHandler) Suggestions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get sender names from email data
-	emails, _, err := h.Emails.List(r.Context(), userID, domain.ListOptions{Limit: 10000})
+	// Get sender names via SQL aggregation
+	senderInfos, err := h.Emails.ListSenders(r.Context(), userID)
 	if err != nil {
-		WriteError(w, http.StatusInternalServerError, "failed to list emails")
+		WriteError(w, http.StatusInternalServerError, "failed to list senders")
 		return
 	}
 	nameMap := make(map[string]string)
-	for _, e := range emails {
-		if _, ok := nameMap[e.FromAddress]; !ok && e.FromName != "" {
-			nameMap[e.FromAddress] = e.FromName
+	for _, s := range senderInfos {
+		if s.FromName != "" {
+			nameMap[s.FromAddress] = s.FromName
 		}
 	}
 

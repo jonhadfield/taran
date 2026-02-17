@@ -141,7 +141,7 @@ func (h *PreferenceHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) 
 
 	slog.Info("user unsubscribed via email link", "userID", uid)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, unsubscribeHTML("You have been unsubscribed from MailBrief digest emails. You can re-enable them anytime in your settings."))
+	fmt.Fprint(w, unsubscribeHTML(`You have been unsubscribed from MailBrief digest emails. You can re-enable them anytime in your <a href="https://mailbrief.io/settings" style="color:#0066cc;text-decoration:underline;">settings</a>.`))
 }
 
 func unsubscribeHTML(message string) string {
