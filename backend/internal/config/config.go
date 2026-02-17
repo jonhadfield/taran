@@ -18,12 +18,14 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Host           string
-	Port           int
-	TLSDomain      string
-	TLSCertDir     string
-	APIKey         string
-	AllowedOrigins []string
+	Host               string
+	Port               int
+	TLSDomain          string
+	TLSCertDir         string
+	APIKey             string
+	AllowedOrigins     []string
+	BaseURL            string
+	UnsubscribeSecret  string
 }
 
 type DatabaseConfig struct {
@@ -120,12 +122,14 @@ func Load() (*Config, error) {
 
 	return &Config{
 		Server: ServerConfig{
-			Host:           envOr("TARAN_HOST", "0.0.0.0"),
-			Port:           port,
-			TLSDomain:      os.Getenv("TARAN_TLS_DOMAIN"),
-			TLSCertDir:     envOr("TARAN_TLS_CERT_DIR", "certs"),
-			APIKey:         apiKey,
-			AllowedOrigins: allowedOrigins,
+			Host:              envOr("TARAN_HOST", "0.0.0.0"),
+			Port:              port,
+			TLSDomain:         os.Getenv("TARAN_TLS_DOMAIN"),
+			TLSCertDir:        envOr("TARAN_TLS_CERT_DIR", "certs"),
+			APIKey:            apiKey,
+			AllowedOrigins:    allowedOrigins,
+			BaseURL:           os.Getenv("TARAN_BASE_URL"),
+			UnsubscribeSecret: os.Getenv("TARAN_UNSUBSCRIBE_SECRET"),
 		},
 		DB: DatabaseConfig{
 			URL: dbURL,

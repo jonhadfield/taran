@@ -27,7 +27,7 @@ export function DigestList({ initialDigests }: DigestListProps) {
             <BookOpen className="size-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">No digests yet</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Digests are generated automatically from your incoming emails.
+              Once you start receiving emails, digests will be generated automatically.
             </p>
           </CardContent>
         </Card>

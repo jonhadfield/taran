@@ -22,14 +22,21 @@ func NewResendMailer(apiKey, fromAddress string) *ResendMailer {
 	}
 }
 
-func (m *ResendMailer) SendDigest(ctx context.Context, toEmail, toName string, digest *domain.Digest) error {
-	htmlBody := buildDigestHTML(digest)
+func (m *ResendMailer) SendDigest(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error {
+	htmlBody := buildDigestHTML(digest, unsubscribeURL)
 
 	params := &resend.SendEmailRequest{
 		From:    m.fromAddress,
 		To:      []string{toEmail},
 		Subject: digest.Title,
 		Html:    htmlBody,
+	}
+
+	if unsubscribeURL != "" {
+		params.Headers = map[string]string{
+			"List-Unsubscribe":      "<" + unsubscribeURL + ">",
+			"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+		}
 	}
 
 	_, err := m.client.Emails.SendWithContext(ctx, params)
@@ -80,7 +87,7 @@ func buildInviteHTML(fromName string) string {
 	return b.String()
 }
 
-func buildDigestHTML(digest *domain.Digest) string {
+func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 	var b strings.Builder
 
 	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"></head>`)
@@ -160,7 +167,13 @@ func buildDigestHTML(digest *domain.Digest) string {
 	// Footer
 	b.WriteString(`<hr style="border:none;border-top:1px solid #eee;margin-top:32px;">`)
 	b.WriteString(`<p style="color:#999;font-size:12px;">Sent by <a href="https://mailbrief.io" style="color:#999;">MailBrief</a>. `)
-	b.WriteString(`You can disable email delivery in your <a href="https://mailbrief.io/settings" style="color:#999;">settings</a>.</p>`)
+	b.WriteString(`You can disable email delivery in your <a href="https://mailbrief.io/settings" style="color:#999;">settings</a>`)
+	if unsubscribeURL != "" {
+		b.WriteString(` or <a href="`)
+		b.WriteString(html.EscapeString(unsubscribeURL))
+		b.WriteString(`" style="color:#999;">unsubscribe</a>`)
+	}
+	b.WriteString(`.</p>`)
 
 	b.WriteString(`</body></html>`)
 

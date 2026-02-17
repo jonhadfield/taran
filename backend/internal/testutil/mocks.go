@@ -336,12 +336,12 @@ func (m *MockPreferenceRepo) Upsert(ctx context.Context, pref *domain.UserPrefer
 
 // MockMailer implements mailer.Mailer for testing.
 type MockMailer struct {
-	SendDigestFn func(ctx context.Context, toEmail, toName string, digest *domain.Digest) error
+	SendDigestFn func(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error
 }
 
-func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, digest *domain.Digest) error {
+func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error {
 	if m.SendDigestFn != nil {
-		return m.SendDigestFn(ctx, toEmail, toName, digest)
+		return m.SendDigestFn(ctx, toEmail, toName, digest, unsubscribeURL)
 	}
 	return nil
 }

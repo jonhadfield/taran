@@ -12,26 +12,30 @@ import (
 )
 
 type Scheduler struct {
-	cron        *cron.Cron
-	generator   *Generator
-	emails      database.EmailRepository
-	digests     database.DigestRepository
-	preferences database.PreferenceRepository
-	sessions    database.SessionRepository
-	mailer      mailer.Mailer
+	cron              *cron.Cron
+	generator         *Generator
+	emails            database.EmailRepository
+	digests           database.DigestRepository
+	preferences       database.PreferenceRepository
+	sessions          database.SessionRepository
+	mailer            mailer.Mailer
+	baseURL           string
+	unsubscribeSecret string
 }
 
-func NewScheduler(generator *Generator, emails database.EmailRepository, digests database.DigestRepository, preferences database.PreferenceRepository, sessions database.SessionRepository, m mailer.Mailer) (*Scheduler, error) {
+func NewScheduler(generator *Generator, emails database.EmailRepository, digests database.DigestRepository, preferences database.PreferenceRepository, sessions database.SessionRepository, m mailer.Mailer, baseURL, unsubscribeSecret string) (*Scheduler, error) {
 	c := cron.New(cron.WithLocation(time.UTC))
 
 	s := &Scheduler{
-		cron:        c,
-		generator:   generator,
-		emails:      emails,
-		digests:     digests,
-		preferences: preferences,
-		sessions:    sessions,
-		mailer:      m,
+		cron:              c,
+		generator:         generator,
+		emails:            emails,
+		digests:           digests,
+		preferences:       preferences,
+		sessions:          sessions,
+		mailer:            m,
+		baseURL:           baseURL,
+		unsubscribeSecret: unsubscribeSecret,
 	}
 
 	// Run every hour on the hour
@@ -108,7 +112,12 @@ func (s *Scheduler) generateDigests() {
 			continue
 		}
 
-		if err := s.mailer.SendDigest(ctx, email, "", digest); err != nil {
+		var unsubURL string
+		if s.baseURL != "" && s.unsubscribeSecret != "" {
+			unsubURL = mailer.GenerateUnsubscribeURL(s.baseURL, userID, s.unsubscribeSecret)
+		}
+
+		if err := s.mailer.SendDigest(ctx, email, "", digest, unsubURL); err != nil {
 			slog.Error("failed to send digest email", "userID", userID, "error", err)
 			continue
 		}

@@ -5,7 +5,7 @@ import { usePolling } from "@/hooks/use-polling";
 import type { Email, ListResponse } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
 import { Inbox, Search, X } from "lucide-react";
-import { APP_NAME } from "@/lib/config";
+import { CopyEmailAddress } from "@/components/copy-email-address";
 import Link from "next/link";
 import { InboxFilters } from "./inbox-filters";
 import { InboxRowActions } from "./inbox-row-actions";
@@ -42,6 +42,7 @@ interface InboxListProps {
   filter: string;
   queryString: string;
   initialTopics: string[];
+  emailAddress: string;
 }
 
 export function InboxList({
@@ -49,6 +50,7 @@ export function InboxList({
   initialTotal,
   filter: initialFilter,
   initialTopics,
+  emailAddress,
 }: InboxListProps) {
   const [filter, setFilter] = useState(initialFilter);
   const [searchInput, setSearchInput] = useState("");
@@ -139,11 +141,16 @@ export function InboxList({
           <h3 className="text-lg font-medium">
             {filter === "all" ? "No emails yet" : `No ${filter} emails`}
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-2">
             {filter === "all"
-              ? `Forward your newsletters to your ${APP_NAME} inbox to get started.`
+              ? "Forward your newsletters to your inbox to get started:"
               : "Nothing to show for this filter."}
           </p>
+          {filter === "all" && emailAddress && (
+            <div className="mt-3">
+              <CopyEmailAddress emailAddress={emailAddress} />
+            </div>
+          )}
         </div>
       ) : (
         <div className="divide-y rounded-lg border">

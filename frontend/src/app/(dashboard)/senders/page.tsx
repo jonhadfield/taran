@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
-import type { SenderInfo } from "@/types/api";
-import { Users, Loader2 } from "lucide-react";
+import type { SenderInfo, SenderSuggestion } from "@/types/api";
+import { Users, Loader2, X } from "lucide-react";
 
 const avatarColors = [
   "bg-blue-500",
@@ -30,8 +30,10 @@ const STATUS_OPTIONS = [
 
 export default function SendersPage() {
   const [senders, setSenders] = useState<SenderInfo[]>([]);
+  const [suggestions, setSuggestions] = useState<SenderSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState(false);
 
   const fetchSenders = async () => {
     try {
@@ -46,8 +48,18 @@ export default function SendersPage() {
     }
   };
 
+  const fetchSuggestions = async () => {
+    try {
+      const data = await apiGet<SenderSuggestion[]>("senders/suggestions");
+      setSuggestions(data || []);
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     fetchSenders();
+    fetchSuggestions();
   }, []);
 
   const handleStatusChange = async (fromAddress: string, status: string) => {
@@ -66,6 +78,38 @@ export default function SendersPage() {
     }
   };
 
+  const handleMuteSuggestion = async (fromAddress: string) => {
+    setUpdating(fromAddress);
+    try {
+      await apiPatch("senders", { FromAddress: fromAddress, Status: "muted" });
+      setSuggestions((prev) => prev.filter((s) => s.FromAddress !== fromAddress));
+      setSenders((prev) =>
+        prev.map((s) =>
+          s.FromAddress === fromAddress ? { ...s, Status: "muted" } : s
+        )
+      );
+    } catch {
+      // keep existing state
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleMuteAll = async () => {
+    for (const s of suggestions) {
+      await apiPatch("senders", { FromAddress: s.FromAddress, Status: "muted" });
+    }
+    setSenders((prev) =>
+      prev.map((s) => {
+        if (suggestions.some((sg) => sg.FromAddress === s.FromAddress)) {
+          return { ...s, Status: "muted" };
+        }
+        return s;
+      })
+    );
+    setSuggestions([]);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -74,6 +118,55 @@ export default function SendersPage() {
           {senders.length} senders
         </span>
       </div>
+
+      {/* Mute suggestions banner */}
+      {suggestions.length > 0 && !dismissedSuggestions && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                Based on your feedback, you may want to mute these senders:
+              </p>
+              <div className="space-y-1.5">
+                {suggestions.map((s) => (
+                  <div
+                    key={s.FromAddress}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <span className="truncate">
+                      {s.FromName || s.FromAddress}
+                    </span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      ({s.NotUsefulCount}/{s.TotalCount} not useful)
+                    </span>
+                    <button
+                      onClick={() => handleMuteSuggestion(s.FromAddress)}
+                      disabled={updating === s.FromAddress}
+                      className="shrink-0 rounded-md border px-2 py-0.5 text-xs hover:bg-accent transition-colors disabled:opacity-50"
+                    >
+                      Mute
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {suggestions.length > 1 && (
+                <button
+                  onClick={handleMuteAll}
+                  className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline"
+                >
+                  Mute all {suggestions.length} senders
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setDismissedSuggestions(true)}
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center gap-2 py-12 justify-center text-muted-foreground">

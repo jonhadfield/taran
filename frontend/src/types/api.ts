@@ -153,6 +153,13 @@ export interface AccessCheck {
   reason: "admin" | "invited" | "not_invited";
 }
 
+export interface SenderSuggestion {
+  FromAddress: string;
+  FromName: string;
+  NotUsefulCount: number;
+  TotalCount: number;
+}
+
 export interface ListResponse<T> {
   data: T[];
   total: number;

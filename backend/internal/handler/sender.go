@@ -13,6 +13,7 @@ import (
 type SenderHandler struct {
 	Emails      database.EmailRepository
 	SenderPrefs database.SenderPreferenceRepository
+	Feedback    database.FeedbackRepository
 }
 
 func (h *SenderHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -111,4 +112,79 @@ func (h *SenderHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
+type senderSuggestion struct {
+	FromAddress    string `json:"FromAddress"`
+	FromName       string `json:"FromName"`
+	NotUsefulCount int    `json:"NotUsefulCount"`
+	TotalCount     int    `json:"TotalCount"`
+}
+
+func (h *SenderHandler) Suggestions(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+
+	if h.Feedback == nil {
+		WriteJSON(w, http.StatusOK, []senderSuggestion{})
+		return
+	}
+
+	stats, err := h.Feedback.GetSenderStats(r.Context(), userID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to get feedback stats")
+		return
+	}
+
+	// Get current sender preferences to exclude already muted/blocked
+	prefs, err := h.SenderPrefs.ListByUser(r.Context(), userID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to list sender preferences")
+		return
+	}
+	excludeMap := make(map[string]bool)
+	for _, p := range prefs {
+		if p.Status == "muted" || p.Status == "blocked" {
+			excludeMap[p.FromAddress] = true
+		}
+	}
+
+	// Get sender names from email data
+	emails, _, err := h.Emails.List(r.Context(), userID, domain.ListOptions{Limit: 10000})
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to list emails")
+		return
+	}
+	nameMap := make(map[string]string)
+	for _, e := range emails {
+		if _, ok := nameMap[e.FromAddress]; !ok && e.FromName != "" {
+			nameMap[e.FromAddress] = e.FromName
+		}
+	}
+
+	var suggestions []senderSuggestion
+	for _, stat := range stats {
+		if excludeMap[stat.FromAddress] {
+			continue
+		}
+		total := stat.UsefulCount + stat.NotUsefulCount
+		if total < 3 {
+			continue
+		}
+		notUsefulPct := float64(stat.NotUsefulCount) / float64(total)
+		if notUsefulPct <= 0.6 {
+			continue
+		}
+		suggestions = append(suggestions, senderSuggestion{
+			FromAddress:    stat.FromAddress,
+			FromName:       nameMap[stat.FromAddress],
+			NotUsefulCount: stat.NotUsefulCount,
+			TotalCount:     total,
+		})
+	}
+
+	if suggestions == nil {
+		suggestions = []senderSuggestion{}
+	}
+
+	WriteJSON(w, http.StatusOK, suggestions)
 }

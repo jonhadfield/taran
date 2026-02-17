@@ -33,6 +33,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 
 	// Public endpoints (no auth)
 	mux.HandleFunc("GET /api/public/digests/{token}", deps.DigestHandler.GetPublic)
+	mux.HandleFunc("POST /api/public/unsubscribe", deps.PreferenceHandler.Unsubscribe)
 
 	// Webhook (shared secret auth)
 	webhookAuth := auth.WebhookAuth(deps.WebhookSecret, http.HandlerFunc(deps.WebhookHandler.IngestEmail))
@@ -55,6 +56,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/preferences", deps.PreferenceHandler.Get)
 	api.HandleFunc("PATCH /api/preferences", deps.PreferenceHandler.Update)
 	api.HandleFunc("GET /api/senders", deps.SenderHandler.List)
+	api.HandleFunc("GET /api/senders/suggestions", deps.SenderHandler.Suggestions)
 	api.HandleFunc("PATCH /api/senders", deps.SenderHandler.Update)
 	api.HandleFunc("GET /api/stats", deps.StatsHandler.Get)
 	api.HandleFunc("POST /api/digests/generate", deps.DigestHandler.Generate)

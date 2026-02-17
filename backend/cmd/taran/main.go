@@ -98,7 +98,7 @@ func main() {
 		SenderPrefs: senderPrefRepo,
 		Feedback:    feedbackRepo,
 	}
-	sched, err := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m)
+	sched, err := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m, cfg.Server.BaseURL, cfg.Server.UnsubscribeSecret)
 	if err != nil {
 		slog.Error("failed to create digest scheduler", "error", err)
 		os.Exit(1)
@@ -128,12 +128,14 @@ func main() {
 	senderHandler := &handler.SenderHandler{
 		Emails:      emailRepo,
 		SenderPrefs: senderPrefRepo,
+		Feedback:    feedbackRepo,
 	}
 	statsHandler := &handler.StatsHandler{
 		Emails: emailRepo,
 	}
 	preferenceHandler := &handler.PreferenceHandler{
-		Preferences: preferenceRepo,
+		Preferences:       preferenceRepo,
+		UnsubscribeSecret: cfg.Server.UnsubscribeSecret,
 	}
 	topicHandler := &handler.TopicHandler{
 		Extractions: extractionRepo,
