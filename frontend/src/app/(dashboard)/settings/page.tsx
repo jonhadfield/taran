@@ -34,6 +34,16 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
   return { value: i, label: `${hour}:00 ${ampm}` };
 });
 
+const DAY_OPTIONS = [
+  { value: 0, label: "Sunday" },
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
+];
+
 const COMMON_TIMEZONES = [
   "America/New_York",
   "America/Chicago",
@@ -69,6 +79,7 @@ export default function SettingsPage() {
   const [digestEmail, setDigestEmail] = useState(false);
   const [digestFrequency, setDigestFrequency] = useState("daily");
   const [digestHour, setDigestHour] = useState(7);
+  const [digestDay, setDigestDay] = useState(1);
   const [digestTimezone, setDigestTimezone] = useState("UTC");
   const [prefLoading, setPrefLoading] = useState(true);
   const [prefSaving, setPrefSaving] = useState(false);
@@ -95,6 +106,7 @@ export default function SettingsPage() {
       setDigestEmail(pref.DigestEmail);
       setDigestFrequency(pref.DigestFrequency || "daily");
       setDigestHour(pref.DigestHour ?? 7);
+      setDigestDay(pref.DigestDay ?? 1);
       setDigestTimezone(pref.DigestTimezone || detectTimezone());
     } catch {
       setDigestTimezone(detectTimezone());
@@ -108,13 +120,14 @@ export default function SettingsPage() {
     fetchPreferences();
   }, []);
 
-  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestTimezone">>) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone">>) => {
     setPrefSaving(true);
     try {
       const updated = await apiPatch<UserPreference>("preferences", updates);
       setDigestEmail(updated.DigestEmail);
       setDigestFrequency(updated.DigestFrequency || "daily");
       setDigestHour(updated.DigestHour ?? 7);
+      setDigestDay(updated.DigestDay ?? 1);
       setDigestTimezone(updated.DigestTimezone || "UTC");
     } catch {
       // Revert on error by re-fetching
@@ -137,6 +150,11 @@ export default function SettingsPage() {
   const handleHourChange = async (value: number) => {
     setDigestHour(value);
     await updatePreference({ DigestHour: value });
+  };
+
+  const handleDayChange = async (value: number) => {
+    setDigestDay(value);
+    await updatePreference({ DigestDay: value });
   };
 
   const handleTimezoneChange = async (value: string) => {
@@ -271,9 +289,20 @@ export default function SettingsPage() {
                   </Button>
                 </div>
                 {digestFrequency === "weekly" && (
-                  <p className="text-xs text-muted-foreground">
-                    Weekly digests are sent on Mondays
-                  </p>
+                  <div className="space-y-1">
+                    <Label htmlFor="digest-day">Day of week</Label>
+                    <select
+                      id="digest-day"
+                      value={digestDay}
+                      onChange={(e) => handleDayChange(Number(e.target.value))}
+                      disabled={prefSaving}
+                      className="flex h-9 w-full max-w-full sm:max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      {DAY_OPTIONS.map(({ value, label }) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
                 )}
               </div>
 

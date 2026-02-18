@@ -32,6 +32,7 @@ type updatePreferenceRequest struct {
 	DigestEmail     *bool   `json:"DigestEmail"`
 	DigestFrequency *string `json:"DigestFrequency"`
 	DigestHour      *int    `json:"DigestHour"`
+	DigestDay       *int    `json:"DigestDay"`
 	DigestTimezone  *string `json:"DigestTimezone"`
 }
 
@@ -60,6 +61,14 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate day of week
+	if req.DigestDay != nil {
+		if *req.DigestDay < 0 || *req.DigestDay > 6 {
+			WriteError(w, http.StatusBadRequest, "day must be between 0 (Sunday) and 6 (Saturday)")
+			return
+		}
+	}
+
 	// Validate timezone
 	if req.DigestTimezone != nil {
 		if _, err := time.LoadLocation(*req.DigestTimezone); err != nil {
@@ -83,6 +92,9 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DigestHour != nil {
 		existing.DigestHour = *req.DigestHour
+	}
+	if req.DigestDay != nil {
+		existing.DigestDay = *req.DigestDay
 	}
 	if req.DigestTimezone != nil {
 		existing.DigestTimezone = *req.DigestTimezone

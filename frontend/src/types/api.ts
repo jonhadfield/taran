@@ -101,6 +101,7 @@ export interface UserPreference {
   DigestEmail: boolean;
   DigestFrequency: string;
   DigestHour: number;
+  DigestDay: number;
   DigestTimezone: string;
   CreatedAt: string;
   UpdatedAt: string;

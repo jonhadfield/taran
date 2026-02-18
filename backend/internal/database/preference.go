@@ -20,17 +20,18 @@ func NewPreferenceRepo(pool *pgxpool.Pool) *PreferenceRepo {
 
 func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPreference, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT user_id, digest_email, digest_frequency, digest_hour, digest_timezone, created_at, updated_at
+		`SELECT user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, created_at, updated_at
 		 FROM user_preference WHERE user_id = $1`, userID)
 
 	var p domain.UserPreference
-	err := row.Scan(&p.UserID, &p.DigestEmail, &p.DigestFrequency, &p.DigestHour, &p.DigestTimezone, &p.CreatedAt, &p.UpdatedAt)
+	err := row.Scan(&p.UserID, &p.DigestEmail, &p.DigestFrequency, &p.DigestHour, &p.DigestDay, &p.DigestTimezone, &p.CreatedAt, &p.UpdatedAt)
 	if err == pgx.ErrNoRows {
 		return &domain.UserPreference{
 			UserID:          userID,
 			DigestEmail:     false,
 			DigestFrequency: "daily",
 			DigestHour:      7,
+			DigestDay:       1, // Monday
 			DigestTimezone:  "UTC",
 			CreatedAt:       time.Now(),
 			UpdatedAt:       time.Now(),
@@ -44,12 +45,12 @@ func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPr
 
 func (r *PreferenceRepo) Upsert(ctx context.Context, pref *domain.UserPreference) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO user_preference (user_id, digest_email, digest_frequency, digest_hour, digest_timezone, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+		`INSERT INTO user_preference (user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
 		 ON CONFLICT (user_id) DO UPDATE SET
-		     digest_email = $2, digest_frequency = $3, digest_hour = $4, digest_timezone = $5,
+		     digest_email = $2, digest_frequency = $3, digest_hour = $4, digest_day = $5, digest_timezone = $6,
 		     updated_at = NOW()`,
-		pref.UserID, pref.DigestEmail, pref.DigestFrequency, pref.DigestHour, pref.DigestTimezone)
+		pref.UserID, pref.DigestEmail, pref.DigestFrequency, pref.DigestHour, pref.DigestDay, pref.DigestTimezone)
 	if err != nil {
 		return fmt.Errorf("upsert preference: %w", err)
 	}

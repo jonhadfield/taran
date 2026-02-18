@@ -179,7 +179,8 @@ func main() {
 		SessionAuth:       sessionAuth,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
-	httpHandler := server.RecoveryMiddleware(cors(server.LoggingMiddleware(mux)))
+	limiter := server.NewRateLimiter(10, 30) // 10 req/s sustained, 30 burst
+	httpHandler := server.RecoveryMiddleware(cors(limiter.Middleware(server.LoggingMiddleware(mux))))
 
 	var tlsCfg *server.TLSConfig
 	if cfg.Server.TLSDomain != "" {
@@ -225,6 +226,10 @@ func newLLMProvider(cfg *config.Config) (llm.Provider, error) {
 	switch cfg.LLM.Provider {
 	case "anthropic":
 		return llm.NewAnthropicProvider(cfg.LLM.AnthropicKey, cfg.LLM.AnthropicModel), nil
+	case "openai":
+		return llm.NewOpenAIProvider(cfg.LLM.OpenAIKey, cfg.LLM.OpenAIModel), nil
+	case "ollama":
+		return llm.NewOllamaProvider(cfg.LLM.OllamaURL, cfg.LLM.OllamaModel), nil
 	default:
 		return nil, fmt.Errorf("unsupported LLM provider: %s", cfg.LLM.Provider)
 	}

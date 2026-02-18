@@ -120,6 +120,7 @@ type UserPreference struct {
 	DigestEmail     bool
 	DigestFrequency string // "daily" or "weekly"
 	DigestHour      int    // 0-23
+	DigestDay       int    // 0=Sunday..6=Saturday (used for weekly)
 	DigestTimezone  string // IANA timezone
 	CreatedAt       time.Time
 	UpdatedAt       time.Time

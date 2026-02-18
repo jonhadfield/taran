@@ -162,8 +162,8 @@ func shouldGenerateForUser(pref *domain.UserPreference, nowUTC time.Time) bool {
 		return false
 	}
 
-	// Weekly: only generate on Monday
-	if pref.DigestFrequency == "weekly" && userNow.Weekday() != time.Monday {
+	// Weekly: only generate on the user's chosen day
+	if pref.DigestFrequency == "weekly" && userNow.Weekday() != time.Weekday(pref.DigestDay) {
 		return false
 	}
 

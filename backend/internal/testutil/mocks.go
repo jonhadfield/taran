@@ -414,6 +414,42 @@ func (m *MockSenderPreferenceRepo) ListBlockedAddresses(ctx context.Context, use
 	return nil, nil
 }
 
+// MockInviteRepo implements database.InviteRepository for testing.
+type MockInviteRepo struct {
+	GetByEmailFn   func(ctx context.Context, email string) (*domain.Invite, error)
+	CreateFn       func(ctx context.Context, invite *domain.Invite) error
+	ListFn         func(ctx context.Context) ([]domain.Invite, error)
+	MarkAcceptedFn func(ctx context.Context, email string) error
+}
+
+func (m *MockInviteRepo) GetByEmail(ctx context.Context, email string) (*domain.Invite, error) {
+	if m.GetByEmailFn != nil {
+		return m.GetByEmailFn(ctx, email)
+	}
+	return nil, nil
+}
+
+func (m *MockInviteRepo) Create(ctx context.Context, invite *domain.Invite) error {
+	if m.CreateFn != nil {
+		return m.CreateFn(ctx, invite)
+	}
+	return nil
+}
+
+func (m *MockInviteRepo) List(ctx context.Context) ([]domain.Invite, error) {
+	if m.ListFn != nil {
+		return m.ListFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockInviteRepo) MarkAccepted(ctx context.Context, email string) error {
+	if m.MarkAcceptedFn != nil {
+		return m.MarkAcceptedFn(ctx, email)
+	}
+	return nil
+}
+
 // MockProvider implements llm.Provider for testing.
 type MockProvider struct {
 	TriageEmailFn    func(ctx context.Context, subject, fromAddress, contentPreview string) (*llm.TriageResult, *llm.Usage, error)
