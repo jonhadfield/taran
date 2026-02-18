@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { usePolling } from "@/hooks/use-polling";
 import type { Email, ListResponse } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Inbox, Search, X } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import Link from "next/link";
@@ -26,8 +27,10 @@ function getAvatarColor(name: string) {
   return avatarColors[charCode % avatarColors.length];
 }
 
-function buildQueryString(filter: string, search: string, topic: string) {
-  const params = ["limit=50"];
+const PAGE_SIZE = 50;
+
+function buildQueryString(filter: string, search: string, topic: string, limit: number) {
+  const params = [`limit=${limit}`];
   if (filter === "unread") params.push("is_read=false");
   if (filter === "starred") params.push("is_starred=true");
   if (filter === "archived") params.push("is_archived=true");
@@ -56,9 +59,10 @@ export function InboxList({
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTopic, setActiveTopic] = useState("");
+  const [limit, setLimit] = useState(PAGE_SIZE);
   const topics = initialTopics;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const queryString = buildQueryString(filter, debouncedSearch, activeTopic);
+  const queryString = buildQueryString(filter, debouncedSearch, activeTopic, limit);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -80,6 +84,7 @@ export function InboxList({
 
   const handleFilterChange = useCallback((value: string) => {
     setFilter(value);
+    setLimit(PAGE_SIZE);
     const url = value === "all" ? "/inbox" : `/inbox?filter=${value}`;
     window.history.replaceState(null, "", url);
   }, []);
@@ -153,70 +158,82 @@ export function InboxList({
           )}
         </div>
       ) : (
-        <div className="divide-y rounded-lg border">
-          {emails.map((email) => {
-            const senderName = email.FromName || email.FromAddress;
-            const initial = senderName.charAt(0).toUpperCase();
+        <>
+          <div className="divide-y rounded-lg border">
+            {emails.map((email) => {
+              const senderName = email.FromName || email.FromAddress;
+              const initial = senderName.charAt(0).toUpperCase();
 
-            return (
-              <Link
-                key={email.ID}
-                href={`/inbox/${email.ID}`}
-                className="group/row flex items-center gap-3 p-3.5 transition-colors hover:bg-accent/50"
-              >
-                {/* Unread dot */}
-                <div className="w-2 shrink-0">
-                  {!email.IsRead && (
-                    <span className="block size-2 rounded-full bg-blue-500" />
-                  )}
-                </div>
-
-                {/* Avatar */}
-                <div
-                  className={`hidden sm:flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white ${getAvatarColor(senderName)}`}
+              return (
+                <Link
+                  key={email.ID}
+                  href={`/inbox/${email.ID}`}
+                  className="group/row flex items-center gap-3 p-3.5 transition-colors hover:bg-accent/50"
                 >
-                  {initial}
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`text-sm truncate ${!email.IsRead ? "font-semibold" : ""}`}
-                    >
-                      {senderName}
-                    </span>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(email.ReceivedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm text-muted-foreground truncate">
-                      {email.Subject}
-                    </p>
-                    {email.Status === "skipped" && (
-                      <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
-                        Skipped
-                      </Badge>
-                    )}
-                    {email.Status === "failed" && (
-                      <Badge variant="outline" className="shrink-0 text-xs text-destructive">
-                        Failed
-                      </Badge>
+                  {/* Unread dot */}
+                  <div className="w-2 shrink-0">
+                    {!email.IsRead && (
+                      <span className="block size-2 rounded-full bg-blue-500" />
                     )}
                   </div>
-                </div>
 
-                {/* Actions - visible on hover */}
-                <InboxRowActions
-                  emailId={email.ID}
-                  isStarred={email.IsStarred}
-                  isArchived={email.IsArchived}
-                />
-              </Link>
-            );
-          })}
-        </div>
+                  {/* Avatar */}
+                  <div
+                    className={`hidden sm:flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white ${getAvatarColor(senderName)}`}
+                  >
+                    {initial}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`text-sm truncate ${!email.IsRead ? "font-semibold" : ""}`}
+                      >
+                        {senderName}
+                      </span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(email.ReceivedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm text-muted-foreground truncate">
+                        {email.Subject}
+                      </p>
+                      {email.Status === "skipped" && (
+                        <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
+                          Skipped
+                        </Badge>
+                      )}
+                      {email.Status === "failed" && (
+                        <Badge variant="outline" className="shrink-0 text-xs text-destructive">
+                          Failed
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions - visible on hover */}
+                  <InboxRowActions
+                    emailId={email.ID}
+                    isStarred={email.IsStarred}
+                    isArchived={email.IsArchived}
+                  />
+                </Link>
+              );
+            })}
+          </div>
+          {emails.length < total && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setLimit((prev) => prev + PAGE_SIZE)}
+              >
+                Load more ({total - emails.length} remaining)
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

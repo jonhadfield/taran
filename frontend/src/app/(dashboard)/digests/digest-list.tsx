@@ -1,23 +1,30 @@
 "use client";
 
+import { useState } from "react";
 import { usePolling } from "@/hooks/use-polling";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { Digest, ListResponse } from "@/types/api";
 import { BookOpen } from "lucide-react";
 import Link from "next/link";
 
+const PAGE_SIZE = 50;
+
 interface DigestListProps {
   initialDigests: Digest[];
+  initialTotal: number;
 }
 
-export function DigestList({ initialDigests }: DigestListProps) {
+export function DigestList({ initialDigests, initialTotal }: DigestListProps) {
+  const [limit, setLimit] = useState(PAGE_SIZE);
   const res = usePolling<ListResponse<Digest>>(
-    "digests?limit=50",
-    { data: initialDigests, total: initialDigests.length }
+    `digests?limit=${limit}`,
+    { data: initialDigests, total: initialTotal }
   );
 
   const digests = res.data || [];
+  const total = res.total;
 
   return (
     <>
@@ -62,6 +69,16 @@ export function DigestList({ initialDigests }: DigestListProps) {
               </Card>
             </Link>
           ))}
+          {digests.length < total && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => setLimit((prev) => prev + PAGE_SIZE)}
+              >
+                Load more ({total - digests.length} remaining)
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </>

@@ -70,21 +70,11 @@ func (r *DigestRepo) GetByID(ctx context.Context, userID, id string) (*domain.Di
 		return nil, err
 	}
 
-	rows, err := r.pool.Query(ctx,
-		`SELECT id, digest_id, email_id, extraction_id, sort_order
-		 FROM digest_item WHERE digest_id = $1 ORDER BY sort_order`, id)
+	items, err := r.queryDigestItems(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("query digest items: %w", err)
+		return nil, err
 	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var item domain.DigestItem
-		if err := rows.Scan(&item.ID, &item.DigestID, &item.EmailID, &item.ExtractionID, &item.SortOrder); err != nil {
-			return nil, fmt.Errorf("scan digest item: %w", err)
-		}
-		d.Items = append(d.Items, item)
-	}
+	d.Items = items
 
 	return d, nil
 }
@@ -179,7 +169,47 @@ func (r *DigestRepo) GetByShareToken(ctx context.Context, token string) (*domain
 		    generated_at, sent_at, created_at, share_token
 		 FROM digest WHERE share_token = $1`, token)
 
-	return scanDigest(row)
+	d, err := scanDigest(row)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := r.queryDigestItems(ctx, d.ID)
+	if err != nil {
+		return nil, err
+	}
+	d.Items = items
+
+	return d, nil
+}
+
+func (r *DigestRepo) queryDigestItems(ctx context.Context, digestID string) ([]domain.DigestItem, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT di.id, di.digest_id, di.email_id, di.extraction_id, di.sort_order,
+		        e.subject, e.from_name, e.from_address,
+		        COALESCE(ex.summary, '')
+		 FROM digest_item di
+		 JOIN email e ON e.id = di.email_id
+		 LEFT JOIN extraction ex ON ex.id = di.extraction_id
+		 WHERE di.digest_id = $1
+		 ORDER BY di.sort_order`, digestID)
+	if err != nil {
+		return nil, fmt.Errorf("query digest items: %w", err)
+	}
+	defer rows.Close()
+
+	var items []domain.DigestItem
+	for rows.Next() {
+		var item domain.DigestItem
+		if err := rows.Scan(
+			&item.ID, &item.DigestID, &item.EmailID, &item.ExtractionID, &item.SortOrder,
+			&item.Subject, &item.FromName, &item.FromAddress, &item.Summary,
+		); err != nil {
+			return nil, fmt.Errorf("scan digest item: %w", err)
+		}
+		items = append(items, item)
+	}
+	return items, nil
 }
 
 func scanDigest(row scannable) (*domain.Digest, error) {

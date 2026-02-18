@@ -6,10 +6,12 @@ import { DeliveryPrompt } from "./delivery-prompt";
 
 export default async function DigestsPage() {
   let digests: Digest[] = [];
+  let total = 0;
 
   try {
     const res = await serverFetch<ListResponse<Digest>>("digests?limit=50");
     digests = res.data || [];
+    total = res.total;
   } catch {
     // Will show empty state
   }
@@ -23,7 +25,7 @@ export default async function DigestsPage() {
 
       {digests.length > 0 && <DeliveryPrompt />}
 
-      <DigestList initialDigests={digests} />
+      <DigestList initialDigests={digests} initialTotal={total} />
     </div>
   );
 }

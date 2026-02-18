@@ -80,6 +80,10 @@ export interface DigestItem {
   EmailID: string;
   ExtractionID: string;
   SortOrder: number;
+  Subject?: string;
+  FromName?: string;
+  FromAddress?: string;
+  Summary?: string;
 }
 
 export interface EmailAccount {

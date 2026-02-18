@@ -136,22 +136,7 @@ export default function OnboardingPage() {
           </>
         )}
 
-        {step === 4 && (
-          <>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">You&apos;re all set!</CardTitle>
-              <CardDescription>
-                Digests will be generated automatically as newsletters arrive.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" onClick={() => router.push("/inbox")}>
-                Go to Dashboard
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </>
-        )}
+
       </Card>
     </div>
   );

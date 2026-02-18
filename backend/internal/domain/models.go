@@ -98,6 +98,11 @@ type DigestItem struct {
 	EmailID      string
 	ExtractionID string
 	SortOrder    int
+	// Enriched via JOIN — not stored in digest_item table
+	Subject     string `json:"Subject,omitempty"`
+	FromName    string `json:"FromName,omitempty"`
+	FromAddress string `json:"FromAddress,omitempty"`
+	Summary     string `json:"Summary,omitempty"`
 }
 
 type EmailAccount struct {

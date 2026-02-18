@@ -97,9 +97,25 @@ export default async function DigestDetailPage({
                 <Link
                   key={item.ID}
                   href={`/inbox/${item.EmailID}`}
-                  className="block rounded-lg border p-3 text-sm transition-colors hover:bg-accent"
+                  className="block rounded-lg border p-3 transition-colors hover:bg-accent"
                 >
-                  View email {item.SortOrder + 1}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {item.Subject || `Email ${item.SortOrder + 1}`}
+                      </p>
+                      {item.FromName && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.FromName}
+                        </p>
+                      )}
+                      {item.Summary && (
+                        <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                          {item.Summary}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </Link>
               ))}
             </div>
