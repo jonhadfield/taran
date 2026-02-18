@@ -73,7 +73,7 @@ func (p *OllamaProvider) ExtractEmail(ctx context.Context, subject, content, fro
 			openai.SystemMessage(extractionSystemPrompt),
 			openai.UserMessage(userPrompt),
 		},
-		MaxTokens: openai.Int(2048),
+		MaxTokens: openai.Int(4096),
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("ollama extract: %w", err)

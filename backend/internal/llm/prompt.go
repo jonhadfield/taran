@@ -17,7 +17,7 @@ Respond with a JSON object containing exactly these fields:
 - summary: 1-3 sentence plain-language summary of the primary content (excluding ads)
 - key_points: array of main takeaways (max 5)
 - topics: array of category tags (max 5)
-- links: array of {"url": "...", "title": "..."} for editorially relevant URLs (exclude ad/tracking links)
+- links: array of {"url": "...", "title": "..."} for editorially relevant URLs (max 5). IMPORTANT: Omit links that are tracking redirects, click-tracking wrappers, or URLs longer than 200 characters. If only tracking URLs are available, return an empty array.
 - action_items: array of tasks, deadlines, or calls-to-action from the primary content
 - sentiment: one of "informational", "urgent", "promotional", "personal", "transactional"
 - source_category: one of "newsletter", "personal", "transactional", "marketing", "notification", "other"

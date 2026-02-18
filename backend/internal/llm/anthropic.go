@@ -75,7 +75,7 @@ func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, 
 
 	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     anthropic.Model(p.model),
-		MaxTokens: 2048,
+		MaxTokens: 4096,
 		System: []anthropic.TextBlockParam{
 			{Text: extractionSystemPrompt},
 		},
