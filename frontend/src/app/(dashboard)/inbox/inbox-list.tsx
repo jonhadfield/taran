@@ -29,7 +29,7 @@ function getAvatarColor(name: string) {
 
 const PAGE_SIZE = 50;
 
-function buildQueryString(filter: string, search: string, topic: string, limit: number) {
+export function buildQueryString(filter: string, search: string, topic: string, limit: number) {
   const params = [`limit=${limit}`];
   if (filter === "unread") params.push("is_read=false");
   if (filter === "starred") params.push("is_starred=true");
