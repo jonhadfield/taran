@@ -69,7 +69,7 @@ func (p *OpenAIProvider) ExtractEmail(ctx context.Context, subject, content, fro
 			openai.SystemMessage(extractionSystemPrompt),
 			openai.UserMessage(userPrompt),
 		},
-		MaxTokens: openai.Int(1024),
+		MaxTokens: openai.Int(2048),
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("openai extract: %w", err)
