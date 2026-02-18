@@ -24,8 +24,10 @@ profile.cov
 go.work
 go.work.sum
 
-# Compiled binary
+# Compiled binaries
 backend/taran
+backend/bin/
+backend/taran-linux-amd64
 
 # env file
 .env

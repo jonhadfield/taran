@@ -1,5 +1,5 @@
 .PHONY: start stop restart \
-       start-backend stop-backend restart-backend build-backend \
+       start-backend stop-backend restart-backend build-backend build-backend-linux \
        start-frontend stop-frontend restart-frontend \
        db stop-db
 
@@ -21,6 +21,10 @@ restart: stop start
 build-backend:
 	@cd $(ROOT_DIR)/backend && go build -o taran ./cmd/taran/
 	@echo "Backend built"
+
+build-backend-linux:
+	@cd $(ROOT_DIR)/backend && GOOS=linux GOARCH=amd64 go build -o taran-linux-amd64 ./cmd/taran/
+	@echo "Backend built (linux/amd64)"
 
 start-backend: build-backend
 	@mkdir -p $(PID_DIR)
