@@ -116,6 +116,7 @@ func main() {
 	emailHandler := &handler.EmailHandler{
 		Emails:      emailRepo,
 		Extractions: extractionRepo,
+		Processor:   proc,
 	}
 	digestHandler := &handler.DigestHandler{
 		Digests:   digestRepo,

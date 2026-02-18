@@ -40,6 +40,14 @@ func (r *ExtractionRepo) Create(ctx context.Context, extraction *domain.Extracti
 	return nil
 }
 
+func (r *ExtractionRepo) DeleteByEmailID(ctx context.Context, emailID string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM extraction WHERE email_id = $1`, emailID)
+	if err != nil {
+		return fmt.Errorf("delete extraction by email: %w", err)
+	}
+	return nil
+}
+
 func (r *ExtractionRepo) GetByEmailID(ctx context.Context, emailID string) (*domain.Extraction, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, email_id, summary, key_points, topics, links, action_items,

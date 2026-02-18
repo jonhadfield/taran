@@ -8,6 +8,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
 import { FeedbackButtons } from "./feedback-buttons";
+import { ReprocessButton } from "./reprocess-button";
 import dynamic from "next/dynamic";
 
 const EmailContentCard = dynamic(
@@ -95,6 +96,7 @@ export default async function EmailDetailPage({
                 {email.Status === "skipped" ? "Email skipped" : "Processing failed"}
               </p>
               <p className="text-sm text-muted-foreground">{email.StatusReason}</p>
+              <ReprocessButton emailId={id} />
             </div>
           </div>
         )}

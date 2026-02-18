@@ -172,3 +172,82 @@ func TestEmailHandler_UpdateState_InvalidBody(t *testing.T) {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
 }
+
+type mockProcessor struct {
+	enqueued []string
+}
+
+func (m *mockProcessor) Enqueue(emailID string) {
+	m.enqueued = append(m.enqueued, emailID)
+}
+
+func TestEmailHandler_Reprocess_Success(t *testing.T) {
+	proc := &mockProcessor{}
+	h := &EmailHandler{
+		Emails: &testutil.MockEmailRepo{
+			GetByIDFn: func(_ context.Context, _, id string) (*domain.Email, error) {
+				return &domain.Email{ID: id, Status: domain.EmailStatusFailed}, nil
+			},
+			SetStatusFn: func(_ context.Context, _ string, _ domain.EmailStatus, _ string) error {
+				return nil
+			},
+		},
+		Extractions: &testutil.MockExtractionRepo{},
+		Processor:   proc,
+	}
+
+	req := httptest.NewRequest("POST", "/api/emails/em-1/reprocess", nil)
+	req.SetPathValue("id", "em-1")
+	req = req.WithContext(testutil.ContextWithUserID("user-1"))
+	rec := httptest.NewRecorder()
+	h.Reprocess(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if len(proc.enqueued) != 1 || proc.enqueued[0] != "em-1" {
+		t.Errorf("expected em-1 enqueued, got %v", proc.enqueued)
+	}
+}
+
+func TestEmailHandler_Reprocess_NotFound(t *testing.T) {
+	h := &EmailHandler{
+		Emails: &testutil.MockEmailRepo{
+			GetByIDFn: func(_ context.Context, _, _ string) (*domain.Email, error) {
+				return nil, fmt.Errorf("not found")
+			},
+		},
+		Extractions: &testutil.MockExtractionRepo{},
+	}
+
+	req := httptest.NewRequest("POST", "/api/emails/em-1/reprocess", nil)
+	req.SetPathValue("id", "em-1")
+	req = req.WithContext(testutil.ContextWithUserID("user-1"))
+	rec := httptest.NewRecorder()
+	h.Reprocess(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestEmailHandler_Reprocess_WrongStatus(t *testing.T) {
+	h := &EmailHandler{
+		Emails: &testutil.MockEmailRepo{
+			GetByIDFn: func(_ context.Context, _, id string) (*domain.Email, error) {
+				return &domain.Email{ID: id, Status: domain.EmailStatusProcessed}, nil
+			},
+		},
+		Extractions: &testutil.MockExtractionRepo{},
+	}
+
+	req := httptest.NewRequest("POST", "/api/emails/em-1/reprocess", nil)
+	req.SetPathValue("id", "em-1")
+	req = req.WithContext(testutil.ContextWithUserID("user-1"))
+	rec := httptest.NewRecorder()
+	h.Reprocess(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}

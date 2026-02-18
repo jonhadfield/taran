@@ -138,6 +138,7 @@ func (m *MockEmailRepo) CountByStatus(ctx context.Context, userID string) (map[d
 type MockExtractionRepo struct {
 	CreateFn              func(ctx context.Context, extraction *domain.Extraction) error
 	GetByEmailIDFn        func(ctx context.Context, emailID string) (*domain.Extraction, error)
+	DeleteByEmailIDFn     func(ctx context.Context, emailID string) error
 	ListByUserAndPeriodFn func(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error)
 	ListTopicsByUserFn    func(ctx context.Context, userID string) ([]string, error)
 }
@@ -154,6 +155,13 @@ func (m *MockExtractionRepo) GetByEmailID(ctx context.Context, emailID string) (
 		return m.GetByEmailIDFn(ctx, emailID)
 	}
 	return nil, nil
+}
+
+func (m *MockExtractionRepo) DeleteByEmailID(ctx context.Context, emailID string) error {
+	if m.DeleteByEmailIDFn != nil {
+		return m.DeleteByEmailIDFn(ctx, emailID)
+	}
+	return nil
 }
 
 func (m *MockExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error) {

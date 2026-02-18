@@ -46,6 +46,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/emails", deps.EmailHandler.List)
 	api.HandleFunc("GET /api/emails/{id}", deps.EmailHandler.Get)
 	api.HandleFunc("PATCH /api/emails/{id}", deps.EmailHandler.UpdateState)
+	api.HandleFunc("POST /api/emails/{id}/reprocess", deps.EmailHandler.Reprocess)
 	api.HandleFunc("GET /api/digests", deps.DigestHandler.List)
 	api.HandleFunc("GET /api/digests/{id}", deps.DigestHandler.Get)
 	api.HandleFunc("POST /api/digests/{id}/share", deps.DigestHandler.Share)

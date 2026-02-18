@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -9,9 +10,14 @@ import (
 	"github.com/hadfielj/taran/backend/internal/domain"
 )
 
+type EmailProcessor interface {
+	Enqueue(emailID string)
+}
+
 type EmailHandler struct {
 	Emails      database.EmailRepository
 	Extractions database.ExtractionRepository
+	Processor   EmailProcessor
 }
 
 type EmailResponse struct {
@@ -90,6 +96,38 @@ func (h *EmailHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
+func (h *EmailHandler) Reprocess(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	id := r.PathValue("id")
+
+	email, err := h.Emails.GetByID(r.Context(), userID, id)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "email not found")
+		return
+	}
+
+	if email.Status != domain.EmailStatusFailed && email.Status != domain.EmailStatusSkipped {
+		WriteError(w, http.StatusBadRequest, "only failed or skipped emails can be reprocessed")
+		return
+	}
+
+	if err := h.Extractions.DeleteByEmailID(r.Context(), id); err != nil {
+		slog.Error("failed to delete extraction for reprocess", "emailID", id, "error", err)
+		WriteError(w, http.StatusInternalServerError, "failed to reprocess email")
+		return
+	}
+
+	if err := h.Emails.SetStatus(r.Context(), id, domain.EmailStatusPending, ""); err != nil {
+		slog.Error("failed to reset status for reprocess", "emailID", id, "error", err)
+		WriteError(w, http.StatusInternalServerError, "failed to reprocess email")
+		return
+	}
+
+	h.Processor.Enqueue(id)
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "queued"})
 }
 
 func intParam(r *http.Request, key string, fallback int) int {

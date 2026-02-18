@@ -26,6 +26,7 @@ type EmailRepository interface {
 type ExtractionRepository interface {
 	Create(ctx context.Context, extraction *domain.Extraction) error
 	GetByEmailID(ctx context.Context, emailID string) (*domain.Extraction, error)
+	DeleteByEmailID(ctx context.Context, emailID string) error
 	ListByUserAndPeriod(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error)
 	ListTopicsByUser(ctx context.Context, userID string) ([]string, error)
 }
