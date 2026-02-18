@@ -88,14 +88,16 @@ export default async function EmailDetailPage({
 
         <Separator />
 
-        {!email.extraction && (email.Status === "skipped" || email.Status === "failed") && email.StatusReason && (
+        {!email.extraction && (email.Status === "skipped" || email.Status === "failed") && (
           <div className="flex items-start gap-3 rounded-lg border border-muted bg-muted/50 p-4">
             <Info className="size-5 shrink-0 text-muted-foreground mt-0.5" />
             <div>
               <p className="text-sm font-medium">
                 {email.Status === "skipped" ? "Email skipped" : "Processing failed"}
               </p>
-              <p className="text-sm text-muted-foreground">{email.StatusReason}</p>
+              {email.StatusReason && (
+                <p className="text-sm text-muted-foreground">{email.StatusReason}</p>
+              )}
               <ReprocessButton emailId={id} />
             </div>
           </div>
