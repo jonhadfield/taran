@@ -51,6 +51,9 @@ jobs:
       - name: Lint
         run: npx eslint src/
 
+      - name: Test
+        run: npm run test:run
+
       - name: Build
         run: npx next build
         env:
