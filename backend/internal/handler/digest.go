@@ -3,6 +3,8 @@ package handler
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -10,11 +12,16 @@ import (
 	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/digest"
 	"github.com/hadfielj/taran/backend/internal/domain"
+	"github.com/hadfielj/taran/backend/internal/mailer"
 )
 
 type DigestHandler struct {
-	Digests   database.DigestRepository
-	Generator *digest.Generator
+	Digests           database.DigestRepository
+	Generator         *digest.Generator
+	Mailer            mailer.Mailer
+	Sessions          database.SessionRepository
+	BaseURL           string
+	UnsubscribeSecret string
 }
 
 func (h *DigestHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +136,61 @@ func (h *DigestHandler) Unshare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *DigestHandler) SendEmail(w http.ResponseWriter, r *http.Request) {
+	if h.Mailer == nil {
+		WriteError(w, http.StatusServiceUnavailable, "email delivery not configured")
+		return
+	}
+
+	id := r.PathValue("id")
+
+	d, err := h.Digests.GetByIDInternal(r.Context(), id)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "digest not found")
+		return
+	}
+
+	email, err := h.Sessions.GetUserEmail(r.Context(), d.UserID)
+	if err != nil {
+		slog.Error("failed to get user email for digest send", "userID", d.UserID, "error", err)
+		WriteError(w, http.StatusInternalServerError, "failed to look up user email")
+		return
+	}
+
+	// Auto-generate share token if missing
+	if d.ShareToken == nil {
+		tokenBytes := make([]byte, 16)
+		if _, err := rand.Read(tokenBytes); err != nil {
+			slog.Error("failed to generate share token", "digestID", d.ID, "error", err)
+		} else {
+			token := hex.EncodeToString(tokenBytes)
+			if err := h.Digests.SetShareToken(r.Context(), d.ID, d.UserID, token); err != nil {
+				slog.Error("failed to set share token", "digestID", d.ID, "error", err)
+			} else {
+				d.ShareToken = &token
+			}
+		}
+	}
+
+	var unsubURL string
+	if h.BaseURL != "" && h.UnsubscribeSecret != "" {
+		unsubURL = mailer.GenerateUnsubscribeURL(h.BaseURL, d.UserID, h.UnsubscribeSecret)
+	}
+
+	if err := h.Mailer.SendDigest(r.Context(), email, "", d, unsubURL); err != nil {
+		slog.Error("failed to send digest email", "digestID", d.ID, "error", err)
+		WriteError(w, http.StatusInternalServerError, "failed to send digest email")
+		return
+	}
+
+	now := time.Now()
+	if err := h.Digests.SetSentAt(r.Context(), d.ID, now); err != nil {
+		slog.Error("failed to set digest sent_at", "digestID", d.ID, "error", err)
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "sent", "to": email})
 }
 
 func (h *DigestHandler) GetPublic(w http.ResponseWriter, r *http.Request) {

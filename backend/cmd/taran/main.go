@@ -119,8 +119,12 @@ func main() {
 		Processor:   proc,
 	}
 	digestHandler := &handler.DigestHandler{
-		Digests:   digestRepo,
-		Generator: gen,
+		Digests:           digestRepo,
+		Generator:         gen,
+		Mailer:            m,
+		Sessions:          sessionRepo,
+		BaseURL:           cfg.Server.BaseURL,
+		UnsubscribeSecret: cfg.Server.UnsubscribeSecret,
 	}
 	accountHandler := &handler.AccountHandler{
 		Accounts:    accountRepo,

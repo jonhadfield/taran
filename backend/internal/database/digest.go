@@ -79,6 +79,27 @@ func (r *DigestRepo) GetByID(ctx context.Context, userID, id string) (*domain.Di
 	return d, nil
 }
 
+func (r *DigestRepo) GetByIDInternal(ctx context.Context, id string) (*domain.Digest, error) {
+	row := r.pool.QueryRow(ctx,
+		`SELECT id, user_id, title, summary, highlights, top_topics,
+		    period_start, period_end, period_type, email_count, provider, model,
+		    generated_at, sent_at, created_at, share_token
+		 FROM digest WHERE id = $1`, id)
+
+	d, err := scanDigest(row)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := r.queryDigestItems(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	d.Items = items
+
+	return d, nil
+}
+
 func (r *DigestRepo) List(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error) {
 	where := []string{"user_id = $1"}
 	args := []any{userID}

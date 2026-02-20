@@ -70,6 +70,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 
 	// Admin routes
 	admin := http.NewServeMux()
+	admin.HandleFunc("POST /api/admin/digests/{id}/send", deps.DigestHandler.SendEmail)
 	admin.HandleFunc("POST /api/admin/digests/generate", deps.DigestHandler.Generate)
 	admin.HandleFunc("GET /api/admin/stats", deps.AdminStatsHandler.Get)
 	admin.HandleFunc("POST /api/admin/invites", deps.InviteHandler.Create)

@@ -224,13 +224,14 @@ func (m *MockFeedbackRepo) GetTopicStats(ctx context.Context, userID string) ([]
 
 // MockDigestRepo implements database.DigestRepository for testing.
 type MockDigestRepo struct {
-	CreateFn          func(ctx context.Context, digest *domain.Digest) error
-	GetByIDFn         func(ctx context.Context, userID, id string) (*domain.Digest, error)
-	ListFn            func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
-	SetSentAtFn       func(ctx context.Context, id string, sentAt time.Time) error
-	SetShareTokenFn   func(ctx context.Context, id, userID, token string) error
-	ClearShareTokenFn func(ctx context.Context, id, userID string) error
-	GetByShareTokenFn func(ctx context.Context, token string) (*domain.Digest, error)
+	CreateFn            func(ctx context.Context, digest *domain.Digest) error
+	GetByIDFn           func(ctx context.Context, userID, id string) (*domain.Digest, error)
+	GetByIDInternalFn   func(ctx context.Context, id string) (*domain.Digest, error)
+	ListFn              func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
+	SetSentAtFn         func(ctx context.Context, id string, sentAt time.Time) error
+	SetShareTokenFn     func(ctx context.Context, id, userID, token string) error
+	ClearShareTokenFn   func(ctx context.Context, id, userID string) error
+	GetByShareTokenFn   func(ctx context.Context, token string) (*domain.Digest, error)
 }
 
 func (m *MockDigestRepo) Create(ctx context.Context, digest *domain.Digest) error {
@@ -243,6 +244,13 @@ func (m *MockDigestRepo) Create(ctx context.Context, digest *domain.Digest) erro
 func (m *MockDigestRepo) GetByID(ctx context.Context, userID, id string) (*domain.Digest, error) {
 	if m.GetByIDFn != nil {
 		return m.GetByIDFn(ctx, userID, id)
+	}
+	return nil, nil
+}
+
+func (m *MockDigestRepo) GetByIDInternal(ctx context.Context, id string) (*domain.Digest, error) {
+	if m.GetByIDInternalFn != nil {
+		return m.GetByIDInternalFn(ctx, id)
 	}
 	return nil, nil
 }
