@@ -26,6 +26,9 @@
     "sanitize-html": "^2.17.0",
     "tailwind-merge": "^3.4.0"
   },
+  "overrides": {
+    "ajv": ">=8.18.0"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
