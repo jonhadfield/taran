@@ -174,6 +174,16 @@ func (h *DigestHandler) SendEmail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Populate transient EmailSummaries from persisted Items for email rendering
+	for _, item := range d.Items {
+		d.EmailSummaries = append(d.EmailSummaries, domain.DigestEmailSummary{
+			EmailID:    item.EmailID,
+			Subject:    item.Subject,
+			SenderName: item.FromName,
+			Summary:    item.Summary,
+		})
+	}
+
 	var unsubURL string
 	if h.BaseURL != "" && h.UnsubscribeSecret != "" {
 		unsubURL = mailer.GenerateUnsubscribeURL(h.BaseURL, d.UserID, h.UnsubscribeSecret)
