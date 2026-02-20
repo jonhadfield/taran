@@ -13,7 +13,7 @@ import (
 func TestTopicHandler_List_WithTopics(t *testing.T) {
 	h := &TopicHandler{
 		Extractions: &testutil.MockExtractionRepo{
-			ListTopicsByUserFn: func(_ context.Context, _ string) ([]string, error) {
+			ListTopicsByUserFn: func(_ context.Context, _ string, _ int) ([]string, error) {
 				return []string{"tech", "finance", "sports"}, nil
 			},
 		},
@@ -41,7 +41,7 @@ func TestTopicHandler_List_WithTopics(t *testing.T) {
 func TestTopicHandler_List_Empty_ReturnsEmptyArray(t *testing.T) {
 	h := &TopicHandler{
 		Extractions: &testutil.MockExtractionRepo{
-			ListTopicsByUserFn: func(_ context.Context, _ string) ([]string, error) {
+			ListTopicsByUserFn: func(_ context.Context, _ string, _ int) ([]string, error) {
 				return nil, nil
 			},
 		},

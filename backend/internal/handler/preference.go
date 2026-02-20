@@ -34,6 +34,7 @@ type updatePreferenceRequest struct {
 	DigestHour      *int    `json:"DigestHour"`
 	DigestDay       *int    `json:"DigestDay"`
 	DigestTimezone  *string `json:"DigestTimezone"`
+	TopicLimit      *int    `json:"TopicLimit"`
 }
 
 func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -77,6 +78,14 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate topic limit
+	if req.TopicLimit != nil {
+		if *req.TopicLimit < 5 || *req.TopicLimit > 50 {
+			WriteError(w, http.StatusBadRequest, "topic limit must be between 5 and 50")
+			return
+		}
+	}
+
 	// Load existing preference and merge
 	existing, err := h.Preferences.Get(r.Context(), userID)
 	if err != nil {
@@ -98,6 +107,9 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DigestTimezone != nil {
 		existing.DigestTimezone = *req.DigestTimezone
+	}
+	if req.TopicLimit != nil {
+		existing.TopicLimit = *req.TopicLimit
 	}
 
 	if err := h.Preferences.Upsert(r.Context(), existing); err != nil {

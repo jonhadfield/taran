@@ -103,6 +103,7 @@ export interface UserPreference {
   DigestHour: number;
   DigestDay: number;
   DigestTimezone: string;
+  TopicLimit: number;
   CreatedAt: string;
   UpdatedAt: string;
 }

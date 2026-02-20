@@ -1,5 +1,5 @@
 import { serverFetch } from "@/lib/server-api";
-import type { Email, EmailAccount, ListResponse } from "@/types/api";
+import type { Email, EmailAccount, ListResponse, UserPreference } from "@/types/api";
 import { InboxList } from "./inbox-list";
 
 export default async function InboxPage({
@@ -22,9 +22,12 @@ export default async function InboxPage({
   let emailAddress = "";
 
   try {
+    const prefRes = await serverFetch<UserPreference>("preferences").catch(() => null);
+    const topicLimit = prefRes?.TopicLimit ?? 15;
+
     const [emailRes, topicsRes, accountRes] = await Promise.all([
       serverFetch<ListResponse<Email>>(`emails?${queryString}`),
-      serverFetch<string[]>("topics").catch(() => [] as string[]),
+      serverFetch<string[]>(`topics?limit=${topicLimit}`).catch(() => [] as string[]),
       serverFetch<ListResponse<EmailAccount>>("accounts").catch(() => ({ data: [], total: 0 }) as ListResponse<EmailAccount>),
     ]);
     emails = emailRes.data || [];

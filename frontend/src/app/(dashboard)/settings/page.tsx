@@ -81,6 +81,7 @@ export default function SettingsPage() {
   const [digestHour, setDigestHour] = useState(7);
   const [digestDay, setDigestDay] = useState(1);
   const [digestTimezone, setDigestTimezone] = useState("UTC");
+  const [topicLimit, setTopicLimit] = useState(15);
   const [prefLoading, setPrefLoading] = useState(true);
   const [prefSaving, setPrefSaving] = useState(false);
 
@@ -108,6 +109,7 @@ export default function SettingsPage() {
       setDigestHour(pref.DigestHour ?? 7);
       setDigestDay(pref.DigestDay ?? 1);
       setDigestTimezone(pref.DigestTimezone || detectTimezone());
+      setTopicLimit(pref.TopicLimit ?? 15);
     } catch {
       setDigestTimezone(detectTimezone());
     } finally {
@@ -120,7 +122,7 @@ export default function SettingsPage() {
     fetchPreferences();
   }, []);
 
-  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone">>) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit">>) => {
     setPrefSaving(true);
     try {
       const updated = await apiPatch<UserPreference>("preferences", updates);
@@ -129,6 +131,7 @@ export default function SettingsPage() {
       setDigestHour(updated.DigestHour ?? 7);
       setDigestDay(updated.DigestDay ?? 1);
       setDigestTimezone(updated.DigestTimezone || "UTC");
+      setTopicLimit(updated.TopicLimit ?? 15);
     } catch {
       // Revert on error by re-fetching
       await fetchPreferences();
@@ -160,6 +163,11 @@ export default function SettingsPage() {
   const handleTimezoneChange = async (value: string) => {
     setDigestTimezone(value);
     await updatePreference({ DigestTimezone: value });
+  };
+
+  const handleTopicLimitChange = async (value: number) => {
+    setTopicLimit(value);
+    await updatePreference({ TopicLimit: value });
   };
 
   const handleDelete = async () => {
@@ -339,6 +347,37 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Inbox Display</CardTitle>
+          <CardDescription>
+            Customize how your inbox looks
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="topic-limit">Topic cloud size</Label>
+            <p className="text-sm text-muted-foreground">
+              Maximum number of topics shown in your inbox word cloud
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                id="topic-limit"
+                type="range"
+                min={5}
+                max={50}
+                step={5}
+                value={topicLimit}
+                onChange={(e) => handleTopicLimitChange(Number(e.target.value))}
+                disabled={prefLoading || prefSaving}
+                className="w-full max-w-xs accent-primary"
+              />
+              <span className="text-sm font-medium w-8 text-right">{topicLimit}</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

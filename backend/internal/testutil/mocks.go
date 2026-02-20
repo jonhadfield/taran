@@ -140,7 +140,7 @@ type MockExtractionRepo struct {
 	GetByEmailIDFn        func(ctx context.Context, emailID string) (*domain.Extraction, error)
 	DeleteByEmailIDFn     func(ctx context.Context, emailID string) error
 	ListByUserAndPeriodFn func(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error)
-	ListTopicsByUserFn    func(ctx context.Context, userID string) ([]string, error)
+	ListTopicsByUserFn    func(ctx context.Context, userID string, limit int) ([]string, error)
 }
 
 func (m *MockExtractionRepo) Create(ctx context.Context, extraction *domain.Extraction) error {
@@ -171,9 +171,9 @@ func (m *MockExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID str
 	return nil, nil
 }
 
-func (m *MockExtractionRepo) ListTopicsByUser(ctx context.Context, userID string) ([]string, error) {
+func (m *MockExtractionRepo) ListTopicsByUser(ctx context.Context, userID string, limit int) ([]string, error) {
 	if m.ListTopicsByUserFn != nil {
-		return m.ListTopicsByUserFn(ctx, userID)
+		return m.ListTopicsByUserFn(ctx, userID, limit)
 	}
 	return nil, nil
 }
