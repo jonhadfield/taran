@@ -7,6 +7,8 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ShareButton } from "./share-button";
+import { SendEmailButton } from "./send-email-button";
+import { isAdmin } from "@/lib/admin";
 
 export default async function DigestDetailPage({
   params,
@@ -22,6 +24,8 @@ export default async function DigestDetailPage({
     notFound();
   }
 
+  const admin = await isAdmin();
+
   return (
     <div className="space-y-6">
       <Link
@@ -35,7 +39,12 @@ export default async function DigestDetailPage({
       <div className="space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <h1 className="text-2xl font-bold">{digest.Title}</h1>
-          <ShareButton digestId={digest.ID} initialToken={digest.ShareToken} />
+          <div className="flex items-center gap-2">
+            {admin && (
+              <SendEmailButton digestId={digest.ID} alreadySent={!!digest.SentAt} />
+            )}
+            <ShareButton digestId={digest.ID} initialToken={digest.ShareToken} />
+          </div>
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>
