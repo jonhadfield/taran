@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import type { DashboardData } from "@/types/api";
 import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, Loader2, AlertCircle } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
-import { EmailHistoryChart } from "@/components/email-history-chart";
 import Link from "next/link";
 
 interface DashboardContentProps {
@@ -81,9 +80,6 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
           </CardContent>
         </Card>
       </div>
-
-      {/* Email history chart */}
-      <EmailHistoryChart />
 
       {/* Processing status */}
       {(inFlightCount > 0 || failedCount > 0) && (
