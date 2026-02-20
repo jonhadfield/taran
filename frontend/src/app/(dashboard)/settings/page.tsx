@@ -82,6 +82,7 @@ export default function SettingsPage() {
   const [digestDay, setDigestDay] = useState(1);
   const [digestTimezone, setDigestTimezone] = useState("UTC");
   const [topicLimit, setTopicLimit] = useState(15);
+  const [digestStyle, setDigestStyle] = useState("detailed");
   const [prefLoading, setPrefLoading] = useState(true);
   const [prefSaving, setPrefSaving] = useState(false);
 
@@ -110,6 +111,7 @@ export default function SettingsPage() {
       setDigestDay(pref.DigestDay ?? 1);
       setDigestTimezone(pref.DigestTimezone || detectTimezone());
       setTopicLimit(pref.TopicLimit ?? 15);
+      setDigestStyle(pref.DigestStyle || "detailed");
     } catch {
       setDigestTimezone(detectTimezone());
     } finally {
@@ -122,7 +124,7 @@ export default function SettingsPage() {
     fetchPreferences();
   }, []);
 
-  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit">>) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle">>) => {
     setPrefSaving(true);
     try {
       const updated = await apiPatch<UserPreference>("preferences", updates);
@@ -132,6 +134,7 @@ export default function SettingsPage() {
       setDigestDay(updated.DigestDay ?? 1);
       setDigestTimezone(updated.DigestTimezone || "UTC");
       setTopicLimit(updated.TopicLimit ?? 15);
+      setDigestStyle(updated.DigestStyle || "detailed");
     } catch {
       // Revert on error by re-fetching
       await fetchPreferences();
@@ -168,6 +171,11 @@ export default function SettingsPage() {
   const handleTopicLimitChange = async (value: number) => {
     setTopicLimit(value);
     await updatePreference({ TopicLimit: value });
+  };
+
+  const handleDigestStyleChange = async (value: string) => {
+    setDigestStyle(value);
+    await updatePreference({ DigestStyle: value });
   };
 
   const handleDelete = async () => {
@@ -378,6 +386,42 @@ export default function SettingsPage() {
               <span className="text-sm font-medium w-8 text-right">{topicLimit}</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Digest Style</CardTitle>
+          <CardDescription>
+            Choose how detailed your digest summaries are
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={digestStyle === "detailed" ? "default" : "outline"}
+              onClick={() => handleDigestStyleChange("detailed")}
+              disabled={prefLoading || prefSaving}
+            >
+              Detailed
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={digestStyle === "concise" ? "default" : "outline"}
+              onClick={() => handleDigestStyleChange("concise")}
+              disabled={prefLoading || prefSaving}
+            >
+              Concise
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {digestStyle === "concise"
+              ? "Shorter summaries with fewer highlights for a quick overview."
+              : "Full summaries with detailed highlights and more context."}
+          </p>
         </CardContent>
       </Card>
 

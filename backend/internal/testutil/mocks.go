@@ -23,11 +23,13 @@ type MockEmailRepo struct {
 	GetByIDInternalFn   func(ctx context.Context, id string) (*domain.Email, error)
 	ListFn              func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Email, int, error)
 	UpdateStateFn       func(ctx context.Context, userID, id string, state domain.EmailState) error
+	DeleteFn            func(ctx context.Context, userID, id string) error
 	GetByMessageIDFn    func(ctx context.Context, messageID string) (*domain.Email, error)
 	ListPendingFn       func(ctx context.Context, limit int) ([]domain.Email, error)
 	SetStatusFn         func(ctx context.Context, id string, status domain.EmailStatus, reason string) error
 	ListActiveUserIDsFn func(ctx context.Context, from, to time.Time) ([]string, error)
 	CountByPeriodFn     func(ctx context.Context, userID string, from, to time.Time) (int, error)
+	CountByWeekFn       func(ctx context.Context, userID string, weeks int) ([]domain.WeekCount, error)
 	TopSendersFn        func(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
 	ListSendersFn       func(ctx context.Context, userID string) ([]domain.SenderInfo, error)
 	CountByStatusFn     func(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
@@ -73,6 +75,20 @@ func (m *MockEmailRepo) UpdateState(ctx context.Context, userID, id string, stat
 		return m.UpdateStateFn(ctx, userID, id, state)
 	}
 	return nil
+}
+
+func (m *MockEmailRepo) Delete(ctx context.Context, userID, id string) error {
+	if m.DeleteFn != nil {
+		return m.DeleteFn(ctx, userID, id)
+	}
+	return nil
+}
+
+func (m *MockEmailRepo) CountByWeek(ctx context.Context, userID string, weeks int) ([]domain.WeekCount, error) {
+	if m.CountByWeekFn != nil {
+		return m.CountByWeekFn(ctx, userID, weeks)
+	}
+	return nil, nil
 }
 
 func (m *MockEmailRepo) GetByMessageID(ctx context.Context, messageID string) (*domain.Email, error) {
@@ -228,6 +244,7 @@ type MockDigestRepo struct {
 	GetByIDFn           func(ctx context.Context, userID, id string) (*domain.Digest, error)
 	GetByIDInternalFn   func(ctx context.Context, id string) (*domain.Digest, error)
 	ListFn              func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
+	DeleteFn            func(ctx context.Context, userID, id string) error
 	SetSentAtFn         func(ctx context.Context, id string, sentAt time.Time) error
 	SetShareTokenFn     func(ctx context.Context, id, userID, token string) error
 	ClearShareTokenFn   func(ctx context.Context, id, userID string) error
@@ -260,6 +277,13 @@ func (m *MockDigestRepo) List(ctx context.Context, userID string, opts domain.Li
 		return m.ListFn(ctx, userID, opts)
 	}
 	return nil, 0, nil
+}
+
+func (m *MockDigestRepo) Delete(ctx context.Context, userID, id string) error {
+	if m.DeleteFn != nil {
+		return m.DeleteFn(ctx, userID, id)
+	}
+	return nil
 }
 
 func (m *MockDigestRepo) SetSentAt(ctx context.Context, id string, sentAt time.Time) error {

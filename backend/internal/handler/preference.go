@@ -35,6 +35,7 @@ type updatePreferenceRequest struct {
 	DigestDay       *int    `json:"DigestDay"`
 	DigestTimezone  *string `json:"DigestTimezone"`
 	TopicLimit      *int    `json:"TopicLimit"`
+	DigestStyle     *string `json:"DigestStyle"`
 }
 
 func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -86,6 +87,14 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate digest style
+	if req.DigestStyle != nil {
+		if *req.DigestStyle != "concise" && *req.DigestStyle != "detailed" {
+			WriteError(w, http.StatusBadRequest, "digest style must be 'concise' or 'detailed'")
+			return
+		}
+	}
+
 	// Load existing preference and merge
 	existing, err := h.Preferences.Get(r.Context(), userID)
 	if err != nil {
@@ -110,6 +119,9 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.TopicLimit != nil {
 		existing.TopicLimit = *req.TopicLimit
+	}
+	if req.DigestStyle != nil {
+		existing.DigestStyle = *req.DigestStyle
 	}
 
 	if err := h.Preferences.Upsert(r.Context(), existing); err != nil {

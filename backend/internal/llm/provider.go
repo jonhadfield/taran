@@ -37,6 +37,7 @@ type TriageResult struct {
 type DigestOptions struct {
 	PreferredTopics     []string
 	LessPreferredTopics []string
+	Style               string // "concise" or "detailed" (default)
 }
 
 type Provider interface {

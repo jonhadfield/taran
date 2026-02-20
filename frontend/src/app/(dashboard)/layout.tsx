@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
+import { TitleUpdater } from "@/components/title-updater";
 import { isAdmin } from "@/lib/admin";
 import { serverFetch } from "@/lib/server-api";
 import type { AccessCheck } from "@/types/api";
@@ -26,6 +27,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen">
+      <TitleUpdater />
       {/* Fixed full-height sidebar - hidden on mobile */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <Sidebar isAdmin={admin} />

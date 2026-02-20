@@ -8,6 +8,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ShareButton } from "./share-button";
 import { SendEmailButton } from "./send-email-button";
+import { DeleteDigestButton } from "./delete-button";
 import { isAdmin } from "@/lib/admin";
 
 export default async function DigestDetailPage({
@@ -44,6 +45,7 @@ export default async function DigestDetailPage({
               <SendEmailButton digestId={digest.ID} alreadySent={!!digest.SentAt} />
             )}
             <ShareButton digestId={digest.ID} initialToken={digest.ShareToken} />
+            <DeleteDigestButton digestId={digest.ID} />
           </div>
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">

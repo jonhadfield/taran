@@ -29,6 +29,7 @@ type Generator struct {
 	Provider    llm.Provider
 	SenderPrefs database.SenderPreferenceRepository
 	Feedback    database.FeedbackRepository
+	Preferences database.PreferenceRepository
 }
 
 func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodType string, periodStart, periodEnd time.Time) (*domain.Digest, error) {
@@ -41,27 +42,42 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		return nil, nil
 	}
 
-	// Filter out extractions from muted/blocked senders
+	// Filter out extractions from muted/blocked senders and boost favorites
 	if g.SenderPrefs != nil {
 		prefs, err := g.SenderPrefs.ListByUser(ctx, userID)
 		if err != nil {
 			slog.Warn("failed to load sender preferences, proceeding without filter", "error", err)
 		} else {
 			excluded := make(map[string]bool)
+			favorites := make(map[string]bool)
 			for _, p := range prefs {
-				if p.Status == "muted" || p.Status == "blocked" {
+				switch p.Status {
+				case "muted", "blocked":
 					excluded[p.FromAddress] = true
+				case "favorite":
+					favorites[p.FromAddress] = true
 				}
 			}
+
+			// Build emailID → fromAddress map for reuse
+			emailAddr := make(map[string]string, len(extractions))
+			for _, ext := range extractions {
+				email, err := g.Emails.GetByIDInternal(ctx, ext.EmailID)
+				if err != nil || email == nil {
+					continue
+				}
+				emailAddr[ext.EmailID] = email.FromAddress
+			}
+
 			if len(excluded) > 0 {
 				var filtered []domain.Extraction
 				for _, ext := range extractions {
-					email, err := g.Emails.GetByIDInternal(ctx, ext.EmailID)
-					if err != nil || email == nil {
+					addr, ok := emailAddr[ext.EmailID]
+					if !ok {
 						filtered = append(filtered, ext) // include if we can't determine sender
 						continue
 					}
-					if !excluded[email.FromAddress] {
+					if !excluded[addr] {
 						filtered = append(filtered, ext)
 					}
 				}
@@ -70,6 +86,15 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 					return nil, nil
 				}
 			}
+
+			// Sort favorites to front so they get prominence in the digest
+			if len(favorites) > 0 {
+				sort.SliceStable(extractions, func(i, j int) bool {
+					fi := favorites[emailAddr[extractions[i].EmailID]]
+					fj := favorites[emailAddr[extractions[j].EmailID]]
+					return fi && !fj
+				})
+			}
 		}
 	}
 
@@ -77,6 +102,17 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 	var digestOpts *llm.DigestOptions
 	if g.Feedback != nil {
 		digestOpts = g.applyFeedback(ctx, userID, &extractions)
+	}
+
+	// Apply digest style preference
+	if g.Preferences != nil {
+		pref, err := g.Preferences.Get(ctx, userID)
+		if err == nil && pref.DigestStyle != "" {
+			if digestOpts == nil {
+				digestOpts = &llm.DigestOptions{}
+			}
+			digestOpts.Style = pref.DigestStyle
+		}
 	}
 
 	summary, usage, err := g.Provider.GenerateDigest(ctx, extractions, periodType, digestOpts)

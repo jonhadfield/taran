@@ -92,5 +92,9 @@ func buildDigestUserPrompt(extractions []domain.Extraction, periodType string, o
 		}
 	}
 
+	if opts != nil && opts.Style == "concise" {
+		prompt += "\nIMPORTANT: The user prefers a concise digest. Keep the summary to 1-2 sentences and limit highlights to 2-3 items maximum.\n"
+	}
+
 	return prompt
 }

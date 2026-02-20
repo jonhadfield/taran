@@ -154,6 +154,15 @@ func (r *DigestRepo) List(ctx context.Context, userID string, opts domain.ListOp
 	return digests, total, nil
 }
 
+func (r *DigestRepo) Delete(ctx context.Context, userID, id string) error {
+	_, err := r.pool.Exec(ctx,
+		"DELETE FROM digest WHERE id = $1 AND user_id = $2", id, userID)
+	if err != nil {
+		return fmt.Errorf("delete digest: %w", err)
+	}
+	return nil
+}
+
 func (r *DigestRepo) SetSentAt(ctx context.Context, id string, sentAt time.Time) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE digest SET sent_at = $1 WHERE id = $2`, sentAt, id)

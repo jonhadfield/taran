@@ -13,11 +13,13 @@ type EmailRepository interface {
 	GetByIDInternal(ctx context.Context, id string) (*domain.Email, error)
 	List(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Email, int, error)
 	UpdateState(ctx context.Context, userID, id string, state domain.EmailState) error
+	Delete(ctx context.Context, userID, id string) error
 	GetByMessageID(ctx context.Context, messageID string) (*domain.Email, error)
 	ListPending(ctx context.Context, limit int) ([]domain.Email, error)
 	SetStatus(ctx context.Context, id string, status domain.EmailStatus, reason string) error
 	ListActiveUserIDs(ctx context.Context, from, to time.Time) ([]string, error)
 	CountByPeriod(ctx context.Context, userID string, from, to time.Time) (int, error)
+	CountByWeek(ctx context.Context, userID string, weeks int) ([]domain.WeekCount, error)
 	TopSenders(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
 	ListSenders(ctx context.Context, userID string) ([]domain.SenderInfo, error)
 	CountByStatus(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
@@ -44,6 +46,7 @@ type DigestRepository interface {
 	GetByID(ctx context.Context, userID, id string) (*domain.Digest, error)
 	GetByIDInternal(ctx context.Context, id string) (*domain.Digest, error)
 	List(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
+	Delete(ctx context.Context, userID, id string) error
 	SetSentAt(ctx context.Context, id string, sentAt time.Time) error
 	SetShareToken(ctx context.Context, id, userID, token string) error
 	ClearShareToken(ctx context.Context, id, userID string) error

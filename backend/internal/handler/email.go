@@ -98,6 +98,24 @@ func (h *EmailHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
 
+func (h *EmailHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	id := r.PathValue("id")
+
+	_, err := h.Emails.GetByID(r.Context(), userID, id)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "email not found")
+		return
+	}
+
+	if err := h.Emails.Delete(r.Context(), userID, id); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to delete email")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
 func (h *EmailHandler) Reprocess(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 	id := r.PathValue("id")

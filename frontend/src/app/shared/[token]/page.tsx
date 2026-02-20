@@ -91,6 +91,35 @@ export default async function SharedDigestPage({
             </Card>
           )}
 
+          {digest.Items?.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Included Emails</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {digest.Items.map((item) => (
+                    <div key={item.ID} className="border-b last:border-0 pb-3 last:pb-0">
+                      <p className="text-sm font-medium">
+                        {item.Subject || `Email ${item.SortOrder + 1}`}
+                      </p>
+                      {item.FromName && (
+                        <p className="text-xs text-muted-foreground">
+                          {item.FromName}
+                        </p>
+                      )}
+                      {item.Summary && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {item.Summary}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="border-t pt-6 text-center">
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Mail className="h-4 w-4" />

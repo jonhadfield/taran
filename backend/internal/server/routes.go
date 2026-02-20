@@ -10,21 +10,22 @@ import (
 )
 
 type RouterDeps struct {
-	WebhookSecret     string
-	APIKey            string
-	WebhookHandler    *handler.WebhookHandler
-	EmailHandler      *handler.EmailHandler
-	DigestHandler     *handler.DigestHandler
-	AccountHandler    *handler.AccountHandler
-	PreferenceHandler *handler.PreferenceHandler
-	SenderHandler     *handler.SenderHandler
-	StatsHandler      *handler.StatsHandler
-	TopicHandler      *handler.TopicHandler
-	FeedbackHandler   *handler.FeedbackHandler
-	AdminStatsHandler *handler.AdminStatsHandler
-	DashboardHandler  *handler.DashboardHandler
-	InviteHandler     *handler.InviteHandler
-	SessionAuth       *auth.SessionAuth
+	WebhookSecret      string
+	APIKey             string
+	WebhookHandler     *handler.WebhookHandler
+	EmailHandler       *handler.EmailHandler
+	DigestHandler      *handler.DigestHandler
+	AccountHandler     *handler.AccountHandler
+	PreferenceHandler  *handler.PreferenceHandler
+	SenderHandler      *handler.SenderHandler
+	StatsHandler       *handler.StatsHandler
+	StatsHistoryHandler *handler.StatsHistoryHandler
+	TopicHandler       *handler.TopicHandler
+	FeedbackHandler    *handler.FeedbackHandler
+	AdminStatsHandler  *handler.AdminStatsHandler
+	DashboardHandler   *handler.DashboardHandler
+	InviteHandler      *handler.InviteHandler
+	SessionAuth        *auth.SessionAuth
 }
 
 func NewRouter(deps RouterDeps) *http.ServeMux {
@@ -46,9 +47,11 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/emails", deps.EmailHandler.List)
 	api.HandleFunc("GET /api/emails/{id}", deps.EmailHandler.Get)
 	api.HandleFunc("PATCH /api/emails/{id}", deps.EmailHandler.UpdateState)
+	api.HandleFunc("DELETE /api/emails/{id}", deps.EmailHandler.Delete)
 	api.HandleFunc("POST /api/emails/{id}/reprocess", deps.EmailHandler.Reprocess)
 	api.HandleFunc("GET /api/digests", deps.DigestHandler.List)
 	api.HandleFunc("GET /api/digests/{id}", deps.DigestHandler.Get)
+	api.HandleFunc("DELETE /api/digests/{id}", deps.DigestHandler.Delete)
 	api.HandleFunc("POST /api/digests/{id}/share", deps.DigestHandler.Share)
 	api.HandleFunc("DELETE /api/digests/{id}/share", deps.DigestHandler.Unshare)
 	api.HandleFunc("GET /api/accounts", deps.AccountHandler.List)
@@ -61,6 +64,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/senders/suggestions", deps.SenderHandler.Suggestions)
 	api.HandleFunc("PATCH /api/senders", deps.SenderHandler.Update)
 	api.HandleFunc("GET /api/stats", deps.StatsHandler.Get)
+	api.HandleFunc("GET /api/stats/history", deps.StatsHistoryHandler.Get)
 	api.HandleFunc("POST /api/digests/generate", deps.DigestHandler.Generate)
 	api.HandleFunc("GET /api/topics", deps.TopicHandler.List)
 	api.HandleFunc("POST /api/emails/{id}/feedback", deps.FeedbackHandler.Upsert)

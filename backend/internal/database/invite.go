@@ -50,7 +50,7 @@ func (r *InviteRepo) Create(ctx context.Context, invite *domain.Invite) error {
 func (r *InviteRepo) List(ctx context.Context) ([]domain.Invite, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, email, invited_by, created_at, accepted_at
-		 FROM invite ORDER BY created_at DESC`)
+		 FROM invite ORDER BY created_at DESC LIMIT 200`)
 	if err != nil {
 		return nil, fmt.Errorf("list invites: %w", err)
 	}

@@ -123,6 +123,7 @@ type UserPreference struct {
 	DigestDay       int    // 0=Sunday..6=Saturday (used for weekly)
 	DigestTimezone  string // IANA timezone
 	TopicLimit      int    // max topics shown in inbox cloud (default 15)
+	DigestStyle     string // "detailed" or "concise"
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
@@ -198,6 +199,11 @@ type AdminStats struct {
 	TotalDigests     int           `json:"TotalDigests"`
 	DigestsThisWeek  int           `json:"DigestsThisWeek"`
 	TopGlobalSenders []SenderCount `json:"TopGlobalSenders"`
+}
+
+type WeekCount struct {
+	Week  time.Time `json:"Week"`
+	Count int       `json:"Count"`
 }
 
 type Invite struct {

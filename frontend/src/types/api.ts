@@ -104,6 +104,7 @@ export interface UserPreference {
   DigestDay: number;
   DigestTimezone: string;
   TopicLimit: number;
+  DigestStyle: string;
   CreatedAt: string;
   UpdatedAt: string;
 }
@@ -175,6 +176,11 @@ export interface ProcessingStats {
   PendingCount: number;
   ProcessingCount: number;
   FailedCount: number;
+}
+
+export interface WeekCount {
+  Week: string;
+  Count: number;
 }
 
 export interface DashboardData {

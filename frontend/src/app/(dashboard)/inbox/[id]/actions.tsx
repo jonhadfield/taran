@@ -1,14 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { apiPatch } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { apiPatch, apiDelete } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { Email } from "@/types/api";
-import { Archive, Star, StarOff } from "lucide-react";
+import { Archive, Star, StarOff, Trash2, Loader2 } from "lucide-react";
 
 export function EmailActions({ email }: { email: Email }) {
+  const router = useRouter();
   const [starred, setStarred] = useState(email.IsStarred);
   const [archived, setArchived] = useState(email.IsArchived);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const markedRead = useRef(false);
 
   useEffect(() => {
@@ -28,20 +40,57 @@ export function EmailActions({ email }: { email: Email }) {
     setArchived(!archived);
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await apiDelete(`emails/${email.ID}`);
+      router.push("/inbox");
+    } catch {
+      setDeleting(false);
+      setShowDelete(false);
+    }
+  };
+
   return (
-    <div className="flex items-center gap-2">
-      <Button variant="outline" size="sm" onClick={toggleStar}>
-        {starred ? (
-          <Star className="mr-1 h-4 w-4 fill-yellow-400 text-yellow-400" />
-        ) : (
-          <StarOff className="mr-1 h-4 w-4" />
-        )}
-        {starred ? "Starred" : "Star"}
-      </Button>
-      <Button variant="outline" size="sm" onClick={toggleArchive}>
-        <Archive className="mr-1 h-4 w-4" />
-        {archived ? "Unarchive" : "Archive"}
-      </Button>
-    </div>
+    <>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={toggleStar}>
+          {starred ? (
+            <Star className="mr-1 h-4 w-4 fill-yellow-400 text-yellow-400" />
+          ) : (
+            <StarOff className="mr-1 h-4 w-4" />
+          )}
+          {starred ? "Starred" : "Star"}
+        </Button>
+        <Button variant="outline" size="sm" onClick={toggleArchive}>
+          <Archive className="mr-1 h-4 w-4" />
+          {archived ? "Unarchive" : "Archive"}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setShowDelete(true)}>
+          <Trash2 className="mr-1 h-4 w-4" />
+          Delete
+        </Button>
+      </div>
+
+      <Dialog open={showDelete} onOpenChange={setShowDelete}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Email</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this email? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowDelete(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

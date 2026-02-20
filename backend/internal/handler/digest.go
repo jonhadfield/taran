@@ -18,6 +18,7 @@ import (
 type DigestHandler struct {
 	Digests           database.DigestRepository
 	Generator         *digest.Generator
+	Preferences       database.PreferenceRepository
 	Mailer            mailer.Mailer
 	Sessions          database.SessionRepository
 	BaseURL           string
@@ -62,9 +63,21 @@ func (h *DigestHandler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	userID := auth.UserIDFromContext(r.Context())
 
+	// Determine period based on user's frequency preference
+	periodType := "daily"
+	if h.Preferences != nil {
+		pref, err := h.Preferences.Get(r.Context(), userID)
+		if err == nil && pref.DigestFrequency == "weekly" {
+			periodType = "weekly"
+		}
+	}
+
 	now := time.Now()
 	periodEnd := now
 	periodStart := now.Add(-24 * time.Hour)
+	if periodType == "weekly" {
+		periodStart = now.Add(-7 * 24 * time.Hour)
+	}
 
 	if v := r.URL.Query().Get("period_start"); v != "" {
 		t, err := time.Parse(time.RFC3339, v)
@@ -92,7 +105,7 @@ func (h *DigestHandler) Generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d, err := h.Generator.GenerateForUser(r.Context(), userID, "daily", periodStart, periodEnd)
+	d, err := h.Generator.GenerateForUser(r.Context(), userID, periodType, periodStart, periodEnd)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to generate digest")
 		return
@@ -104,6 +117,24 @@ func (h *DigestHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, d)
+}
+
+func (h *DigestHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	id := r.PathValue("id")
+
+	_, err := h.Digests.GetByID(r.Context(), userID, id)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "digest not found")
+		return
+	}
+
+	if err := h.Digests.Delete(r.Context(), userID, id); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to delete digest")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 func (h *DigestHandler) Share(w http.ResponseWriter, r *http.Request) {

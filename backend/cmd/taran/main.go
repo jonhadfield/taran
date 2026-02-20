@@ -97,6 +97,7 @@ func main() {
 		Provider:    provider,
 		SenderPrefs: senderPrefRepo,
 		Feedback:    feedbackRepo,
+		Preferences: preferenceRepo,
 	}
 	sched, err := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m, cfg.Server.BaseURL, cfg.Server.UnsubscribeSecret)
 	if err != nil {
@@ -121,6 +122,7 @@ func main() {
 	digestHandler := &handler.DigestHandler{
 		Digests:           digestRepo,
 		Generator:         gen,
+		Preferences:       preferenceRepo,
 		Mailer:            m,
 		Sessions:          sessionRepo,
 		BaseURL:           cfg.Server.BaseURL,
@@ -136,6 +138,9 @@ func main() {
 		Feedback:    feedbackRepo,
 	}
 	statsHandler := &handler.StatsHandler{
+		Emails: emailRepo,
+	}
+	statsHistoryHandler := &handler.StatsHistoryHandler{
 		Emails: emailRepo,
 	}
 	preferenceHandler := &handler.PreferenceHandler{
@@ -167,21 +172,22 @@ func main() {
 
 	// HTTP server
 	mux := server.NewRouter(server.RouterDeps{
-		WebhookSecret:     cfg.Webhook.Secret,
-		APIKey:            cfg.Server.APIKey,
-		WebhookHandler:    webhookHandler,
-		EmailHandler:      emailHandler,
-		DigestHandler:     digestHandler,
-		AccountHandler:    accountHandler,
-		PreferenceHandler: preferenceHandler,
-		SenderHandler:     senderHandler,
-		StatsHandler:      statsHandler,
-		TopicHandler:      topicHandler,
-		FeedbackHandler:   feedbackHandler,
-		DashboardHandler:  dashboardHandler,
-		InviteHandler:     inviteHandler,
-		AdminStatsHandler: adminStatsHandler,
-		SessionAuth:       sessionAuth,
+		WebhookSecret:      cfg.Webhook.Secret,
+		APIKey:             cfg.Server.APIKey,
+		WebhookHandler:     webhookHandler,
+		EmailHandler:       emailHandler,
+		DigestHandler:      digestHandler,
+		AccountHandler:     accountHandler,
+		PreferenceHandler:  preferenceHandler,
+		SenderHandler:      senderHandler,
+		StatsHandler:       statsHandler,
+		StatsHistoryHandler: statsHistoryHandler,
+		TopicHandler:       topicHandler,
+		FeedbackHandler:    feedbackHandler,
+		DashboardHandler:   dashboardHandler,
+		InviteHandler:      inviteHandler,
+		AdminStatsHandler:  adminStatsHandler,
+		SessionAuth:        sessionAuth,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewRateLimiter(10, 30) // 10 req/s sustained, 30 burst

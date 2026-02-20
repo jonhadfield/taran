@@ -107,10 +107,10 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 	if opts.Search != nil && *opts.Search != "" {
 		searchTerm := "%" + *opts.Search + "%"
 		where = append(where, fmt.Sprintf(
-			"(subject ILIKE $%d OR from_name ILIKE $%d OR from_address ILIKE $%d)",
-			argIdx, argIdx+1, argIdx+2))
-		args = append(args, searchTerm, searchTerm, searchTerm)
-		argIdx += 3
+			"(subject ILIKE $%d OR from_name ILIKE $%d OR from_address ILIKE $%d OR EXISTS (SELECT 1 FROM extraction ex WHERE ex.email_id = email.id AND ex.summary ILIKE $%d))",
+			argIdx, argIdx+1, argIdx+2, argIdx+3))
+		args = append(args, searchTerm, searchTerm, searchTerm, searchTerm)
+		argIdx += 4
 	}
 	if opts.Topic != nil && *opts.Topic != "" {
 		topicJSON := fmt.Sprintf(`[%q]`, *opts.Topic)
@@ -195,6 +195,38 @@ func (r *EmailRepo) UpdateState(ctx context.Context, userID, id string, state do
 		return fmt.Errorf("update email state: %w", err)
 	}
 	return nil
+}
+
+func (r *EmailRepo) Delete(ctx context.Context, userID, id string) error {
+	_, err := r.pool.Exec(ctx,
+		"DELETE FROM email WHERE id = $1 AND user_id = $2", id, userID)
+	if err != nil {
+		return fmt.Errorf("delete email: %w", err)
+	}
+	return nil
+}
+
+func (r *EmailRepo) CountByWeek(ctx context.Context, userID string, weeks int) ([]domain.WeekCount, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT date_trunc('week', received_at) AS week, COUNT(*)
+		 FROM email
+		 WHERE user_id = $1 AND received_at > NOW() - ($2 * INTERVAL '1 week')
+		 GROUP BY 1 ORDER BY 1`,
+		userID, weeks)
+	if err != nil {
+		return nil, fmt.Errorf("count by week: %w", err)
+	}
+	defer rows.Close()
+
+	var result []domain.WeekCount
+	for rows.Next() {
+		var wc domain.WeekCount
+		if err := rows.Scan(&wc.Week, &wc.Count); err != nil {
+			return nil, fmt.Errorf("scan week count: %w", err)
+		}
+		result = append(result, wc)
+	}
+	return result, nil
 }
 
 func (r *EmailRepo) ListPending(ctx context.Context, limit int) ([]domain.Email, error) {
