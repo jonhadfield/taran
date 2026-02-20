@@ -27,7 +27,6 @@
     "tailwind-merge": "^3.4.0"
   },
   "overrides": {
-    "ajv": ">=8.18.0",
     "hono": ">=4.11.10"
   },
   "devDependencies": {
