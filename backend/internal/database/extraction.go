@@ -85,10 +85,13 @@ func (r *ExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID string,
 
 func (r *ExtractionRepo) ListTopicsByUser(ctx context.Context, userID string) ([]string, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT DISTINCT topic FROM extraction e
-		 JOIN email em ON em.id = e.email_id
-		 CROSS JOIN LATERAL jsonb_array_elements_text(e.topics) AS topic
-		 WHERE em.user_id = $1 ORDER BY topic`, userID)
+		`SELECT topic FROM (
+		   SELECT topic, COUNT(*) AS cnt FROM extraction e
+		   JOIN email em ON em.id = e.email_id
+		   CROSS JOIN LATERAL jsonb_array_elements_text(e.topics) AS topic
+		   WHERE em.user_id = $1
+		   GROUP BY topic ORDER BY cnt DESC LIMIT 15
+		 ) t ORDER BY topic`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list topics: %w", err)
 	}
