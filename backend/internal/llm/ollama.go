@@ -31,6 +31,9 @@ func (p *OllamaProvider) Name() string  { return "ollama" }
 func (p *OllamaProvider) Model() string { return p.model }
 
 func (p *OllamaProvider) TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*TriageResult, *Usage, error) {
+	ctx, cancel := context.WithTimeout(ctx, TriageTimeout)
+	defer cancel()
+
 	userPrompt := buildTriageUserPrompt(subject, fromAddress, contentPreview)
 
 	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
@@ -62,6 +65,9 @@ func (p *OllamaProvider) TriageEmail(ctx context.Context, subject, fromAddress, 
 }
 
 func (p *OllamaProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
+	ctx, cancel := context.WithTimeout(ctx, ExtractTimeout)
+	defer cancel()
+
 	userPrompt := buildExtractionUserPrompt(subject, content, fromAddress)
 	if len(userPrompt) > 50000 {
 		userPrompt = userPrompt[:50000] + "\n\n[content truncated]"
@@ -96,6 +102,9 @@ func (p *OllamaProvider) ExtractEmail(ctx context.Context, subject, content, fro
 }
 
 func (p *OllamaProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error) {
+	ctx, cancel := context.WithTimeout(ctx, DigestTimeout)
+	defer cancel()
+
 	userPrompt := buildDigestUserPrompt(extractions, periodType, opts)
 
 	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{

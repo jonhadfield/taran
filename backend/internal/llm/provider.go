@@ -2,8 +2,15 @@ package llm
 
 import (
 	"context"
+	"time"
 
 	"github.com/hadfielj/taran/backend/internal/domain"
+)
+
+const (
+	TriageTimeout  = 30 * time.Second
+	ExtractTimeout = 90 * time.Second
+	DigestTimeout  = 90 * time.Second
 )
 
 type ExtractionResult struct {

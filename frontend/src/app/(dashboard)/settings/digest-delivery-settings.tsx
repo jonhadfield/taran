@@ -1,0 +1,163 @@
+"use client";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
+  const hour = i % 12 || 12;
+  const ampm = i < 12 ? "AM" : "PM";
+  return { value: i, label: `${hour}:00 ${ampm}` };
+});
+
+const DAY_OPTIONS = [
+  { value: 0, label: "Sunday" },
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
+];
+
+interface DigestDeliverySettingsProps {
+  digestEmail: boolean;
+  digestFrequency: string;
+  digestHour: number;
+  digestDay: number;
+  digestTimezone: string;
+  timezoneOptions: string[];
+  prefLoading: boolean;
+  prefSaving: boolean;
+  onToggleDigestEmail: (checked: boolean) => void;
+  onFrequencyChange: (value: string) => void;
+  onHourChange: (value: number) => void;
+  onDayChange: (value: number) => void;
+  onTimezoneChange: (value: string) => void;
+}
+
+export function DigestDeliverySettings({
+  digestEmail,
+  digestFrequency,
+  digestHour,
+  digestDay,
+  digestTimezone,
+  timezoneOptions,
+  prefLoading,
+  prefSaving,
+  onToggleDigestEmail,
+  onFrequencyChange,
+  onHourChange,
+  onDayChange,
+  onTimezoneChange,
+}: DigestDeliverySettingsProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Digest Delivery</CardTitle>
+        <CardDescription>
+          Configure how and when you receive your digest
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="digest-email" className="flex flex-col items-start gap-1">
+            <span>Email delivery</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              Receive your digest as an email
+            </span>
+          </Label>
+          <Switch
+            id="digest-email"
+            checked={digestEmail}
+            onCheckedChange={onToggleDigestEmail}
+            disabled={prefLoading || prefSaving}
+          />
+        </div>
+
+        {digestEmail && (
+          <div className="space-y-4 border-t pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="digest-frequency">Frequency</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={digestFrequency === "daily" ? "default" : "outline"}
+                  onClick={() => onFrequencyChange("daily")}
+                  disabled={prefSaving}
+                >
+                  Daily
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={digestFrequency === "weekly" ? "default" : "outline"}
+                  onClick={() => onFrequencyChange("weekly")}
+                  disabled={prefSaving}
+                >
+                  Weekly
+                </Button>
+              </div>
+              {digestFrequency === "weekly" && (
+                <div className="space-y-1">
+                  <Label htmlFor="digest-day">Day of week</Label>
+                  <select
+                    id="digest-day"
+                    value={digestDay}
+                    onChange={(e) => onDayChange(Number(e.target.value))}
+                    disabled={prefSaving}
+                    className="flex h-9 w-full max-w-full sm:max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    {DAY_OPTIONS.map(({ value, label }) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="digest-hour">Delivery time</Label>
+              <select
+                id="digest-hour"
+                value={digestHour}
+                onChange={(e) => onHourChange(Number(e.target.value))}
+                disabled={prefSaving}
+                className="flex h-9 w-full max-w-full sm:max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {HOUR_OPTIONS.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="digest-timezone">Timezone</Label>
+              <select
+                id="digest-timezone"
+                value={digestTimezone}
+                onChange={(e) => onTimezoneChange(e.target.value)}
+                disabled={prefSaving}
+                className="flex h-9 w-full max-w-full sm:max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {timezoneOptions.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

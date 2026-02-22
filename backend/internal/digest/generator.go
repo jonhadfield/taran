@@ -42,6 +42,22 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		return nil, nil
 	}
 
+	// Batch-fetch all emails referenced by extractions (single query)
+	emailMap := make(map[string]*domain.Email, len(extractions))
+	if g.Emails != nil {
+		emailIDs := make([]string, 0, len(extractions))
+		for _, ext := range extractions {
+			emailIDs = append(emailIDs, ext.EmailID)
+		}
+		fetchedEmails, err := g.Emails.GetByIDsInternal(ctx, emailIDs)
+		if err != nil {
+			slog.Warn("failed to batch-fetch emails, falling back to empty map", "error", err)
+		}
+		for i := range fetchedEmails {
+			emailMap[fetchedEmails[i].ID] = &fetchedEmails[i]
+		}
+	}
+
 	// Filter out extractions from muted/blocked senders and boost favorites
 	if g.SenderPrefs != nil {
 		prefs, err := g.SenderPrefs.ListByUser(ctx, userID)
@@ -59,14 +75,12 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 				}
 			}
 
-			// Build emailID → fromAddress map for reuse
+			// Build emailID → fromAddress map from pre-fetched emails
 			emailAddr := make(map[string]string, len(extractions))
 			for _, ext := range extractions {
-				email, err := g.Emails.GetByIDInternal(ctx, ext.EmailID)
-				if err != nil || email == nil {
-					continue
+				if em, ok := emailMap[ext.EmailID]; ok {
+					emailAddr[ext.EmailID] = em.FromAddress
 				}
-				emailAddr[ext.EmailID] = email.FromAddress
 			}
 
 			if len(excluded) > 0 {
@@ -101,7 +115,7 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 	// Apply feedback-based filtering and reordering
 	var digestOpts *llm.DigestOptions
 	if g.Feedback != nil {
-		digestOpts = g.applyFeedback(ctx, userID, &extractions)
+		digestOpts = g.applyFeedback(ctx, userID, &extractions, emailMap)
 	}
 
 	// Apply digest style preference
@@ -148,18 +162,16 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		})
 	}
 
-	// Build email summaries for email rendering
+	// Build email summaries from pre-fetched emailMap
 	for _, ext := range extractions {
-		email, err := g.Emails.GetByIDInternal(ctx, ext.EmailID)
-		if err != nil || email == nil {
-			continue
+		if em, ok := emailMap[ext.EmailID]; ok {
+			digest.EmailSummaries = append(digest.EmailSummaries, domain.DigestEmailSummary{
+				EmailID:    ext.EmailID,
+				Subject:    em.Subject,
+				SenderName: em.FromName,
+				Summary:    ext.Summary,
+			})
 		}
-		digest.EmailSummaries = append(digest.EmailSummaries, domain.DigestEmailSummary{
-			EmailID:    ext.EmailID,
-			Subject:    email.Subject,
-			SenderName: email.FromName,
-			Summary:    ext.Summary,
-		})
 	}
 
 	if err := g.Digests.Create(ctx, digest); err != nil {
@@ -179,15 +191,13 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 // applyFeedback filters out poorly-rated senders, reorders extractions by
 // sender quality, and builds topic preferences for the LLM prompt.
 // It modifies the extractions slice in place via the pointer.
-func (g *Generator) applyFeedback(ctx context.Context, userID string, extractions *[]domain.Extraction) *llm.DigestOptions {
-	// Build emailID → fromAddress map in a single pass
+func (g *Generator) applyFeedback(ctx context.Context, userID string, extractions *[]domain.Extraction, emailMap map[string]*domain.Email) *llm.DigestOptions {
+	// Build emailID → fromAddress map from pre-fetched emails
 	fromAddr := make(map[string]string, len(*extractions))
 	for _, ext := range *extractions {
-		email, err := g.Emails.GetByIDInternal(ctx, ext.EmailID)
-		if err != nil || email == nil {
-			continue
+		if em, ok := emailMap[ext.EmailID]; ok {
+			fromAddr[ext.EmailID] = em.FromAddress
 		}
-		fromAddr[ext.EmailID] = email.FromAddress
 	}
 
 	// Sender filtering and reordering

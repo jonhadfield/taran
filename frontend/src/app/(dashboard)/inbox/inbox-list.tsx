@@ -74,7 +74,7 @@ export function InboxList({
     };
   }, [searchInput]);
 
-  const res = usePolling<ListResponse<Email>>(
+  const { data: res } = usePolling<ListResponse<Email>>(
     `emails?${queryString}`,
     { data: initialEmails, total: initialTotal }
   );
@@ -102,6 +102,7 @@ export function InboxList({
         <input
           type="text"
           placeholder="Search emails..."
+          aria-label="Search emails"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-8 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -109,6 +110,7 @@ export function InboxList({
         {searchInput && (
           <button
             onClick={() => setSearchInput("")}
+            aria-label="Clear search"
             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
             <X className="size-4" />
@@ -123,7 +125,11 @@ export function InboxList({
           <Badge
             variant={activeTopic === "" ? "default" : "outline"}
             className="cursor-pointer"
+            role="button"
+            aria-pressed={activeTopic === ""}
+            tabIndex={0}
             onClick={() => setActiveTopic("")}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTopic(""); } }}
           >
             All
           </Badge>
@@ -132,7 +138,11 @@ export function InboxList({
               key={topic}
               variant={activeTopic === topic ? "default" : "outline"}
               className="cursor-pointer"
+              role="button"
+              aria-pressed={activeTopic === topic}
+              tabIndex={0}
               onClick={() => setActiveTopic(activeTopic === topic ? "" : topic)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTopic(activeTopic === topic ? "" : topic); } }}
             >
               {topic}
             </Badge>

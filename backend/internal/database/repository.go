@@ -11,6 +11,7 @@ type EmailRepository interface {
 	Create(ctx context.Context, email *domain.Email) error
 	GetByID(ctx context.Context, userID, id string) (*domain.Email, error)
 	GetByIDInternal(ctx context.Context, id string) (*domain.Email, error)
+	GetByIDsInternal(ctx context.Context, ids []string) ([]domain.Email, error)
 	List(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Email, int, error)
 	UpdateState(ctx context.Context, userID, id string, state domain.EmailState) error
 	Delete(ctx context.Context, userID, id string) error

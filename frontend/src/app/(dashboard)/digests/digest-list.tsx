@@ -18,7 +18,7 @@ interface DigestListProps {
 
 export function DigestList({ initialDigests, initialTotal }: DigestListProps) {
   const [limit, setLimit] = useState(PAGE_SIZE);
-  const res = usePolling<ListResponse<Digest>>(
+  const { data: res } = usePolling<ListResponse<Digest>>(
     `digests?limit=${limit}`,
     { data: initialDigests, total: initialTotal }
   );

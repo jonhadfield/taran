@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { TitleUpdater } from "@/components/title-updater";
+import { Toaster } from "@/components/ui/sonner";
 import { isAdmin } from "@/lib/admin";
 import { serverFetch } from "@/lib/server-api";
 import type { AccessCheck } from "@/types/api";
@@ -38,6 +39,7 @@ export default async function DashboardLayout({
         <Header isAdmin={admin} />
         <main className="@container p-4 lg:p-6">{children}</main>
       </div>
+      <Toaster />
     </div>
   );
 }

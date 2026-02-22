@@ -27,6 +27,9 @@ func (p *OpenAIProvider) Name() string  { return "openai" }
 func (p *OpenAIProvider) Model() string { return p.model }
 
 func (p *OpenAIProvider) TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*TriageResult, *Usage, error) {
+	ctx, cancel := context.WithTimeout(ctx, TriageTimeout)
+	defer cancel()
+
 	userPrompt := buildTriageUserPrompt(subject, fromAddress, contentPreview)
 
 	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
@@ -58,6 +61,9 @@ func (p *OpenAIProvider) TriageEmail(ctx context.Context, subject, fromAddress, 
 }
 
 func (p *OpenAIProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
+	ctx, cancel := context.WithTimeout(ctx, ExtractTimeout)
+	defer cancel()
+
 	userPrompt := buildExtractionUserPrompt(subject, content, fromAddress)
 	if len(userPrompt) > 50000 {
 		userPrompt = userPrompt[:50000] + "\n\n[content truncated]"
@@ -92,6 +98,9 @@ func (p *OpenAIProvider) ExtractEmail(ctx context.Context, subject, content, fro
 }
 
 func (p *OpenAIProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error) {
+	ctx, cancel := context.WithTimeout(ctx, DigestTimeout)
+	defer cancel()
+
 	userPrompt := buildDigestUserPrompt(extractions, periodType, opts)
 
 	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{

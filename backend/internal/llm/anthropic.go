@@ -28,6 +28,9 @@ func (p *AnthropicProvider) Name() string  { return "anthropic" }
 func (p *AnthropicProvider) Model() string { return p.model }
 
 func (p *AnthropicProvider) TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*TriageResult, *Usage, error) {
+	ctx, cancel := context.WithTimeout(ctx, TriageTimeout)
+	defer cancel()
+
 	userPrompt := buildTriageUserPrompt(subject, fromAddress, contentPreview)
 
 	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
@@ -67,6 +70,9 @@ func (p *AnthropicProvider) TriageEmail(ctx context.Context, subject, fromAddres
 }
 
 func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
+	ctx, cancel := context.WithTimeout(ctx, ExtractTimeout)
+	defer cancel()
+
 	userPrompt := buildExtractionUserPrompt(subject, content, fromAddress)
 
 	if len(userPrompt) > 50000 {
@@ -110,6 +116,9 @@ func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, 
 }
 
 func (p *AnthropicProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error) {
+	ctx, cancel := context.WithTimeout(ctx, DigestTimeout)
+	defer cancel()
+
 	userPrompt := buildDigestUserPrompt(extractions, periodType, opts)
 
 	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{

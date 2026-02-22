@@ -21,6 +21,7 @@ type MockEmailRepo struct {
 	CreateFn            func(ctx context.Context, email *domain.Email) error
 	GetByIDFn           func(ctx context.Context, userID, id string) (*domain.Email, error)
 	GetByIDInternalFn   func(ctx context.Context, id string) (*domain.Email, error)
+	GetByIDsInternalFn  func(ctx context.Context, ids []string) ([]domain.Email, error)
 	ListFn              func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Email, int, error)
 	UpdateStateFn       func(ctx context.Context, userID, id string, state domain.EmailState) error
 	DeleteFn            func(ctx context.Context, userID, id string) error
@@ -61,6 +62,22 @@ func (m *MockEmailRepo) GetByIDInternal(ctx context.Context, id string) (*domain
 		return m.GetByIDInternalFn(ctx, id)
 	}
 	return nil, nil
+}
+
+func (m *MockEmailRepo) GetByIDsInternal(ctx context.Context, ids []string) ([]domain.Email, error) {
+	if m.GetByIDsInternalFn != nil {
+		return m.GetByIDsInternalFn(ctx, ids)
+	}
+	// Fallback: call GetByIDInternal per item for backward compat with existing tests
+	var result []domain.Email
+	for _, id := range ids {
+		e, err := m.GetByIDInternal(ctx, id)
+		if err != nil || e == nil {
+			continue
+		}
+		result = append(result, *e)
+	}
+	return result, nil
 }
 
 func (m *MockEmailRepo) List(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Email, int, error) {

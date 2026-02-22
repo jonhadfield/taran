@@ -1,15 +1,19 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/handler"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type RouterDeps struct {
+	Pool               *pgxpool.Pool
 	WebhookSecret      string
 	APIKey             string
 	WebhookHandler     *handler.WebhookHandler
@@ -31,7 +35,7 @@ type RouterDeps struct {
 func NewRouter(deps RouterDeps) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /health", handleHealth)
+	mux.HandleFunc("GET /health", handleHealth(deps.Pool))
 
 	// Webhook (shared secret auth)
 	webhookAuth := auth.WebhookAuth(deps.WebhookSecret, http.HandlerFunc(deps.WebhookHandler.IngestEmail))
@@ -98,7 +102,20 @@ func publicPathSkip(authed, raw http.Handler) http.Handler {
 	})
 }
 
-func handleHealth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+func handleHealth(pool *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		if pool != nil {
+			ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+			defer cancel()
+			if err := pool.Ping(ctx); err != nil {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				json.NewEncoder(w).Encode(map[string]string{"status": "unhealthy", "reason": "database unreachable"})
+				return
+			}
+		}
+
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	}
 }

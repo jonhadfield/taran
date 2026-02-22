@@ -172,6 +172,7 @@ func main() {
 
 	// HTTP server
 	mux := server.NewRouter(server.RouterDeps{
+		Pool:               pool,
 		WebhookSecret:      cfg.Webhook.Secret,
 		APIKey:             cfg.Server.APIKey,
 		WebhookHandler:     webhookHandler,

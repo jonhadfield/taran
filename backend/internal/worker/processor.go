@@ -13,8 +13,17 @@ import (
 	"github.com/hadfielj/taran/backend/internal/llm"
 )
 
+const (
+	extractMaxRetries = 3
+	extractBaseDelay  = 2 * time.Second
+	sweepInterval     = 5 * time.Minute
+	sweepBatchSize    = 100
+	startupRequeueMax = 500
+)
+
 type Processor struct {
 	queue       chan string
+	done        chan struct{}
 	emails      database.EmailRepository
 	extractions database.ExtractionRepository
 	provider    llm.Provider
@@ -32,6 +41,7 @@ func NewProcessor(
 ) *Processor {
 	return &Processor{
 		queue:       make(chan string, bufferSize),
+		done:        make(chan struct{}),
 		emails:      emails,
 		extractions: extractions,
 		provider:    provider,
@@ -41,7 +51,7 @@ func NewProcessor(
 }
 
 func (p *Processor) Start(ctx context.Context) {
-	pending, err := p.emails.ListPending(ctx, 100)
+	pending, err := p.emails.ListPending(ctx, startupRequeueMax)
 	if err != nil {
 		slog.Error("failed to list pending emails", "error", err)
 	} else {
@@ -58,6 +68,10 @@ func (p *Processor) Start(ctx context.Context) {
 		go p.worker(ctx, i)
 	}
 
+	// Periodic sweeper for orphaned pending emails
+	p.wg.Add(1)
+	go p.sweeper(ctx)
+
 	slog.Info("worker started", "concurrency", p.concurrency, "buffer", cap(p.queue))
 }
 
@@ -65,11 +79,12 @@ func (p *Processor) Enqueue(emailID string) {
 	select {
 	case p.queue <- emailID:
 	default:
-		slog.Warn("worker queue full, email will be picked up on restart", "emailID", emailID)
+		slog.Warn("worker queue full, email will be picked up by sweeper", "emailID", emailID)
 	}
 }
 
 func (p *Processor) Stop() {
+	close(p.done)
 	close(p.queue)
 	p.wg.Wait()
 	slog.Info("worker stopped")
@@ -79,6 +94,40 @@ func (p *Processor) worker(ctx context.Context, id int) {
 	defer p.wg.Done()
 	for emailID := range p.queue {
 		p.processEmail(ctx, emailID)
+	}
+}
+
+func (p *Processor) sweeper(ctx context.Context) {
+	defer p.wg.Done()
+	ticker := time.NewTicker(sweepInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-p.done:
+			return
+		case <-ticker.C:
+			pending, err := p.emails.ListPending(ctx, sweepBatchSize)
+			if err != nil {
+				slog.Error("sweeper: failed to list pending emails", "error", err)
+				continue
+			}
+			if len(pending) > 0 {
+				enqueued := 0
+				for _, e := range pending {
+					select {
+					case p.queue <- e.ID:
+						enqueued++
+					default:
+						// Queue full, stop trying
+						break
+					}
+				}
+				slog.Info("sweeper: re-queued orphaned emails", "found", len(pending), "enqueued", enqueued)
+			}
+		}
 	}
 }
 
@@ -149,9 +198,28 @@ func ProcessEmail(
 		return
 	}
 
-	result, usage, err := provider.ExtractEmail(ctx, em.Subject, content, em.FromAddress)
+	// Retry loop for extraction with exponential backoff
+	var result *llm.ExtractionResult
+	var usage *llm.Usage
+	for attempt := 1; attempt <= extractMaxRetries; attempt++ {
+		result, usage, err = provider.ExtractEmail(ctx, em.Subject, content, em.FromAddress)
+		if err == nil {
+			break
+		}
+		if attempt < extractMaxRetries {
+			delay := extractBaseDelay * time.Duration(1<<(attempt-1)) // 2s, 4s
+			logger.Warn("LLM extraction failed, retrying", "attempt", attempt, "delay", delay, "error", err)
+			select {
+			case <-ctx.Done():
+				logger.Error("context cancelled during extraction retry", "error", ctx.Err())
+				emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "context cancelled")
+				return
+			case <-time.After(delay):
+			}
+		}
+	}
 	if err != nil {
-		logger.Error("LLM extraction failed", "error", err)
+		logger.Error("LLM extraction failed after retries", "attempts", extractMaxRetries, "error", err)
 		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "extraction failed")
 		return
 	}

@@ -16,7 +16,7 @@ const emptyStats: AdminStats = {
 };
 
 export function AdminDashboard() {
-  const stats = usePolling<AdminStats>("admin/stats", emptyStats, 30_000);
+  const { data: stats } = usePolling<AdminStats>("admin/stats", emptyStats, 30_000);
 
   const cards = [
     {

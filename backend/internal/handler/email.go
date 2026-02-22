@@ -29,8 +29,8 @@ func (h *EmailHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 
 	opts := domain.ListOptions{
-		Limit:  intParam(r, "limit", 50),
-		Offset: intParam(r, "offset", 0),
+		Limit:  clampInt(intParam(r, "limit", 50), 1, 200),
+		Offset: clampInt(intParam(r, "offset", 0), 0, 100000),
 	}
 
 	if v := r.URL.Query().Get("is_read"); v != "" {
@@ -146,6 +146,16 @@ func (h *EmailHandler) Reprocess(w http.ResponseWriter, r *http.Request) {
 	h.Processor.Enqueue(id)
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "queued"})
+}
+
+func clampInt(n, min, max int) int {
+	if n < min {
+		return min
+	}
+	if n > max {
+		return max
+	}
+	return n
 }
 
 func intParam(r *http.Request, key string, fallback int) int {

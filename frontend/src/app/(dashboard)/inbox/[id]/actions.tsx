@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { apiPatch, apiDelete } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,21 +32,32 @@ export function EmailActions({ email }: { email: Email }) {
   }, [email.ID, email.IsRead]);
 
   const toggleStar = async () => {
-    await apiPatch(`emails/${email.ID}`, { IsStarred: !starred });
-    setStarred(!starred);
+    try {
+      await apiPatch(`emails/${email.ID}`, { IsStarred: !starred });
+      setStarred(!starred);
+    } catch {
+      toast.error("Failed to update email");
+    }
   };
 
   const toggleArchive = async () => {
-    await apiPatch(`emails/${email.ID}`, { IsArchived: !archived });
-    setArchived(!archived);
+    try {
+      await apiPatch(`emails/${email.ID}`, { IsArchived: !archived });
+      setArchived(!archived);
+      toast.success(archived ? "Unarchived" : "Archived");
+    } catch {
+      toast.error("Failed to update email");
+    }
   };
 
   const handleDelete = async () => {
     setDeleting(true);
     try {
       await apiDelete(`emails/${email.ID}`);
+      toast.success("Email deleted");
       router.push("/inbox");
     } catch {
+      toast.error("Failed to delete email");
       setDeleting(false);
       setShowDelete(false);
     }

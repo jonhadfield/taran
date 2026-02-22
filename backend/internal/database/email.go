@@ -56,6 +56,31 @@ func (r *EmailRepo) GetByIDInternal(ctx context.Context, id string) (*domain.Ema
 	return scanEmail(row)
 }
 
+func (r *EmailRepo) GetByIDsInternal(ctx context.Context, ids []string) ([]domain.Email, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, user_id, email_account_id, message_id, from_address, from_name,
+		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
+		    is_read, is_starred, is_archived, created_at, updated_at
+		 FROM email WHERE id = ANY($1)`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("get emails by ids: %w", err)
+	}
+	defer rows.Close()
+
+	var emails []domain.Email
+	for rows.Next() {
+		e, err := scanEmailRows(rows)
+		if err != nil {
+			return nil, err
+		}
+		emails = append(emails, *e)
+	}
+	return emails, nil
+}
+
 func (r *EmailRepo) GetByMessageID(ctx context.Context, messageID string) (*domain.Email, error) {
 	if messageID == "" {
 		return nil, fmt.Errorf("empty message ID")

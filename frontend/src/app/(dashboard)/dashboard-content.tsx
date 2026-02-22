@@ -14,7 +14,7 @@ interface DashboardContentProps {
 }
 
 export function DashboardContent({ initialData, emailAddress }: DashboardContentProps) {
-  const data = usePolling<DashboardData>("dashboard", initialData);
+  const { data } = usePolling<DashboardData>("dashboard", initialData);
 
   const emails = data.emails || [];
   const digests = data.digests || [];

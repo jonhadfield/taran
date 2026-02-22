@@ -23,7 +23,9 @@ describe("usePolling", () => {
   it("returns initialData before fetch resolves", () => {
     mockApiGet.mockReturnValue(new Promise(() => {})); // never resolves
     const { result } = renderHook(() => usePolling("/test", { count: 0 }));
-    expect(result.current).toEqual({ count: 0 });
+    expect(result.current.data).toEqual({ count: 0 });
+    expect(result.current.loading).toBe(true);
+    expect(result.current.error).toBeNull();
   });
 
   it("calls apiGet immediately on mount", () => {
@@ -38,7 +40,9 @@ describe("usePolling", () => {
 
     await act(async () => {});
 
-    expect(result.current).toEqual({ count: 5 });
+    expect(result.current.data).toEqual({ count: 5 });
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 
   it("polls at the specified interval", async () => {
@@ -72,18 +76,37 @@ describe("usePolling", () => {
     expect(mockApiGet).toHaveBeenCalledTimes(callCount);
   });
 
-  it("swallows errors and keeps stale data", async () => {
+  it("tracks error state on fetch failure", async () => {
     mockApiGet.mockResolvedValueOnce({ count: 5 });
     const { result } = renderHook(() => usePolling("/test", { count: 0 }, 5000));
 
     await act(async () => {});
-    expect(result.current).toEqual({ count: 5 });
+    expect(result.current.data).toEqual({ count: 5 });
+    expect(result.current.error).toBeNull();
 
     mockApiGet.mockRejectedValueOnce(new Error("network error"));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5000);
     });
 
-    expect(result.current).toEqual({ count: 5 });
+    // Keeps stale data but tracks error
+    expect(result.current.data).toEqual({ count: 5 });
+    expect(result.current.error).toBe("network error");
+  });
+
+  it("clears error on successful fetch", async () => {
+    mockApiGet.mockRejectedValueOnce(new Error("fail"));
+    const { result } = renderHook(() => usePolling("/test", { count: 0 }, 5000));
+
+    await act(async () => {});
+    expect(result.current.error).toBe("fail");
+
+    mockApiGet.mockResolvedValueOnce({ count: 10 });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(result.current.data).toEqual({ count: 10 });
+    expect(result.current.error).toBeNull();
   });
 });
