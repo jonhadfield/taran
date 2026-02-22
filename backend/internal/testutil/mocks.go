@@ -132,6 +132,16 @@ func (m *MockEmailRepo) SetStatus(ctx context.Context, id string, status domain.
 	return nil
 }
 
+func (m *MockEmailRepo) SetStatusScoped(ctx context.Context, userID, id string, status domain.EmailStatus, reason string) error {
+	m.mu.Lock()
+	m.SetStatusCalls = append(m.SetStatusCalls, SetStatusCall{ID: id, Status: status, Reason: reason})
+	m.mu.Unlock()
+	if m.SetStatusFn != nil {
+		return m.SetStatusFn(ctx, id, status, reason)
+	}
+	return nil
+}
+
 func (m *MockEmailRepo) ListActiveUserIDs(ctx context.Context, from, to time.Time) ([]string, error) {
 	if m.ListActiveUserIDsFn != nil {
 		return m.ListActiveUserIDsFn(ctx, from, to)
@@ -169,11 +179,13 @@ func (m *MockEmailRepo) CountByStatus(ctx context.Context, userID string) (map[d
 
 // MockExtractionRepo implements database.ExtractionRepository for testing.
 type MockExtractionRepo struct {
-	CreateFn              func(ctx context.Context, extraction *domain.Extraction) error
-	GetByEmailIDFn        func(ctx context.Context, emailID string) (*domain.Extraction, error)
-	DeleteByEmailIDFn     func(ctx context.Context, emailID string) error
-	ListByUserAndPeriodFn func(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error)
-	ListTopicsByUserFn    func(ctx context.Context, userID string, limit int) ([]string, error)
+	CreateFn                func(ctx context.Context, extraction *domain.Extraction) error
+	GetByEmailIDFn          func(ctx context.Context, emailID string) (*domain.Extraction, error)
+	GetByEmailIDScopedFn    func(ctx context.Context, userID, emailID string) (*domain.Extraction, error)
+	DeleteByEmailIDFn       func(ctx context.Context, emailID string) error
+	DeleteByEmailIDScopedFn func(ctx context.Context, userID, emailID string) error
+	ListByUserAndPeriodFn   func(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error)
+	ListTopicsByUserFn      func(ctx context.Context, userID string, limit int) ([]string, error)
 }
 
 func (m *MockExtractionRepo) Create(ctx context.Context, extraction *domain.Extraction) error {
@@ -190,7 +202,27 @@ func (m *MockExtractionRepo) GetByEmailID(ctx context.Context, emailID string) (
 	return nil, nil
 }
 
+func (m *MockExtractionRepo) GetByEmailIDScoped(ctx context.Context, userID, emailID string) (*domain.Extraction, error) {
+	if m.GetByEmailIDScopedFn != nil {
+		return m.GetByEmailIDScopedFn(ctx, userID, emailID)
+	}
+	if m.GetByEmailIDFn != nil {
+		return m.GetByEmailIDFn(ctx, emailID)
+	}
+	return nil, nil
+}
+
 func (m *MockExtractionRepo) DeleteByEmailID(ctx context.Context, emailID string) error {
+	if m.DeleteByEmailIDFn != nil {
+		return m.DeleteByEmailIDFn(ctx, emailID)
+	}
+	return nil
+}
+
+func (m *MockExtractionRepo) DeleteByEmailIDScoped(ctx context.Context, userID, emailID string) error {
+	if m.DeleteByEmailIDScopedFn != nil {
+		return m.DeleteByEmailIDScopedFn(ctx, userID, emailID)
+	}
 	if m.DeleteByEmailIDFn != nil {
 		return m.DeleteByEmailIDFn(ctx, emailID)
 	}

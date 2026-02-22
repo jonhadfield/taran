@@ -286,6 +286,16 @@ func (r *EmailRepo) SetStatus(ctx context.Context, id string, status domain.Emai
 	return nil
 }
 
+func (r *EmailRepo) SetStatusScoped(ctx context.Context, userID, id string, status domain.EmailStatus, reason string) error {
+	_, err := r.pool.Exec(ctx,
+		"UPDATE email SET status = $1, status_reason = $2, updated_at = NOW() WHERE id = $3 AND user_id = $4",
+		string(status), reason, id, userID)
+	if err != nil {
+		return fmt.Errorf("set email status (scoped): %w", err)
+	}
+	return nil
+}
+
 func (r *EmailRepo) ListActiveUserIDs(ctx context.Context, from, to time.Time) ([]string, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT DISTINCT user_id FROM email WHERE received_at >= $1 AND received_at < $2 AND status = 'processed'`,

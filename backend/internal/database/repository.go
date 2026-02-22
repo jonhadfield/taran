@@ -18,6 +18,7 @@ type EmailRepository interface {
 	GetByMessageID(ctx context.Context, messageID string) (*domain.Email, error)
 	ListPending(ctx context.Context, limit int) ([]domain.Email, error)
 	SetStatus(ctx context.Context, id string, status domain.EmailStatus, reason string) error
+	SetStatusScoped(ctx context.Context, userID, id string, status domain.EmailStatus, reason string) error
 	ListActiveUserIDs(ctx context.Context, from, to time.Time) ([]string, error)
 	CountByPeriod(ctx context.Context, userID string, from, to time.Time) (int, error)
 	CountByWeek(ctx context.Context, userID string, weeks int) ([]domain.WeekCount, error)
@@ -29,7 +30,9 @@ type EmailRepository interface {
 type ExtractionRepository interface {
 	Create(ctx context.Context, extraction *domain.Extraction) error
 	GetByEmailID(ctx context.Context, emailID string) (*domain.Extraction, error)
+	GetByEmailIDScoped(ctx context.Context, userID, emailID string) (*domain.Extraction, error)
 	DeleteByEmailID(ctx context.Context, emailID string) error
+	DeleteByEmailIDScoped(ctx context.Context, userID, emailID string) error
 	ListByUserAndPeriod(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error)
 	ListTopicsByUser(ctx context.Context, userID string, limit int) ([]string, error)
 }

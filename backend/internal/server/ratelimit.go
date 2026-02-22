@@ -84,15 +84,9 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 }
 
 func clientIP(r *http.Request) string {
-	// Trust X-Forwarded-For if present (common behind reverse proxy / Cloudflare)
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// First IP in the chain is the original client
-		for i := 0; i < len(xff); i++ {
-			if xff[i] == ',' {
-				return xff[:i]
-			}
-		}
-		return xff
+	// Prefer CF-Connecting-IP (set by Cloudflare, cannot be spoofed by client)
+	if cfIP := r.Header.Get("CF-Connecting-IP"); cfIP != "" {
+		return cfIP
 	}
 
 	if xri := r.Header.Get("X-Real-Ip"); xri != "" {

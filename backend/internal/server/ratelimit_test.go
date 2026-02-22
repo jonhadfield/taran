@@ -87,9 +87,9 @@ func TestRateLimiter_SeparatesByIP(t *testing.T) {
 	}
 }
 
-func TestClientIP_XForwardedFor(t *testing.T) {
+func TestClientIP_CFConnectingIP(t *testing.T) {
 	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("X-Forwarded-For", "10.0.0.1, 172.16.0.1")
+	req.Header.Set("CF-Connecting-IP", "10.0.0.1")
 	req.RemoteAddr = "192.168.1.1:1234"
 
 	if got := clientIP(req); got != "10.0.0.1" {

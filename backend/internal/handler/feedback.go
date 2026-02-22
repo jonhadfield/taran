@@ -12,11 +12,18 @@ import (
 
 type FeedbackHandler struct {
 	Feedback database.FeedbackRepository
+	Emails   database.EmailRepository
 }
 
 func (h *FeedbackHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 	emailID := r.PathValue("id")
+
+	// Verify the email belongs to this user
+	if _, err := h.Emails.GetByID(r.Context(), userID, emailID); err != nil {
+		WriteError(w, http.StatusNotFound, "email not found")
+		return
+	}
 
 	var body struct {
 		Rating string `json:"Rating"`

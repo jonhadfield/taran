@@ -72,7 +72,7 @@ func (h *EmailHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := EmailResponse{Email: *email}
-	extraction, err := h.Extractions.GetByEmailID(r.Context(), id)
+	extraction, err := h.Extractions.GetByEmailIDScoped(r.Context(), userID, id)
 	if err == nil {
 		resp.Extraction = extraction
 	}
@@ -131,13 +131,13 @@ func (h *EmailHandler) Reprocess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Extractions.DeleteByEmailID(r.Context(), id); err != nil {
+	if err := h.Extractions.DeleteByEmailIDScoped(r.Context(), userID, id); err != nil {
 		slog.Error("failed to delete extraction for reprocess", "emailID", id, "error", err)
 		WriteError(w, http.StatusInternalServerError, "failed to reprocess email")
 		return
 	}
 
-	if err := h.Emails.SetStatus(r.Context(), id, domain.EmailStatusPending, ""); err != nil {
+	if err := h.Emails.SetStatusScoped(r.Context(), userID, id, domain.EmailStatusPending, ""); err != nil {
 		slog.Error("failed to reset status for reprocess", "emailID", id, "error", err)
 		WriteError(w, http.StatusInternalServerError, "failed to reprocess email")
 		return

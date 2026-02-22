@@ -16,6 +16,11 @@ func TestFeedbackHandler_Upsert_Success(t *testing.T) {
 	var saved *domain.EmailFeedback
 
 	h := &FeedbackHandler{
+		Emails: &testutil.MockEmailRepo{
+			GetByIDFn: func(_ context.Context, _, _ string) (*domain.Email, error) {
+				return &domain.Email{ID: "em-1", UserID: "user-1"}, nil
+			},
+		},
 		Feedback: &testutil.MockFeedbackRepo{
 			UpsertFn: func(_ context.Context, fb *domain.EmailFeedback) error {
 				saved = fb
@@ -53,6 +58,11 @@ func TestFeedbackHandler_Upsert_Success(t *testing.T) {
 
 func TestFeedbackHandler_Upsert_InvalidRating(t *testing.T) {
 	h := &FeedbackHandler{
+		Emails: &testutil.MockEmailRepo{
+			GetByIDFn: func(_ context.Context, _, _ string) (*domain.Email, error) {
+				return &domain.Email{ID: "em-1", UserID: "user-1"}, nil
+			},
+		},
 		Feedback: &testutil.MockFeedbackRepo{},
 	}
 

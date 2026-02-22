@@ -48,11 +48,33 @@ func (r *ExtractionRepo) DeleteByEmailID(ctx context.Context, emailID string) er
 	return nil
 }
 
+func (r *ExtractionRepo) DeleteByEmailIDScoped(ctx context.Context, userID, emailID string) error {
+	_, err := r.pool.Exec(ctx,
+		`DELETE FROM extraction WHERE email_id = $1
+		 AND EXISTS (SELECT 1 FROM email WHERE email.id = $1 AND email.user_id = $2)`,
+		emailID, userID)
+	if err != nil {
+		return fmt.Errorf("delete extraction by email (scoped): %w", err)
+	}
+	return nil
+}
+
 func (r *ExtractionRepo) GetByEmailID(ctx context.Context, emailID string) (*domain.Extraction, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, email_id, summary, key_points, topics, links, action_items,
 		    sentiment, source_category, provider, model, tokens_used, processed_at, created_at
 		 FROM extraction WHERE email_id = $1`, emailID)
+
+	return scanExtraction(row)
+}
+
+func (r *ExtractionRepo) GetByEmailIDScoped(ctx context.Context, userID, emailID string) (*domain.Extraction, error) {
+	row := r.pool.QueryRow(ctx,
+		`SELECT e.id, e.email_id, e.summary, e.key_points, e.topics, e.links, e.action_items,
+		    e.sentiment, e.source_category, e.provider, e.model, e.tokens_used, e.processed_at, e.created_at
+		 FROM extraction e
+		 JOIN email em ON em.id = e.email_id
+		 WHERE e.email_id = $1 AND em.user_id = $2`, emailID, userID)
 
 	return scanExtraction(row)
 }

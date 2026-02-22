@@ -152,6 +152,7 @@ func main() {
 	}
 	feedbackHandler := &handler.FeedbackHandler{
 		Feedback: feedbackRepo,
+		Emails:   emailRepo,
 	}
 	dashboardHandler := &handler.DashboardHandler{
 		Emails:  emailRepo,
@@ -192,7 +193,7 @@ func main() {
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewRateLimiter(10, 30) // 10 req/s sustained, 30 burst
-	httpHandler := server.RecoveryMiddleware(cors(limiter.Middleware(server.LoggingMiddleware(mux))))
+	httpHandler := server.RecoveryMiddleware(server.SecurityHeaders(cors(limiter.Middleware(server.LoggingMiddleware(mux)))))
 
 	var tlsCfg *server.TLSConfig
 	if cfg.Server.TLSDomain != "" {
