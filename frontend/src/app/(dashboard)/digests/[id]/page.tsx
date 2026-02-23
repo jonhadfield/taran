@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { ShareButton } from "./share-button";
 import { SendEmailButton } from "./send-email-button";
 import { DeleteDigestButton } from "./delete-button";
+import { DigestFeedbackButtons } from "./digest-feedback-buttons";
 import { isAdmin } from "@/lib/admin";
 
 export default async function DigestDetailPage({
@@ -48,6 +49,7 @@ export default async function DigestDetailPage({
             <DeleteDigestButton digestId={digest.ID} />
           </div>
         </div>
+        <DigestFeedbackButtons digestId={digest.ID} />
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>
             {new Date(digest.PeriodStart).toLocaleDateString()} &ndash;{" "}

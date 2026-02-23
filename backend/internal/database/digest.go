@@ -213,6 +213,18 @@ func (r *DigestRepo) GetByShareToken(ctx context.Context, token string) (*domain
 	return d, nil
 }
 
+func (r *DigestRepo) ExistsForPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM digest WHERE user_id = $1 AND period_start = $2 AND period_end = $3)`,
+		userID, periodStart, periodEnd,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check digest exists for period: %w", err)
+	}
+	return exists, nil
+}
+
 func (r *DigestRepo) queryDigestItems(ctx context.Context, digestID string) ([]domain.DigestItem, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT di.id, di.digest_id, di.email_id, di.extraction_id, di.sort_order,

@@ -214,6 +214,20 @@ type Invite struct {
 	AcceptedAt *time.Time
 }
 
+type WaitlistRequest struct {
+	ID        string
+	Email     string
+	CreatedAt time.Time
+}
+
+type DigestFeedback struct {
+	ID        string
+	UserID    string
+	DigestID  string
+	Rating    string // "useful" or "not_useful"
+	CreatedAt time.Time
+}
+
 type ListOptions struct {
 	Limit      int
 	Offset     int

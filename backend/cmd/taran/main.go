@@ -68,6 +68,8 @@ func main() {
 	senderPrefRepo := database.NewSenderPreferenceRepo(pool)
 	feedbackRepo := database.NewFeedbackRepo(pool)
 	inviteRepo := database.NewInviteRepo(pool)
+	waitlistRepo := database.NewWaitlistRepo(pool)
+	digestFeedbackRepo := database.NewDigestFeedbackRepo(pool)
 
 	// LLM Provider
 	provider, err := newLLMProvider(cfg)
@@ -121,6 +123,7 @@ func main() {
 	}
 	digestHandler := &handler.DigestHandler{
 		Digests:           digestRepo,
+		DigestFeedback:    digestFeedbackRepo,
 		Generator:         gen,
 		Preferences:       preferenceRepo,
 		Mailer:            m,
@@ -166,6 +169,11 @@ func main() {
 		AdminEmails: cfg.AdminEmails,
 		Mailer:      m,
 	}
+	waitlistHandler := &handler.WaitlistHandler{
+		Waitlist: waitlistRepo,
+		Invites:  inviteRepo,
+		Mailer:   m,
+	}
 	sessionAuth := &auth.SessionAuth{
 		Sessions:    sessionRepo,
 		AdminEmails: cfg.AdminEmails,
@@ -188,6 +196,7 @@ func main() {
 		FeedbackHandler:    feedbackHandler,
 		DashboardHandler:   dashboardHandler,
 		InviteHandler:      inviteHandler,
+		WaitlistHandler:    waitlistHandler,
 		AdminStatsHandler:  adminStatsHandler,
 		SessionAuth:        sessionAuth,
 	})

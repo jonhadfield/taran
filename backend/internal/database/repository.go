@@ -55,6 +55,7 @@ type DigestRepository interface {
 	SetShareToken(ctx context.Context, id, userID, token string) error
 	ClearShareToken(ctx context.Context, id, userID string) error
 	GetByShareToken(ctx context.Context, token string) (*domain.Digest, error)
+	ExistsForPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (bool, error)
 }
 
 type AccountRepository interface {
@@ -80,6 +81,19 @@ type InviteRepository interface {
 	Create(ctx context.Context, invite *domain.Invite) error
 	List(ctx context.Context) ([]domain.Invite, error)
 	MarkAccepted(ctx context.Context, email string) error
+}
+
+type WaitlistRepository interface {
+	Create(ctx context.Context, req *domain.WaitlistRequest) error
+	GetByEmail(ctx context.Context, email string) (*domain.WaitlistRequest, error)
+	List(ctx context.Context) ([]domain.WaitlistRequest, error)
+	Delete(ctx context.Context, id string) error
+}
+
+type DigestFeedbackRepository interface {
+	Upsert(ctx context.Context, fb *domain.DigestFeedback) error
+	Delete(ctx context.Context, userID, digestID string) error
+	GetByDigestID(ctx context.Context, userID, digestID string) (*domain.DigestFeedback, error)
 }
 
 type SenderPreferenceRepository interface {

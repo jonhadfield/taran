@@ -298,6 +298,7 @@ type MockDigestRepo struct {
 	SetShareTokenFn     func(ctx context.Context, id, userID, token string) error
 	ClearShareTokenFn   func(ctx context.Context, id, userID string) error
 	GetByShareTokenFn   func(ctx context.Context, token string) (*domain.Digest, error)
+	ExistsForPeriodFn   func(ctx context.Context, userID string, periodStart, periodEnd time.Time) (bool, error)
 }
 
 func (m *MockDigestRepo) Create(ctx context.Context, digest *domain.Digest) error {
@@ -361,6 +362,13 @@ func (m *MockDigestRepo) GetByShareToken(ctx context.Context, token string) (*do
 		return m.GetByShareTokenFn(ctx, token)
 	}
 	return nil, nil
+}
+
+func (m *MockDigestRepo) ExistsForPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (bool, error) {
+	if m.ExistsForPeriodFn != nil {
+		return m.ExistsForPeriodFn(ctx, userID, periodStart, periodEnd)
+	}
+	return false, nil
 }
 
 // MockAccountRepo implements database.AccountRepository for testing.
@@ -581,4 +589,68 @@ func (m *MockProvider) Model() string {
 		return m.ModelVal
 	}
 	return "test-model"
+}
+
+// MockWaitlistRepo implements database.WaitlistRepository for testing.
+type MockWaitlistRepo struct {
+	CreateFn     func(ctx context.Context, req *domain.WaitlistRequest) error
+	GetByEmailFn func(ctx context.Context, email string) (*domain.WaitlistRequest, error)
+	ListFn       func(ctx context.Context) ([]domain.WaitlistRequest, error)
+	DeleteFn     func(ctx context.Context, id string) error
+}
+
+func (m *MockWaitlistRepo) Create(ctx context.Context, req *domain.WaitlistRequest) error {
+	if m.CreateFn != nil {
+		return m.CreateFn(ctx, req)
+	}
+	return nil
+}
+
+func (m *MockWaitlistRepo) GetByEmail(ctx context.Context, email string) (*domain.WaitlistRequest, error) {
+	if m.GetByEmailFn != nil {
+		return m.GetByEmailFn(ctx, email)
+	}
+	return nil, nil
+}
+
+func (m *MockWaitlistRepo) List(ctx context.Context) ([]domain.WaitlistRequest, error) {
+	if m.ListFn != nil {
+		return m.ListFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockWaitlistRepo) Delete(ctx context.Context, id string) error {
+	if m.DeleteFn != nil {
+		return m.DeleteFn(ctx, id)
+	}
+	return nil
+}
+
+// MockDigestFeedbackRepo implements database.DigestFeedbackRepository for testing.
+type MockDigestFeedbackRepo struct {
+	UpsertFn       func(ctx context.Context, fb *domain.DigestFeedback) error
+	DeleteFn       func(ctx context.Context, userID, digestID string) error
+	GetByDigestIDFn func(ctx context.Context, userID, digestID string) (*domain.DigestFeedback, error)
+}
+
+func (m *MockDigestFeedbackRepo) Upsert(ctx context.Context, fb *domain.DigestFeedback) error {
+	if m.UpsertFn != nil {
+		return m.UpsertFn(ctx, fb)
+	}
+	return nil
+}
+
+func (m *MockDigestFeedbackRepo) Delete(ctx context.Context, userID, digestID string) error {
+	if m.DeleteFn != nil {
+		return m.DeleteFn(ctx, userID, digestID)
+	}
+	return nil
+}
+
+func (m *MockDigestFeedbackRepo) GetByDigestID(ctx context.Context, userID, digestID string) (*domain.DigestFeedback, error) {
+	if m.GetByDigestIDFn != nil {
+		return m.GetByDigestIDFn(ctx, userID, digestID)
+	}
+	return nil, nil
 }

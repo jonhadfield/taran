@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/digest"
@@ -17,6 +18,7 @@ import (
 
 type DigestHandler struct {
 	Digests           database.DigestRepository
+	DigestFeedback    database.DigestFeedbackRepository
 	Generator         *digest.Generator
 	Preferences       database.PreferenceRepository
 	Mailer            mailer.Mailer
@@ -102,6 +104,17 @@ func (h *DigestHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 	if periodEnd.Sub(periodStart) > 30*24*time.Hour {
 		WriteError(w, http.StatusBadRequest, "date range cannot exceed 30 days")
+		return
+	}
+
+	exists, err := h.Digests.ExistsForPeriod(r.Context(), userID, periodStart, periodEnd)
+	if err != nil {
+		slog.Error("failed to check existing digest", "userID", userID, "error", err)
+		WriteError(w, http.StatusInternalServerError, "failed to check existing digest")
+		return
+	}
+	if exists {
+		WriteError(w, http.StatusConflict, "a digest already exists for this period")
 		return
 	}
 
@@ -251,4 +264,72 @@ func (h *DigestHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 	d.UserID = ""
 
 	WriteJSON(w, http.StatusOK, d)
+}
+
+func (h *DigestHandler) UpsertFeedback(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	digestID := r.PathValue("id")
+
+	// Verify the digest belongs to this user
+	if _, err := h.Digests.GetByID(r.Context(), userID, digestID); err != nil {
+		WriteError(w, http.StatusNotFound, "digest not found")
+		return
+	}
+
+	var body struct {
+		Rating string `json:"Rating"`
+	}
+	if err := LimitedJSONDecoder(r).Decode(&body); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if body.Rating != "useful" && body.Rating != "not_useful" {
+		WriteError(w, http.StatusBadRequest, "rating must be 'useful' or 'not_useful'")
+		return
+	}
+
+	fb := &domain.DigestFeedback{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		DigestID:  digestID,
+		Rating:    body.Rating,
+		CreatedAt: time.Now(),
+	}
+
+	if err := h.DigestFeedback.Upsert(r.Context(), fb); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to save feedback")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, fb)
+}
+
+func (h *DigestHandler) DeleteFeedback(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	digestID := r.PathValue("id")
+
+	if err := h.DigestFeedback.Delete(r.Context(), userID, digestID); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to delete feedback")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+func (h *DigestHandler) GetFeedback(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	digestID := r.PathValue("id")
+
+	fb, err := h.DigestFeedback.GetByDigestID(r.Context(), userID, digestID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to get feedback")
+		return
+	}
+	if fb == nil {
+		WriteJSON(w, http.StatusOK, map[string]any{"Rating": nil})
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, fb)
 }

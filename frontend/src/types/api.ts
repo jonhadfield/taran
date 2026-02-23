@@ -183,6 +183,20 @@ export interface WeekCount {
   Count: number;
 }
 
+export interface WaitlistRequest {
+  ID: string;
+  Email: string;
+  CreatedAt: string;
+}
+
+export interface DigestFeedback {
+  ID: string;
+  UserID: string;
+  DigestID: string;
+  Rating: "useful" | "not_useful" | null;
+  CreatedAt: string;
+}
+
 export interface DashboardData {
   emails: Email[];
   emailTotal: number;

@@ -29,6 +29,7 @@ type RouterDeps struct {
 	AdminStatsHandler  *handler.AdminStatsHandler
 	DashboardHandler   *handler.DashboardHandler
 	InviteHandler      *handler.InviteHandler
+	WaitlistHandler    *handler.WaitlistHandler
 	SessionAuth        *auth.SessionAuth
 }
 
@@ -75,6 +76,10 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/emails/{id}/feedback", deps.FeedbackHandler.Get)
 	api.HandleFunc("DELETE /api/emails/{id}/feedback", deps.FeedbackHandler.Delete)
 	api.HandleFunc("GET /api/access", deps.InviteHandler.CheckAccess)
+	api.HandleFunc("POST /api/waitlist", deps.WaitlistHandler.Submit)
+	api.HandleFunc("POST /api/digests/{id}/feedback", deps.DigestHandler.UpsertFeedback)
+	api.HandleFunc("GET /api/digests/{id}/feedback", deps.DigestHandler.GetFeedback)
+	api.HandleFunc("DELETE /api/digests/{id}/feedback", deps.DigestHandler.DeleteFeedback)
 
 	// Admin routes
 	admin := http.NewServeMux()
@@ -83,6 +88,8 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	admin.HandleFunc("GET /api/admin/stats", deps.AdminStatsHandler.Get)
 	admin.HandleFunc("POST /api/admin/invites", deps.InviteHandler.Create)
 	admin.HandleFunc("GET /api/admin/invites", deps.InviteHandler.List)
+	admin.HandleFunc("GET /api/admin/waitlist", deps.WaitlistHandler.List)
+	admin.HandleFunc("POST /api/admin/waitlist/{id}/approve", deps.WaitlistHandler.Approve)
 	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(admin))
 
 	authedAPI := publicPathSkip(auth.APIKeyAuth(deps.APIKey, deps.SessionAuth.Middleware(api)), api)
