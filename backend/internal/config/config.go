@@ -58,10 +58,14 @@ type EmailConfig struct {
 
 func Load() (*Config, error) {
 	port := 8080
-	if v := os.Getenv("TARAN_PORT"); v != "" {
-		p, err := strconv.Atoi(v)
+	portEnv := os.Getenv("TARAN_PORT")
+	if portEnv == "" {
+		portEnv = os.Getenv("PORT") // Cloud Run convention
+	}
+	if portEnv != "" {
+		p, err := strconv.Atoi(portEnv)
 		if err != nil {
-			return nil, fmt.Errorf("invalid TARAN_PORT: %w", err)
+			return nil, fmt.Errorf("invalid port %q: %w", portEnv, err)
 		}
 		port = p
 	}

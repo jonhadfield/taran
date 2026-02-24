@@ -124,8 +124,8 @@ func TestLoad_InvalidPort(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "TARAN_PORT") {
-		t.Errorf("error = %q, want to contain %q", err.Error(), "TARAN_PORT")
+	if !strings.Contains(err.Error(), "invalid port") {
+		t.Errorf("error = %q, want to contain %q", err.Error(), "invalid port")
 	}
 }
 
