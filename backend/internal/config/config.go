@@ -37,13 +37,14 @@ type WebhookConfig struct {
 }
 
 type LLMConfig struct {
-	Provider       string
-	AnthropicKey   string
-	AnthropicModel string
-	OpenAIKey      string
-	OpenAIModel    string
-	OllamaURL      string
-	OllamaModel    string
+	Provider                 string
+	AnthropicKey             string
+	AnthropicModel           string
+	OpenAIKey                string
+	OpenAIModel              string
+	OllamaURL                string
+	OllamaModel              string
+	AutoSelectedOverAnthropic bool
 }
 
 type DigestConfig struct {
@@ -80,20 +81,38 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("TARAN_WEBHOOK_SECRET is required")
 	}
 
-	provider := envOr("TARAN_LLM_PROVIDER", "anthropic")
-	switch provider {
-	case "anthropic":
-		if os.Getenv("TARAN_ANTHROPIC_API_KEY") == "" {
-			return nil, fmt.Errorf("TARAN_ANTHROPIC_API_KEY is required when provider is anthropic")
+	var provider string
+	var autoSelectedOverAnthropic bool
+	if explicit := os.Getenv("TARAN_LLM_PROVIDER"); explicit != "" {
+		// Explicit override — validate as before
+		provider = explicit
+		switch provider {
+		case "anthropic":
+			if os.Getenv("TARAN_ANTHROPIC_API_KEY") == "" {
+				return nil, fmt.Errorf("TARAN_ANTHROPIC_API_KEY is required when provider is anthropic")
+			}
+		case "openai":
+			if os.Getenv("TARAN_OPENAI_API_KEY") == "" {
+				return nil, fmt.Errorf("TARAN_OPENAI_API_KEY is required when provider is openai")
+			}
+		case "ollama":
+			// ollama doesn't require an API key
+		default:
+			return nil, fmt.Errorf("unsupported LLM provider: %s", provider)
 		}
-	case "openai":
-		if os.Getenv("TARAN_OPENAI_API_KEY") == "" {
-			return nil, fmt.Errorf("TARAN_OPENAI_API_KEY is required when provider is openai")
+	} else {
+		// Auto-detect from available API keys, prefer OpenAI
+		hasOpenAI := os.Getenv("TARAN_OPENAI_API_KEY") != ""
+		hasAnthropic := os.Getenv("TARAN_ANTHROPIC_API_KEY") != ""
+		switch {
+		case hasOpenAI:
+			provider = "openai"
+			autoSelectedOverAnthropic = hasAnthropic
+		case hasAnthropic:
+			provider = "anthropic"
+		default:
+			return nil, fmt.Errorf("no LLM API key set: provide TARAN_OPENAI_API_KEY or TARAN_ANTHROPIC_API_KEY (or set TARAN_LLM_PROVIDER=ollama)")
 		}
-	case "ollama":
-		// ollama doesn't require an API key
-	default:
-		return nil, fmt.Errorf("unsupported LLM provider: %s", provider)
 	}
 
 	apiKey := os.Getenv("TARAN_API_KEY")
@@ -142,13 +161,14 @@ func Load() (*Config, error) {
 			Secret: webhookSecret,
 		},
 		LLM: LLMConfig{
-			Provider:       provider,
-			AnthropicKey:   os.Getenv("TARAN_ANTHROPIC_API_KEY"),
-			AnthropicModel: envOr("TARAN_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
-			OpenAIKey:      os.Getenv("TARAN_OPENAI_API_KEY"),
-			OpenAIModel:    envOr("TARAN_OPENAI_MODEL", "gpt-4o"),
-			OllamaURL:      envOr("TARAN_OLLAMA_URL", "http://localhost:11434"),
-			OllamaModel:    os.Getenv("TARAN_OLLAMA_MODEL"),
+			Provider:                  provider,
+			AnthropicKey:              os.Getenv("TARAN_ANTHROPIC_API_KEY"),
+			AnthropicModel:            envOr("TARAN_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+			OpenAIKey:                 os.Getenv("TARAN_OPENAI_API_KEY"),
+			OpenAIModel:              envOr("TARAN_OPENAI_MODEL", "gpt-5-mini"),
+			OllamaURL:                envOr("TARAN_OLLAMA_URL", "http://localhost:11434"),
+			OllamaModel:              os.Getenv("TARAN_OLLAMA_MODEL"),
+			AutoSelectedOverAnthropic: autoSelectedOverAnthropic,
 		},
 		Digest: DigestConfig{},
 		Email: EmailConfig{

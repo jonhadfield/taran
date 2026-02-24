@@ -58,8 +58,9 @@ func TestLoad_MissingWebhookSecret(t *testing.T) {
 	}
 }
 
-func TestLoad_MissingAnthropicKey(t *testing.T) {
+func TestLoad_MissingAnthropicKey_ExplicitProvider(t *testing.T) {
 	setRequiredEnv(t)
+	t.Setenv("TARAN_LLM_PROVIDER", "anthropic")
 	t.Setenv("TARAN_ANTHROPIC_API_KEY", "")
 
 	_, err := Load()
@@ -185,6 +186,99 @@ func TestLoad_UnsupportedProvider(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "unsupported") {
 		t.Errorf("error = %q, want to contain %q", err.Error(), "unsupported")
+	}
+}
+
+func TestLoad_AutoDetect_OnlyOpenAI(t *testing.T) {
+	setRequiredEnv(t)
+	t.Setenv("TARAN_ANTHROPIC_API_KEY", "")
+	t.Setenv("TARAN_OPENAI_API_KEY", "sk-openai-test")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LLM.Provider != "openai" {
+		t.Errorf("Provider = %q, want %q", cfg.LLM.Provider, "openai")
+	}
+	if cfg.LLM.AutoSelectedOverAnthropic {
+		t.Error("AutoSelectedOverAnthropic should be false when only OpenAI key is set")
+	}
+}
+
+func TestLoad_AutoDetect_BothKeys_PrefersOpenAI(t *testing.T) {
+	setRequiredEnv(t)
+	t.Setenv("TARAN_OPENAI_API_KEY", "sk-openai-test")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LLM.Provider != "openai" {
+		t.Errorf("Provider = %q, want %q", cfg.LLM.Provider, "openai")
+	}
+	if !cfg.LLM.AutoSelectedOverAnthropic {
+		t.Error("AutoSelectedOverAnthropic should be true when both keys are set")
+	}
+}
+
+func TestLoad_AutoDetect_OnlyAnthropic(t *testing.T) {
+	setRequiredEnv(t)
+	// setRequiredEnv already sets TARAN_ANTHROPIC_API_KEY, no OpenAI key
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LLM.Provider != "anthropic" {
+		t.Errorf("Provider = %q, want %q", cfg.LLM.Provider, "anthropic")
+	}
+	if cfg.LLM.AutoSelectedOverAnthropic {
+		t.Error("AutoSelectedOverAnthropic should be false when only Anthropic key is set")
+	}
+}
+
+func TestLoad_AutoDetect_NoKeys(t *testing.T) {
+	setRequiredEnv(t)
+	t.Setenv("TARAN_ANTHROPIC_API_KEY", "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "no LLM API key set") {
+		t.Errorf("error = %q, want to contain %q", err.Error(), "no LLM API key set")
+	}
+}
+
+func TestLoad_ExplicitProvider_OverridesAutoDetect(t *testing.T) {
+	setRequiredEnv(t)
+	t.Setenv("TARAN_OPENAI_API_KEY", "sk-openai-test")
+	t.Setenv("TARAN_LLM_PROVIDER", "anthropic")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LLM.Provider != "anthropic" {
+		t.Errorf("Provider = %q, want %q", cfg.LLM.Provider, "anthropic")
+	}
+	if cfg.LLM.AutoSelectedOverAnthropic {
+		t.Error("AutoSelectedOverAnthropic should be false when provider is explicit")
+	}
+}
+
+func TestLoad_DefaultOpenAIModel(t *testing.T) {
+	setRequiredEnv(t)
+	t.Setenv("TARAN_ANTHROPIC_API_KEY", "")
+	t.Setenv("TARAN_OPENAI_API_KEY", "sk-openai-test")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LLM.OpenAIModel != "gpt-5-mini" {
+		t.Errorf("OpenAIModel = %q, want %q", cfg.LLM.OpenAIModel, "gpt-5-mini")
 	}
 }
 

@@ -147,6 +147,8 @@ export interface AdminStats {
   TotalDigests: number;
   DigestsThisWeek: number;
   TopGlobalSenders: SenderCount[];
+  LLMProvider: string;
+  LLMModel: string;
 }
 
 export interface Invite {

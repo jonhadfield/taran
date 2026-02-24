@@ -201,6 +201,8 @@ type AdminStats struct {
 	TotalDigests     int           `json:"TotalDigests"`
 	DigestsThisWeek  int           `json:"DigestsThisWeek"`
 	TopGlobalSenders []SenderCount `json:"TopGlobalSenders"`
+	LLMProvider      string        `json:"LLMProvider"`
+	LLMModel         string        `json:"LLMModel"`
 }
 
 type WeekCount struct {

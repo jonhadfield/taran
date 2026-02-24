@@ -78,6 +78,9 @@ func main() {
 		os.Exit(1)
 	}
 	slog.Info("LLM provider configured", "provider", provider.Name(), "model", provider.Model())
+	if cfg.LLM.AutoSelectedOverAnthropic {
+		slog.Warn("both Anthropic and OpenAI API keys set, using OpenAI", "model", provider.Model())
+	}
 
 	// Background worker
 	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, provider, senderPrefRepo)
@@ -162,7 +165,9 @@ func main() {
 		Digests: digestRepo,
 	}
 	adminStatsHandler := &handler.AdminStatsHandler{
-		Pool: pool,
+		Pool:        pool,
+		LLMProvider: provider.Name(),
+		LLMModel:    provider.Model(),
 	}
 	inviteHandler := &handler.InviteHandler{
 		Invites:     inviteRepo,

@@ -9,7 +9,9 @@ import (
 )
 
 type AdminStatsHandler struct {
-	Pool *pgxpool.Pool
+	Pool        *pgxpool.Pool
+	LLMProvider string
+	LLMModel    string
 }
 
 func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +62,9 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if stats.TopGlobalSenders == nil {
 		stats.TopGlobalSenders = []domain.SenderCount{}
 	}
+
+	stats.LLMProvider = h.LLMProvider
+	stats.LLMModel = h.LLMModel
 
 	WriteJSON(w, http.StatusOK, stats)
 }
