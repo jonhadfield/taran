@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/hadfielj/taran/backend/internal/auth"
@@ -35,7 +37,9 @@ type updatePreferenceRequest struct {
 	DigestDay       *int    `json:"DigestDay"`
 	DigestTimezone  *string `json:"DigestTimezone"`
 	TopicLimit      *int    `json:"TopicLimit"`
-	DigestStyle     *string `json:"DigestStyle"`
+	DigestStyle       *string   `json:"DigestStyle"`
+	InterestKeywords  *[]string `json:"InterestKeywords"`
+	ExclusionKeywords *[]string `json:"ExclusionKeywords"`
 }
 
 func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -95,6 +99,24 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate keywords
+	if req.InterestKeywords != nil {
+		cleaned, err := validateKeywords(*req.InterestKeywords)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		req.InterestKeywords = &cleaned
+	}
+	if req.ExclusionKeywords != nil {
+		cleaned, err := validateKeywords(*req.ExclusionKeywords)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		req.ExclusionKeywords = &cleaned
+	}
+
 	// Load existing preference and merge
 	existing, err := h.Preferences.Get(r.Context(), userID)
 	if err != nil {
@@ -122,6 +144,12 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DigestStyle != nil {
 		existing.DigestStyle = *req.DigestStyle
+	}
+	if req.InterestKeywords != nil {
+		existing.InterestKeywords = *req.InterestKeywords
+	}
+	if req.ExclusionKeywords != nil {
+		existing.ExclusionKeywords = *req.ExclusionKeywords
 	}
 
 	if err := h.Preferences.Upsert(r.Context(), existing); err != nil {
@@ -178,6 +206,34 @@ func (h *PreferenceHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) 
 	slog.Info("user unsubscribed via email link", "userID", uid)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprint(w, unsubscribeHTML(`You have been unsubscribed from MailBrief digest emails. You can re-enable them anytime in your <a href="https://mailbrief.io/settings" style="color:#0066cc;text-decoration:underline;">settings</a>.`))
+}
+
+var keywordAllowedPattern = regexp.MustCompile(`^[a-zA-Z0-9 \-\.\/\+]+$`)
+
+func validateKeywords(keywords []string) ([]string, error) {
+	if len(keywords) > 20 {
+		return nil, fmt.Errorf("maximum 20 keywords allowed")
+	}
+	seen := make(map[string]bool, len(keywords))
+	cleaned := make([]string, 0, len(keywords))
+	for _, kw := range keywords {
+		kw = strings.TrimSpace(kw)
+		if kw == "" {
+			continue
+		}
+		if len(kw) > 30 {
+			return nil, fmt.Errorf("keyword %q exceeds 30 character limit", kw)
+		}
+		if !keywordAllowedPattern.MatchString(kw) {
+			return nil, fmt.Errorf("keyword %q contains invalid characters", kw)
+		}
+		lower := strings.ToLower(kw)
+		if !seen[lower] {
+			seen[lower] = true
+			cleaned = append(cleaned, kw)
+		}
+	}
+	return cleaned, nil
 }
 
 func unsubscribeHTML(message string) string {

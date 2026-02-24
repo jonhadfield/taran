@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -118,14 +119,42 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		digestOpts = g.applyFeedback(ctx, userID, &extractions, emailMap)
 	}
 
-	// Apply digest style preference
+	// Apply user preferences (digest style + keyword filtering)
 	if g.Preferences != nil {
 		pref, err := g.Preferences.Get(ctx, userID)
-		if err == nil && pref.DigestStyle != "" {
+		if err == nil {
 			if digestOpts == nil {
 				digestOpts = &llm.DigestOptions{}
 			}
-			digestOpts.Style = pref.DigestStyle
+			if pref.DigestStyle != "" {
+				digestOpts.Style = pref.DigestStyle
+			}
+
+			// Hard-filter extractions matching exclusion keywords
+			if len(pref.ExclusionKeywords) > 0 {
+				var filtered []domain.Extraction
+				for _, ext := range extractions {
+					if !matchesKeywords(ext, pref.ExclusionKeywords) {
+						filtered = append(filtered, ext)
+					}
+				}
+				extractions = filtered
+				if len(extractions) == 0 {
+					return nil, nil
+				}
+			}
+
+			// Sort interest-matching extractions to front
+			if len(pref.InterestKeywords) > 0 {
+				sort.SliceStable(extractions, func(i, j int) bool {
+					mi := matchesKeywords(extractions[i], pref.InterestKeywords)
+					mj := matchesKeywords(extractions[j], pref.InterestKeywords)
+					return mi && !mj
+				})
+			}
+
+			digestOpts.InterestKeywords = pref.InterestKeywords
+			digestOpts.ExclusionKeywords = pref.ExclusionKeywords
 		}
 	}
 
@@ -265,4 +294,21 @@ func (g *Generator) applyFeedback(ctx context.Context, userID string, extraction
 		return nil
 	}
 	return &opts
+}
+
+// matchesKeywords returns true if any keyword matches one of the extraction's
+// topics (case-insensitive exact match) or appears in its summary (case-insensitive substring).
+func matchesKeywords(ext domain.Extraction, keywords []string) bool {
+	for _, kw := range keywords {
+		kwLower := strings.ToLower(kw)
+		for _, topic := range ext.Topics {
+			if strings.EqualFold(topic, kw) {
+				return true
+			}
+		}
+		if strings.Contains(strings.ToLower(ext.Summary), kwLower) {
+			return true
+		}
+	}
+	return false
 }

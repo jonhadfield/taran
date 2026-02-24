@@ -123,9 +123,11 @@ type UserPreference struct {
 	DigestDay       int    // 0=Sunday..6=Saturday (used for weekly)
 	DigestTimezone  string // IANA timezone
 	TopicLimit      int    // max topics shown in inbox cloud (default 15)
-	DigestStyle     string // "detailed" or "concise"
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	DigestStyle       string // "detailed" or "concise"
+	InterestKeywords  []string
+	ExclusionKeywords []string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type Session struct {

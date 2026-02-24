@@ -45,6 +45,8 @@ type DigestOptions struct {
 	PreferredTopics     []string
 	LessPreferredTopics []string
 	Style               string // "concise" or "detailed" (default)
+	InterestKeywords    []string
+	ExclusionKeywords   []string
 }
 
 type Provider interface {

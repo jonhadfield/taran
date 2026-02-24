@@ -32,6 +32,8 @@ const digestSystemPrompt = `You are a digest summarization assistant. Given mult
 
 When user topic preferences are provided, give more prominence to preferred topics in the highlights and summary. De-emphasize (but do not completely exclude) less preferred topics.
 
+When user keyword preferences are provided, give strong prominence to content matching interest keywords. Completely omit content matching exclusion keywords.
+
 Respond with a JSON object containing exactly these fields:
 - title: a short descriptive title for this digest (e.g. "Daily Digest - Tech & Business")
 - summary: 2-4 sentence overview of the most important themes across all emails
@@ -89,6 +91,16 @@ func buildDigestUserPrompt(extractions []domain.Extraction, periodType string, o
 		}
 		if len(opts.LessPreferredTopics) > 0 {
 			prompt += fmt.Sprintf("- Less preferred topics: %s\n", strings.Join(opts.LessPreferredTopics, ", "))
+		}
+	}
+
+	if opts != nil && (len(opts.InterestKeywords) > 0 || len(opts.ExclusionKeywords) > 0) {
+		prompt += "User keyword preferences:\n"
+		if len(opts.InterestKeywords) > 0 {
+			prompt += fmt.Sprintf("- Interest keywords (boost these): %s\n", strings.Join(opts.InterestKeywords, ", "))
+		}
+		if len(opts.ExclusionKeywords) > 0 {
+			prompt += fmt.Sprintf("- Exclusion keywords (omit these): %s\n", strings.Join(opts.ExclusionKeywords, ", "))
 		}
 	}
 

@@ -105,6 +105,8 @@ export interface UserPreference {
   DigestTimezone: string;
   TopicLimit: number;
   DigestStyle: string;
+  InterestKeywords: string[];
+  ExclusionKeywords: string[];
   CreatedAt: string;
   UpdatedAt: string;
 }

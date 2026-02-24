@@ -18,6 +18,7 @@ import { AccountSettings } from "./account-settings";
 import { DigestDeliverySettings } from "./digest-delivery-settings";
 import { InboxDisplaySettings } from "./inbox-display-settings";
 import { DigestStyleSettings } from "./digest-style-settings";
+import { KeywordPreferencesSettings } from "./keyword-preferences-settings";
 
 const COMMON_TIMEZONES = [
   "America/New_York",
@@ -58,6 +59,8 @@ export default function SettingsPage() {
   const [digestTimezone, setDigestTimezone] = useState("UTC");
   const [topicLimit, setTopicLimit] = useState(15);
   const [digestStyle, setDigestStyle] = useState("detailed");
+  const [interestKeywords, setInterestKeywords] = useState<string[]>([]);
+  const [exclusionKeywords, setExclusionKeywords] = useState<string[]>([]);
   const [prefLoading, setPrefLoading] = useState(true);
   const [prefSaving, setPrefSaving] = useState(false);
 
@@ -87,6 +90,8 @@ export default function SettingsPage() {
       setDigestTimezone(pref.DigestTimezone || detectTimezone());
       setTopicLimit(pref.TopicLimit ?? 15);
       setDigestStyle(pref.DigestStyle || "detailed");
+      setInterestKeywords(pref.InterestKeywords || []);
+      setExclusionKeywords(pref.ExclusionKeywords || []);
     } catch {
       setDigestTimezone(detectTimezone());
     } finally {
@@ -99,7 +104,7 @@ export default function SettingsPage() {
     fetchPreferences();
   }, []);
 
-  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle">>) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords">>) => {
     setPrefSaving(true);
     try {
       const updated = await apiPatch<UserPreference>("preferences", updates);
@@ -110,6 +115,8 @@ export default function SettingsPage() {
       setDigestTimezone(updated.DigestTimezone || "UTC");
       setTopicLimit(updated.TopicLimit ?? 15);
       setDigestStyle(updated.DigestStyle || "detailed");
+      setInterestKeywords(updated.InterestKeywords || []);
+      setExclusionKeywords(updated.ExclusionKeywords || []);
       toast.success("Preferences saved");
     } catch {
       toast.error("Failed to save preferences");
@@ -205,6 +212,21 @@ export default function SettingsPage() {
         onDigestStyleChange={(value) => {
           setDigestStyle(value);
           updatePreference({ DigestStyle: value });
+        }}
+      />
+
+      <KeywordPreferencesSettings
+        interestKeywords={interestKeywords}
+        exclusionKeywords={exclusionKeywords}
+        prefLoading={prefLoading}
+        prefSaving={prefSaving}
+        onInterestKeywordsChange={(keywords) => {
+          setInterestKeywords(keywords);
+          updatePreference({ InterestKeywords: keywords });
+        }}
+        onExclusionKeywordsChange={(keywords) => {
+          setExclusionKeywords(keywords);
+          updatePreference({ ExclusionKeywords: keywords });
         }}
       />
 
