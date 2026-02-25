@@ -38,7 +38,7 @@ func (p *OpenAIProvider) TriageEmail(ctx context.Context, subject, fromAddress, 
 			openai.SystemMessage(triageSystemPrompt),
 			openai.UserMessage(userPrompt),
 		},
-		MaxTokens: openai.Int(100),
+		MaxCompletionTokens: openai.Int(100),
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("openai triage: %w", err)
@@ -75,7 +75,7 @@ func (p *OpenAIProvider) ExtractEmail(ctx context.Context, subject, content, fro
 			openai.SystemMessage(extractionSystemPrompt),
 			openai.UserMessage(userPrompt),
 		},
-		MaxTokens: openai.Int(4096),
+		MaxCompletionTokens: openai.Int(4096),
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("openai extract: %w", err)
@@ -109,7 +109,7 @@ func (p *OpenAIProvider) GenerateDigest(ctx context.Context, extractions []domai
 			openai.SystemMessage(digestSystemPrompt),
 			openai.UserMessage(userPrompt),
 		},
-		MaxTokens: openai.Int(1024),
+		MaxCompletionTokens: openai.Int(1024),
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("openai digest: %w", err)
