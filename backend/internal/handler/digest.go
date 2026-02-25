@@ -120,6 +120,7 @@ func (h *DigestHandler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	d, err := h.Generator.GenerateForUser(r.Context(), userID, periodType, periodStart, periodEnd)
 	if err != nil {
+		slog.Error("failed to generate digest", "userID", userID, "period", periodType, "error", err)
 		WriteError(w, http.StatusInternalServerError, "failed to generate digest")
 		return
 	}
