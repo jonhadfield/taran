@@ -2,8 +2,8 @@ import { serverFetch } from "@/lib/server-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import type { Digest } from "@/types/api";
-import { ArrowLeft } from "lucide-react";
+import type { Digest, UserPreference } from "@/types/api";
+import { ArrowLeft, Mail, MailX, Clock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ShareButton } from "./share-button";
@@ -26,7 +26,10 @@ export default async function DigestDetailPage({
     notFound();
   }
 
-  const admin = await isAdmin();
+  const [admin, prefs] = await Promise.all([
+    isAdmin(),
+    serverFetch<UserPreference>("preferences").catch(() => null),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -56,6 +59,35 @@ export default async function DigestDetailPage({
             {new Date(digest.PeriodEnd).toLocaleDateString()}
           </span>
           <Badge variant="secondary">{digest.EmailCount} emails</Badge>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          {digest.SentAt ? (
+            <>
+              <Mail className="size-4 text-green-600" />
+              <span>Emailed on {new Date(digest.SentAt).toLocaleString()}</span>
+            </>
+          ) : prefs?.DigestEmail ? (
+            <>
+              <Clock className="size-4" />
+              <span>
+                Scheduled for{" "}
+                {new Date(
+                  2000, 0, 1, prefs.DigestHour
+                ).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}{" "}
+                {prefs.DigestTimezone}
+              </span>
+            </>
+          ) : (
+            <>
+              <MailX className="size-4" />
+              <span>
+                Email delivery not enabled &mdash;{" "}
+                <Link href="/settings" className="underline hover:text-foreground">
+                  enable in settings
+                </Link>
+              </span>
+            </>
+          )}
         </div>
       </div>
 

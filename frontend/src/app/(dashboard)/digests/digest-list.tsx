@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Digest, ListResponse } from "@/types/api";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Mail, MailX } from "lucide-react";
 import Link from "next/link";
 
 const PAGE_SIZE = 50;
@@ -51,6 +51,18 @@ export function DigestList({ initialDigests, initialTotal }: DigestListProps) {
                     </span>
                     <span>&middot;</span>
                     <span>{digest.EmailCount} emails</span>
+                    <span>&middot;</span>
+                    {digest.SentAt ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Mail className="size-3" />
+                        Emailed {new Date(digest.SentAt).toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-muted-foreground">
+                        <MailX className="size-3" />
+                        Not emailed
+                      </span>
+                    )}
                   </div>
                   <h3 className="font-medium">{digest.Title}</h3>
                   <p className="text-sm text-muted-foreground line-clamp-3">
