@@ -10,7 +10,6 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/openai/openai-go/v3 v3.22.0
 	github.com/resend/resend-go/v2 v2.28.0
-	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/crypto v0.48.0
 	golang.org/x/net v0.50.0
 	golang.org/x/time v0.14.0

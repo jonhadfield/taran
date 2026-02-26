@@ -10,13 +10,11 @@ import (
 	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/hadfielj/taran/backend/internal/mailer"
-	"github.com/robfig/cron/v3"
 )
 
 const retryDelay = 5 * time.Minute
 
 type Scheduler struct {
-	cron              *cron.Cron
 	generator         *Generator
 	emails            database.EmailRepository
 	digests           database.DigestRepository
@@ -27,11 +25,8 @@ type Scheduler struct {
 	unsubscribeSecret string
 }
 
-func NewScheduler(generator *Generator, emails database.EmailRepository, digests database.DigestRepository, preferences database.PreferenceRepository, sessions database.SessionRepository, m mailer.Mailer, baseURL, unsubscribeSecret string) (*Scheduler, error) {
-	c := cron.New(cron.WithLocation(time.UTC))
-
-	s := &Scheduler{
-		cron:              c,
+func NewScheduler(generator *Generator, emails database.EmailRepository, digests database.DigestRepository, preferences database.PreferenceRepository, sessions database.SessionRepository, m mailer.Mailer, baseURL, unsubscribeSecret string) *Scheduler {
+	return &Scheduler{
 		generator:         generator,
 		emails:            emails,
 		digests:           digests,
@@ -41,33 +36,10 @@ func NewScheduler(generator *Generator, emails database.EmailRepository, digests
 		baseURL:           baseURL,
 		unsubscribeSecret: unsubscribeSecret,
 	}
-
-	// Run every hour on the hour
-	_, err := c.AddFunc("0 * * * *", func() {
-		s.generateDigests()
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return s, nil
 }
 
-func (s *Scheduler) Start() {
-	s.cron.Start()
-	entries := s.cron.Entries()
-	if len(entries) > 0 {
-		slog.Info("digest scheduler started (hourly)", "next_run", entries[0].Next)
-	}
-}
-
-func (s *Scheduler) Stop() {
-	ctx := s.cron.Stop()
-	<-ctx.Done()
-	slog.Info("digest scheduler stopped")
-}
-
-// RunNow triggers digest generation immediately (used by the cron HTTP endpoint).
+// RunNow triggers digest generation for all eligible users.
+// Called by the cron HTTP endpoint (Cloud Scheduler).
 func (s *Scheduler) RunNow() {
 	s.generateDigests()
 }

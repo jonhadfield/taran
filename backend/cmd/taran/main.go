@@ -104,12 +104,7 @@ func main() {
 		Feedback:    feedbackRepo,
 		Preferences: preferenceRepo,
 	}
-	sched, err := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m, cfg.Server.BaseURL, cfg.Server.UnsubscribeSecret)
-	if err != nil {
-		slog.Error("failed to create digest scheduler", "error", err)
-		os.Exit(1)
-	}
-	sched.Start()
+	sched := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m, cfg.Server.BaseURL, cfg.Server.UnsubscribeSecret)
 
 	// Handlers
 	webhookHandler := &handler.WebhookHandler{
@@ -248,7 +243,6 @@ func main() {
 		slog.Error("server shutdown error", "error", err)
 	}
 	proc.Stop()
-	sched.Stop()
 
 	slog.Info("shutdown complete")
 }
