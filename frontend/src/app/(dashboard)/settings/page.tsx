@@ -15,10 +15,12 @@ import type { EmailAccount, ListResponse, UserPreference } from "@/types/api";
 import { SignOutButton } from "./sign-out-button";
 import { ForwardingGuide } from "@/components/forwarding-guide";
 import { AccountSettings } from "./account-settings";
+import { ThemeColorSettings } from "./theme-color-settings";
 import { DigestDeliverySettings } from "./digest-delivery-settings";
 import { InboxDisplaySettings } from "./inbox-display-settings";
 import { DigestStyleSettings } from "./digest-style-settings";
 import { KeywordPreferencesSettings } from "./keyword-preferences-settings";
+import { useColorTheme } from "@/components/color-theme-provider";
 
 const COMMON_TIMEZONES = [
   "America/New_York",
@@ -47,6 +49,7 @@ function detectTimezone(): string {
 }
 
 export default function SettingsPage() {
+  const { colorTheme, setColorTheme } = useColorTheme();
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -92,6 +95,10 @@ export default function SettingsPage() {
       setDigestStyle(pref.DigestStyle || "detailed");
       setInterestKeywords(pref.InterestKeywords || []);
       setExclusionKeywords(pref.ExclusionKeywords || []);
+      // Sync color theme from server (in case cookie was stale)
+      if (pref.ColorTheme && pref.ColorTheme !== colorTheme) {
+        setColorTheme(pref.ColorTheme as Parameters<typeof setColorTheme>[0]);
+      }
     } catch {
       setDigestTimezone(detectTimezone());
     } finally {
@@ -104,7 +111,7 @@ export default function SettingsPage() {
     fetchPreferences();
   }, []);
 
-  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords">>) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme">>) => {
     setPrefSaving(true);
     try {
       const updated = await apiPatch<UserPreference>("preferences", updates);
@@ -162,6 +169,11 @@ export default function SettingsPage() {
         onFetchAccounts={fetchAccounts}
         onSetDeleteTarget={setDeleteTarget}
         onDelete={handleDelete}
+      />
+
+      <ThemeColorSettings
+        colorTheme={colorTheme}
+        onColorThemeChange={setColorTheme}
       />
 
       <DigestDeliverySettings

@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { APP_NAME } from "@/lib/config";
 import { ThemeProvider } from "@/components/theme-provider";
+import type { ColorTheme } from "@/components/color-theme-provider";
 import "./globals.css";
+
+const VALID_COLOR_THEMES = new Set(["neutral", "blue", "rose", "green", "violet", "amber"]);
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,13 +30,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const rawTheme = cookieStore.get("color-theme")?.value;
+  const colorTheme = (rawTheme && VALID_COLOR_THEMES.has(rawTheme) ? rawTheme : "neutral") as ColorTheme;
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning {...(colorTheme !== "neutral" ? { "data-theme": colorTheme } : {})}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

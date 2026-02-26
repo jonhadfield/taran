@@ -40,6 +40,7 @@ type updatePreferenceRequest struct {
 	DigestStyle       *string   `json:"DigestStyle"`
 	InterestKeywords  *[]string `json:"InterestKeywords"`
 	ExclusionKeywords *[]string `json:"ExclusionKeywords"`
+	ColorTheme        *string   `json:"ColorTheme"`
 }
 
 func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -99,6 +100,17 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate color theme
+	if req.ColorTheme != nil {
+		switch *req.ColorTheme {
+		case "neutral", "blue", "rose", "green", "violet", "amber":
+			// valid
+		default:
+			WriteError(w, http.StatusBadRequest, "color theme must be one of: neutral, blue, rose, green, violet, amber")
+			return
+		}
+	}
+
 	// Validate keywords
 	if req.InterestKeywords != nil {
 		cleaned, err := validateKeywords(*req.InterestKeywords)
@@ -150,6 +162,9 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.ExclusionKeywords != nil {
 		existing.ExclusionKeywords = *req.ExclusionKeywords
+	}
+	if req.ColorTheme != nil {
+		existing.ColorTheme = *req.ColorTheme
 	}
 
 	if err := h.Preferences.Upsert(r.Context(), existing); err != nil {

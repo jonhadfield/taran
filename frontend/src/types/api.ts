@@ -107,6 +107,7 @@ export interface UserPreference {
   DigestStyle: string;
   InterestKeywords: string[];
   ExclusionKeywords: string[];
+  ColorTheme: string;
   CreatedAt: string;
   UpdatedAt: string;
 }

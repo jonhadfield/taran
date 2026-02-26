@@ -126,6 +126,7 @@ type UserPreference struct {
 	DigestStyle       string // "detailed" or "concise"
 	InterestKeywords  []string
 	ExclusionKeywords []string
+	ColorTheme        string
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
