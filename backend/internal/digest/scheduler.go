@@ -13,6 +13,8 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+const retryDelay = 5 * time.Minute
+
 type Scheduler struct {
 	cron              *cron.Cron
 	generator         *Generator
@@ -65,6 +67,17 @@ func (s *Scheduler) Stop() {
 	slog.Info("digest scheduler stopped")
 }
 
+// RunNow triggers digest generation immediately (used by the cron HTTP endpoint).
+func (s *Scheduler) RunNow() {
+	s.generateDigests()
+}
+
+// failedUser tracks a user whose digest generation or sending failed so we can retry.
+type failedUser struct {
+	userID string
+	pref   *domain.UserPreference
+}
+
 func (s *Scheduler) generateDigests() {
 	ctx := context.Background()
 	nowUTC := time.Now().UTC()
@@ -81,6 +94,7 @@ func (s *Scheduler) generateDigests() {
 
 	generated := 0
 	sent := 0
+	var failures []failedUser
 	for _, userID := range userIDs {
 		pref, err := s.preferences.Get(ctx, userID)
 		if err != nil {
@@ -92,61 +106,101 @@ func (s *Scheduler) generateDigests() {
 			continue
 		}
 
-		periodStart, periodEnd := computePeriod(pref, nowUTC)
-
-		digest, err := s.generator.GenerateForUser(ctx, userID, pref.DigestFrequency, periodStart, periodEnd)
-		if err != nil {
-			slog.Error("failed to generate digest", "userID", userID, "error", err)
-			continue
+		ok, didGenerate, didSend := s.generateAndSendForUser(ctx, userID, pref, nowUTC)
+		if didGenerate {
+			generated++
 		}
-		if digest == nil {
-			continue
+		if didSend {
+			sent++
 		}
-		generated++
-
-		if s.mailer == nil || !pref.DigestEmail {
-			continue
+		if !ok {
+			failures = append(failures, failedUser{userID: userID, pref: pref})
 		}
-
-		email, err := s.sessions.GetUserEmail(ctx, userID)
-		if err != nil {
-			slog.Error("failed to get user email", "userID", userID, "error", err)
-			continue
-		}
-
-		// Auto-generate share token for "view in browser" link
-		if digest.ShareToken == nil {
-			tokenBytes := make([]byte, 16)
-			if _, err := rand.Read(tokenBytes); err != nil {
-				slog.Error("failed to generate share token", "digestID", digest.ID, "error", err)
-			} else {
-				token := hex.EncodeToString(tokenBytes)
-				if err := s.digests.SetShareToken(ctx, digest.ID, userID, token); err != nil {
-					slog.Error("failed to set share token", "digestID", digest.ID, "error", err)
-				} else {
-					digest.ShareToken = &token
-				}
-			}
-		}
-
-		var unsubURL string
-		if s.baseURL != "" && s.unsubscribeSecret != "" {
-			unsubURL = mailer.GenerateUnsubscribeURL(s.baseURL, userID, s.unsubscribeSecret)
-		}
-
-		if err := s.mailer.SendDigest(ctx, email, "", digest, unsubURL); err != nil {
-			slog.Error("failed to send digest email", "userID", userID, "error", err)
-			continue
-		}
-
-		now := time.Now()
-		if err := s.digests.SetSentAt(ctx, digest.ID, now); err != nil {
-			slog.Error("failed to set digest sent_at", "digestID", digest.ID, "error", err)
-		}
-		sent++
 	}
 
-	slog.Info("digest generation complete", "users_checked", len(userIDs), "generated", generated, "sent", sent)
+	slog.Info("digest generation complete", "users_checked", len(userIDs), "generated", generated, "sent", sent, "failures", len(failures))
+
+	if len(failures) > 0 {
+		slog.Info("scheduling retry for failed digests", "count", len(failures), "delay", retryDelay)
+		time.AfterFunc(retryDelay, func() {
+			s.retryFailedDigests(failures, nowUTC)
+		})
+	}
+}
+
+// generateAndSendForUser generates a digest and sends it for a single user.
+// Returns (ok, didGenerate, didSend). ok is false if generation or sending failed and should be retried.
+func (s *Scheduler) generateAndSendForUser(ctx context.Context, userID string, pref *domain.UserPreference, nowUTC time.Time) (ok, didGenerate, didSend bool) {
+	periodStart, periodEnd := computePeriod(pref, nowUTC)
+
+	digest, err := s.generator.GenerateForUser(ctx, userID, pref.DigestFrequency, periodStart, periodEnd)
+	if err != nil {
+		slog.Error("failed to generate digest", "userID", userID, "error", err)
+		return false, false, false
+	}
+	if digest == nil {
+		return true, false, false
+	}
+
+	if s.mailer == nil || !pref.DigestEmail {
+		return true, true, false
+	}
+
+	email, err := s.sessions.GetUserEmail(ctx, userID)
+	if err != nil {
+		slog.Error("failed to get user email", "userID", userID, "error", err)
+		return false, true, false
+	}
+
+	// Auto-generate share token for "view in browser" link
+	if digest.ShareToken == nil {
+		tokenBytes := make([]byte, 16)
+		if _, err := rand.Read(tokenBytes); err != nil {
+			slog.Error("failed to generate share token", "digestID", digest.ID, "error", err)
+		} else {
+			token := hex.EncodeToString(tokenBytes)
+			if err := s.digests.SetShareToken(ctx, digest.ID, userID, token); err != nil {
+				slog.Error("failed to set share token", "digestID", digest.ID, "error", err)
+			} else {
+				digest.ShareToken = &token
+			}
+		}
+	}
+
+	var unsubURL string
+	if s.baseURL != "" && s.unsubscribeSecret != "" {
+		unsubURL = mailer.GenerateUnsubscribeURL(s.baseURL, userID, s.unsubscribeSecret)
+	}
+
+	if err := s.mailer.SendDigest(ctx, email, "", digest, unsubURL); err != nil {
+		slog.Error("failed to send digest email", "userID", userID, "error", err)
+		return false, true, false
+	}
+
+	now := time.Now()
+	if err := s.digests.SetSentAt(ctx, digest.ID, now); err != nil {
+		slog.Error("failed to set digest sent_at", "digestID", digest.ID, "error", err)
+	}
+	return true, true, true
+}
+
+func (s *Scheduler) retryFailedDigests(failures []failedUser, originalNowUTC time.Time) {
+	ctx := context.Background()
+	slog.Info("retrying failed digests", "count", len(failures))
+
+	retried := 0
+	succeeded := 0
+	for _, f := range failures {
+		ok, _, _ := s.generateAndSendForUser(ctx, f.userID, f.pref, originalNowUTC)
+		retried++
+		if ok {
+			succeeded++
+		} else {
+			slog.Warn("digest retry also failed", "userID", f.userID)
+		}
+	}
+
+	slog.Info("digest retry complete", "retried", retried, "succeeded", succeeded)
 }
 
 // shouldGenerateForUser checks if the current UTC hour matches the user's preferred delivery hour

@@ -31,6 +31,7 @@ type RouterDeps struct {
 	InviteHandler      *handler.InviteHandler
 	WaitlistHandler    *handler.WaitlistHandler
 	SessionAuth        *auth.SessionAuth
+	CronHandler        *handler.CronHandler
 }
 
 func NewRouter(deps RouterDeps) *http.ServeMux {
@@ -41,6 +42,10 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	// Webhook (shared secret auth)
 	webhookAuth := auth.WebhookAuth(deps.WebhookSecret, http.HandlerFunc(deps.WebhookHandler.IngestEmail))
 	mux.Handle("POST /webhook/email", webhookAuth)
+
+	// Cron endpoint (same shared secret auth, called by Cloud Scheduler)
+	cronAuth := auth.WebhookAuth(deps.WebhookSecret, http.HandlerFunc(deps.CronHandler.TriggerDigests))
+	mux.Handle("POST /cron/digests", cronAuth)
 
 	// API routes (session auth) — public endpoints registered here but skipped by auth
 	api := http.NewServeMux()

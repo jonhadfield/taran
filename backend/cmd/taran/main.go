@@ -179,6 +179,9 @@ func main() {
 		Invites:  inviteRepo,
 		Mailer:   m,
 	}
+	cronHandler := &handler.CronHandler{
+		Scheduler: sched,
+	}
 	sessionAuth := &auth.SessionAuth{
 		Sessions:    sessionRepo,
 		AdminEmails: cfg.AdminEmails,
@@ -204,6 +207,7 @@ func main() {
 		WaitlistHandler:    waitlistHandler,
 		AdminStatsHandler:  adminStatsHandler,
 		SessionAuth:        sessionAuth,
+		CronHandler:        cronHandler,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewRateLimiter(10, 30) // 10 req/s sustained, 30 burst
