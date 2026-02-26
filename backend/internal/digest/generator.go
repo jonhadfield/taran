@@ -43,6 +43,18 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		return nil, nil
 	}
 
+	// Skip if a digest already exists for this exact period (dedup against concurrent triggers)
+	if g.Digests != nil {
+		exists, err := g.Digests.ExistsForPeriod(ctx, userID, periodStart, periodEnd)
+		if err != nil {
+			return nil, fmt.Errorf("check existing digest: %w", err)
+		}
+		if exists {
+			slog.Info("digest already exists for period, skipping", "userID", userID, "periodStart", periodStart, "periodEnd", periodEnd)
+			return nil, nil
+		}
+	}
+
 	// Batch-fetch all emails referenced by extractions (single query)
 	emailMap := make(map[string]*domain.Email, len(extractions))
 	if g.Emails != nil {
