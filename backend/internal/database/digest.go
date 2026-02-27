@@ -225,6 +225,31 @@ func (r *DigestRepo) ExistsForPeriod(ctx context.Context, userID string, periodS
 	return exists, nil
 }
 
+func (r *DigestRepo) ListUnsent(ctx context.Context, olderThan time.Time, limit int) ([]domain.Digest, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, user_id, title, summary, highlights, top_topics,
+		    period_start, period_end, period_type, email_count, provider, model,
+		    generated_at, sent_at, created_at, share_token
+		 FROM digest
+		 WHERE sent_at IS NULL AND generated_at < $1
+		 ORDER BY generated_at ASC
+		 LIMIT $2`, olderThan, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list unsent digests: %w", err)
+	}
+	defer rows.Close()
+
+	var digests []domain.Digest
+	for rows.Next() {
+		d, err := scanDigest(rows)
+		if err != nil {
+			return nil, err
+		}
+		digests = append(digests, *d)
+	}
+	return digests, nil
+}
+
 func (r *DigestRepo) queryDigestItems(ctx context.Context, digestID string) ([]domain.DigestItem, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT di.id, di.digest_id, di.email_id, di.extraction_id, di.sort_order,

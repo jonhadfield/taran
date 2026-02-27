@@ -38,10 +38,86 @@ func NewScheduler(generator *Generator, emails database.EmailRepository, digests
 	}
 }
 
-// RunNow triggers digest generation for all eligible users.
+// RunNow triggers digest generation for all eligible users and
+// attempts to send any orphaned unsent digests from previous runs.
 // Called by the cron HTTP endpoint (Cloud Scheduler).
 func (s *Scheduler) RunNow() {
+	s.sendOrphanedDigests()
 	s.generateDigests()
+}
+
+// sendOrphanedDigests finds digests that were generated but never emailed
+// (e.g. due to a crash or transient failure) and attempts to send them.
+func (s *Scheduler) sendOrphanedDigests() {
+	if s.mailer == nil {
+		return
+	}
+
+	ctx := context.Background()
+	// Look for digests generated more than 10 minutes ago that were never sent.
+	olderThan := time.Now().Add(-10 * time.Minute)
+	unsent, err := s.digests.ListUnsent(ctx, olderThan, 50)
+	if err != nil {
+		slog.Error("failed to list unsent digests", "error", err)
+		return
+	}
+	if len(unsent) == 0 {
+		return
+	}
+
+	slog.Info("found orphaned unsent digests", "count", len(unsent))
+	sent := 0
+	for i := range unsent {
+		d := &unsent[i]
+
+		pref, err := s.preferences.Get(ctx, d.UserID)
+		if err != nil {
+			slog.Error("failed to get preferences for orphaned digest", "userID", d.UserID, "error", err)
+			continue
+		}
+		if !pref.DigestEmail {
+			continue
+		}
+
+		email, err := s.sessions.GetUserEmail(ctx, d.UserID)
+		if err != nil {
+			slog.Error("failed to get email for orphaned digest", "userID", d.UserID, "error", err)
+			continue
+		}
+
+		// Ensure share token exists for "view in browser" link
+		if d.ShareToken == nil {
+			tokenBytes := make([]byte, 16)
+			if _, err := rand.Read(tokenBytes); err != nil {
+				slog.Error("failed to generate share token", "digestID", d.ID, "error", err)
+			} else {
+				token := hex.EncodeToString(tokenBytes)
+				if err := s.digests.SetShareToken(ctx, d.ID, d.UserID, token); err != nil {
+					slog.Error("failed to set share token", "digestID", d.ID, "error", err)
+				} else {
+					d.ShareToken = &token
+				}
+			}
+		}
+
+		var unsubURL string
+		if s.baseURL != "" && s.unsubscribeSecret != "" {
+			unsubURL = mailer.GenerateUnsubscribeURL(s.baseURL, d.UserID, s.unsubscribeSecret)
+		}
+
+		if err := s.mailer.SendDigest(ctx, email, "", d, unsubURL); err != nil {
+			slog.Error("failed to send orphaned digest", "digestID", d.ID, "error", err)
+			continue
+		}
+
+		now := time.Now()
+		if err := s.digests.SetSentAt(ctx, d.ID, now); err != nil {
+			slog.Error("failed to set sent_at for orphaned digest", "digestID", d.ID, "error", err)
+		}
+		sent++
+	}
+
+	slog.Info("orphaned digest sending complete", "attempted", len(unsent), "sent", sent)
 }
 
 // failedUser tracks a user whose digest generation or sending failed so we can retry.

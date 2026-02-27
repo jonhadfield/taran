@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"time"
 
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/openai/openai-go/v3"
@@ -27,26 +29,24 @@ func (p *OpenAIProvider) Name() string  { return "openai" }
 func (p *OpenAIProvider) Model() string { return p.model }
 
 func (p *OpenAIProvider) TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*TriageResult, *Usage, error) {
-	ctx, cancel := context.WithTimeout(ctx, TriageTimeout)
-	defer cancel()
-
 	userPrompt := buildTriageUserPrompt(subject, fromAddress, contentPreview)
 
-	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model: openai.ChatModel(p.model),
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(triageSystemPrompt),
-			openai.UserMessage(userPrompt),
-		},
-		MaxCompletionTokens: openai.Int(100),
+	text, usage, err := retryOnEmpty(ctx, TriageTimeout, "openai triage", func(ctx context.Context) (string, *Usage, error) {
+		completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Model: openai.ChatModel(p.model),
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage(triageSystemPrompt),
+				openai.UserMessage(userPrompt),
+			},
+			MaxCompletionTokens: openai.Int(100),
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("openai triage: %w", err)
+		}
+		return completionText(completion), completionUsage(completion), nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("openai triage: %w", err)
-	}
-
-	text := completionText(completion)
-	if text == "" {
-		return nil, nil, fmt.Errorf("empty response from openai triage")
+		return nil, nil, err
 	}
 
 	text = stripCodeFences(text)
@@ -56,34 +56,31 @@ func (p *OpenAIProvider) TriageEmail(ctx context.Context, subject, fromAddress, 
 		return nil, nil, fmt.Errorf("parse triage result: %w (response: %s)", err, text)
 	}
 
-	usage := completionUsage(completion)
 	return &result, usage, nil
 }
 
 func (p *OpenAIProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
-	ctx, cancel := context.WithTimeout(ctx, ExtractTimeout)
-	defer cancel()
-
 	userPrompt := buildExtractionUserPrompt(subject, content, fromAddress)
 	if len(userPrompt) > 50000 {
 		userPrompt = userPrompt[:50000] + "\n\n[content truncated]"
 	}
 
-	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model: openai.ChatModel(p.model),
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(extractionSystemPrompt),
-			openai.UserMessage(userPrompt),
-		},
-		MaxCompletionTokens: openai.Int(4096),
+	text, usage, err := retryOnEmpty(ctx, ExtractTimeout, "openai extract", func(ctx context.Context) (string, *Usage, error) {
+		completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Model: openai.ChatModel(p.model),
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage(extractionSystemPrompt),
+				openai.UserMessage(userPrompt),
+			},
+			MaxCompletionTokens: openai.Int(4096),
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("openai extract: %w", err)
+		}
+		return completionText(completion), completionUsage(completion), nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("openai extract: %w", err)
-	}
-
-	text := completionText(completion)
-	if text == "" {
-		return nil, nil, fmt.Errorf("empty response from openai")
+		return nil, nil, err
 	}
 
 	text = stripCodeFences(text)
@@ -93,31 +90,28 @@ func (p *OpenAIProvider) ExtractEmail(ctx context.Context, subject, content, fro
 		return nil, nil, fmt.Errorf("parse extraction result: %w (response: %s)", err, text)
 	}
 
-	usage := completionUsage(completion)
 	return &result, usage, nil
 }
 
 func (p *OpenAIProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error) {
-	ctx, cancel := context.WithTimeout(ctx, DigestTimeout)
-	defer cancel()
-
 	userPrompt := buildDigestUserPrompt(extractions, periodType, opts)
 
-	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model: openai.ChatModel(p.model),
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(digestSystemPrompt),
-			openai.UserMessage(userPrompt),
-		},
-		MaxCompletionTokens: openai.Int(1024),
+	text, usage, err := retryOnEmpty(ctx, DigestTimeout, "openai digest", func(ctx context.Context) (string, *Usage, error) {
+		completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Model: openai.ChatModel(p.model),
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage(digestSystemPrompt),
+				openai.UserMessage(userPrompt),
+			},
+			MaxCompletionTokens: openai.Int(1024),
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("openai digest: %w", err)
+		}
+		return completionText(completion), completionUsage(completion), nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("openai digest: %w", err)
-	}
-
-	text := completionText(completion)
-	if text == "" {
-		return nil, nil, fmt.Errorf("empty response from openai")
+		return nil, nil, err
 	}
 
 	text = stripCodeFences(text)
@@ -127,7 +121,6 @@ func (p *OpenAIProvider) GenerateDigest(ctx context.Context, extractions []domai
 		return nil, nil, fmt.Errorf("parse digest result: %w (response: %s)", err, text)
 	}
 
-	usage := completionUsage(completion)
 	return &result, usage, nil
 }
 
@@ -144,4 +137,31 @@ func completionUsage(c *openai.ChatCompletion) *Usage {
 		OutputTokens: int(c.Usage.CompletionTokens),
 		TotalTokens:  int(c.Usage.TotalTokens),
 	}
+}
+
+// retryOnEmpty calls fn up to 2 times, retrying once after a short delay if
+// the API returns an empty response. The timeout applies per attempt.
+func retryOnEmpty(parentCtx context.Context, timeout time.Duration, label string, fn func(ctx context.Context) (string, *Usage, error)) (string, *Usage, error) {
+	const maxAttempts = 2
+
+	for attempt := range maxAttempts {
+		ctx, cancel := context.WithTimeout(parentCtx, timeout)
+		text, usage, err := fn(ctx)
+		cancel()
+
+		if err != nil {
+			return "", nil, err
+		}
+		if text != "" {
+			return text, usage, nil
+		}
+
+		if attempt < maxAttempts-1 {
+			slog.Warn("empty response from LLM, retrying", "label", label, "attempt", attempt+1)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+	}
+
+	return "", nil, fmt.Errorf("%s: %w", label, ErrEmptyResponse)
 }

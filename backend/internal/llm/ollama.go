@@ -31,26 +31,24 @@ func (p *OllamaProvider) Name() string  { return "ollama" }
 func (p *OllamaProvider) Model() string { return p.model }
 
 func (p *OllamaProvider) TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*TriageResult, *Usage, error) {
-	ctx, cancel := context.WithTimeout(ctx, TriageTimeout)
-	defer cancel()
-
 	userPrompt := buildTriageUserPrompt(subject, fromAddress, contentPreview)
 
-	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model: openai.ChatModel(p.model),
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(triageSystemPrompt),
-			openai.UserMessage(userPrompt),
-		},
-		MaxTokens: openai.Int(100),
+	text, usage, err := retryOnEmpty(ctx, TriageTimeout, "ollama triage", func(ctx context.Context) (string, *Usage, error) {
+		completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Model: openai.ChatModel(p.model),
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage(triageSystemPrompt),
+				openai.UserMessage(userPrompt),
+			},
+			MaxTokens: openai.Int(100),
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("ollama triage: %w", err)
+		}
+		return completionText(completion), completionUsage(completion), nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("ollama triage: %w", err)
-	}
-
-	text := completionText(completion)
-	if text == "" {
-		return nil, nil, fmt.Errorf("empty response from ollama triage")
+		return nil, nil, err
 	}
 
 	text = stripCodeFences(text)
@@ -60,34 +58,31 @@ func (p *OllamaProvider) TriageEmail(ctx context.Context, subject, fromAddress, 
 		return nil, nil, fmt.Errorf("parse triage result: %w (response: %s)", err, text)
 	}
 
-	usage := completionUsage(completion)
 	return &result, usage, nil
 }
 
 func (p *OllamaProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
-	ctx, cancel := context.WithTimeout(ctx, ExtractTimeout)
-	defer cancel()
-
 	userPrompt := buildExtractionUserPrompt(subject, content, fromAddress)
 	if len(userPrompt) > 50000 {
 		userPrompt = userPrompt[:50000] + "\n\n[content truncated]"
 	}
 
-	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model: openai.ChatModel(p.model),
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(extractionSystemPrompt),
-			openai.UserMessage(userPrompt),
-		},
-		MaxTokens: openai.Int(4096),
+	text, usage, err := retryOnEmpty(ctx, ExtractTimeout, "ollama extract", func(ctx context.Context) (string, *Usage, error) {
+		completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Model: openai.ChatModel(p.model),
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage(extractionSystemPrompt),
+				openai.UserMessage(userPrompt),
+			},
+			MaxTokens: openai.Int(4096),
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("ollama extract: %w", err)
+		}
+		return completionText(completion), completionUsage(completion), nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("ollama extract: %w", err)
-	}
-
-	text := completionText(completion)
-	if text == "" {
-		return nil, nil, fmt.Errorf("empty response from ollama")
+		return nil, nil, err
 	}
 
 	text = stripCodeFences(text)
@@ -97,31 +92,28 @@ func (p *OllamaProvider) ExtractEmail(ctx context.Context, subject, content, fro
 		return nil, nil, fmt.Errorf("parse extraction result: %w (response: %s)", err, text)
 	}
 
-	usage := completionUsage(completion)
 	return &result, usage, nil
 }
 
 func (p *OllamaProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error) {
-	ctx, cancel := context.WithTimeout(ctx, DigestTimeout)
-	defer cancel()
-
 	userPrompt := buildDigestUserPrompt(extractions, periodType, opts)
 
-	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model: openai.ChatModel(p.model),
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(digestSystemPrompt),
-			openai.UserMessage(userPrompt),
-		},
-		MaxTokens: openai.Int(1024),
+	text, usage, err := retryOnEmpty(ctx, DigestTimeout, "ollama digest", func(ctx context.Context) (string, *Usage, error) {
+		completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Model: openai.ChatModel(p.model),
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage(digestSystemPrompt),
+				openai.UserMessage(userPrompt),
+			},
+			MaxTokens: openai.Int(1024),
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("ollama digest: %w", err)
+		}
+		return completionText(completion), completionUsage(completion), nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("ollama digest: %w", err)
-	}
-
-	text := completionText(completion)
-	if text == "" {
-		return nil, nil, fmt.Errorf("empty response from ollama")
+		return nil, nil, err
 	}
 
 	text = stripCodeFences(text)
@@ -131,6 +123,5 @@ func (p *OllamaProvider) GenerateDigest(ctx context.Context, extractions []domai
 		return nil, nil, fmt.Errorf("parse digest result: %w (response: %s)", err, text)
 	}
 
-	usage := completionUsage(completion)
 	return &result, usage, nil
 }

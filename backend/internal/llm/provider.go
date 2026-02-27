@@ -2,10 +2,14 @@ package llm
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/hadfielj/taran/backend/internal/domain"
 )
+
+// ErrEmptyResponse is returned when the LLM API succeeds but returns no content.
+var ErrEmptyResponse = errors.New("empty response from LLM")
 
 const (
 	TriageTimeout  = 30 * time.Second

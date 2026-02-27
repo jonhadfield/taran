@@ -28,29 +28,25 @@ func (p *AnthropicProvider) Name() string  { return "anthropic" }
 func (p *AnthropicProvider) Model() string { return p.model }
 
 func (p *AnthropicProvider) TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*TriageResult, *Usage, error) {
-	ctx, cancel := context.WithTimeout(ctx, TriageTimeout)
-	defer cancel()
-
 	userPrompt := buildTriageUserPrompt(subject, fromAddress, contentPreview)
 
-	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     anthropic.Model(p.model),
-		MaxTokens: 100,
-		System: []anthropic.TextBlockParam{
-			{Text: triageSystemPrompt},
-		},
-		Messages: []anthropic.MessageParam{{
-			Role:    anthropic.MessageParamRoleUser,
-			Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(userPrompt)},
-		}},
+	text, usage, err := retryOnEmpty(ctx, TriageTimeout, "anthropic triage", func(ctx context.Context) (string, *Usage, error) {
+		msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
+			Model:     anthropic.Model(p.model),
+			MaxTokens: 100,
+			System:    []anthropic.TextBlockParam{{Text: triageSystemPrompt}},
+			Messages: []anthropic.MessageParam{{
+				Role:    anthropic.MessageParamRoleUser,
+				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(userPrompt)},
+			}},
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("anthropic triage: %w", err)
+		}
+		return extractResponseText(msg), anthropicUsage(msg), nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("anthropic triage: %w", err)
-	}
-
-	text := extractResponseText(msg)
-	if text == "" {
-		return nil, nil, fmt.Errorf("empty response from anthropic triage")
+		return nil, nil, err
 	}
 
 	text = stripCodeFences(text)
@@ -60,43 +56,32 @@ func (p *AnthropicProvider) TriageEmail(ctx context.Context, subject, fromAddres
 		return nil, nil, fmt.Errorf("parse triage result: %w (response: %s)", err, text)
 	}
 
-	usage := &Usage{
-		InputTokens:  int(msg.Usage.InputTokens),
-		OutputTokens: int(msg.Usage.OutputTokens),
-		TotalTokens:  int(msg.Usage.InputTokens + msg.Usage.OutputTokens),
-	}
-
 	return &result, usage, nil
 }
 
 func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
-	ctx, cancel := context.WithTimeout(ctx, ExtractTimeout)
-	defer cancel()
-
 	userPrompt := buildExtractionUserPrompt(subject, content, fromAddress)
-
 	if len(userPrompt) > 50000 {
 		userPrompt = userPrompt[:50000] + "\n\n[content truncated]"
 	}
 
-	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     anthropic.Model(p.model),
-		MaxTokens: 4096,
-		System: []anthropic.TextBlockParam{
-			{Text: extractionSystemPrompt},
-		},
-		Messages: []anthropic.MessageParam{{
-			Role:    anthropic.MessageParamRoleUser,
-			Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(userPrompt)},
-		}},
+	text, usage, err := retryOnEmpty(ctx, ExtractTimeout, "anthropic extract", func(ctx context.Context) (string, *Usage, error) {
+		msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
+			Model:     anthropic.Model(p.model),
+			MaxTokens: 4096,
+			System:    []anthropic.TextBlockParam{{Text: extractionSystemPrompt}},
+			Messages: []anthropic.MessageParam{{
+				Role:    anthropic.MessageParamRoleUser,
+				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(userPrompt)},
+			}},
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("anthropic extract: %w", err)
+		}
+		return extractResponseText(msg), anthropicUsage(msg), nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("anthropic extract: %w", err)
-	}
-
-	text := extractResponseText(msg)
-	if text == "" {
-		return nil, nil, fmt.Errorf("empty response from anthropic")
+		return nil, nil, err
 	}
 
 	text = stripCodeFences(text)
@@ -106,39 +91,29 @@ func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, 
 		return nil, nil, fmt.Errorf("parse extraction result: %w (response: %s)", err, text)
 	}
 
-	usage := &Usage{
-		InputTokens:  int(msg.Usage.InputTokens),
-		OutputTokens: int(msg.Usage.OutputTokens),
-		TotalTokens:  int(msg.Usage.InputTokens + msg.Usage.OutputTokens),
-	}
-
 	return &result, usage, nil
 }
 
 func (p *AnthropicProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error) {
-	ctx, cancel := context.WithTimeout(ctx, DigestTimeout)
-	defer cancel()
-
 	userPrompt := buildDigestUserPrompt(extractions, periodType, opts)
 
-	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     anthropic.Model(p.model),
-		MaxTokens: 1024,
-		System: []anthropic.TextBlockParam{
-			{Text: digestSystemPrompt},
-		},
-		Messages: []anthropic.MessageParam{{
-			Role:    anthropic.MessageParamRoleUser,
-			Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(userPrompt)},
-		}},
+	text, usage, err := retryOnEmpty(ctx, DigestTimeout, "anthropic digest", func(ctx context.Context) (string, *Usage, error) {
+		msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
+			Model:     anthropic.Model(p.model),
+			MaxTokens: 1024,
+			System:    []anthropic.TextBlockParam{{Text: digestSystemPrompt}},
+			Messages: []anthropic.MessageParam{{
+				Role:    anthropic.MessageParamRoleUser,
+				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(userPrompt)},
+			}},
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("anthropic digest: %w", err)
+		}
+		return extractResponseText(msg), anthropicUsage(msg), nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("anthropic digest: %w", err)
-	}
-
-	text := extractResponseText(msg)
-	if text == "" {
-		return nil, nil, fmt.Errorf("empty response from anthropic")
+		return nil, nil, err
 	}
 
 	text = stripCodeFences(text)
@@ -146,12 +121,6 @@ func (p *AnthropicProvider) GenerateDigest(ctx context.Context, extractions []do
 	var result DigestSummary
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
 		return nil, nil, fmt.Errorf("parse digest result: %w (response: %s)", err, text)
-	}
-
-	usage := &Usage{
-		InputTokens:  int(msg.Usage.InputTokens),
-		OutputTokens: int(msg.Usage.OutputTokens),
-		TotalTokens:  int(msg.Usage.InputTokens + msg.Usage.OutputTokens),
 	}
 
 	return &result, usage, nil
@@ -164,6 +133,14 @@ func extractResponseText(msg *anthropic.Message) string {
 		}
 	}
 	return ""
+}
+
+func anthropicUsage(msg *anthropic.Message) *Usage {
+	return &Usage{
+		InputTokens:  int(msg.Usage.InputTokens),
+		OutputTokens: int(msg.Usage.OutputTokens),
+		TotalTokens:  int(msg.Usage.InputTokens + msg.Usage.OutputTokens),
+	}
 }
 
 // stripCodeFences removes markdown code fences (```json ... ```) that LLMs

@@ -56,6 +56,7 @@ type DigestRepository interface {
 	ClearShareToken(ctx context.Context, id, userID string) error
 	GetByShareToken(ctx context.Context, token string) (*domain.Digest, error)
 	ExistsForPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (bool, error)
+	ListUnsent(ctx context.Context, olderThan time.Time, limit int) ([]domain.Digest, error)
 }
 
 type AccountRepository interface {

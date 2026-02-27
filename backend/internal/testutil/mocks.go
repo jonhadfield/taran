@@ -299,6 +299,7 @@ type MockDigestRepo struct {
 	ClearShareTokenFn   func(ctx context.Context, id, userID string) error
 	GetByShareTokenFn   func(ctx context.Context, token string) (*domain.Digest, error)
 	ExistsForPeriodFn   func(ctx context.Context, userID string, periodStart, periodEnd time.Time) (bool, error)
+	ListUnsentFn        func(ctx context.Context, olderThan time.Time, limit int) ([]domain.Digest, error)
 }
 
 func (m *MockDigestRepo) Create(ctx context.Context, digest *domain.Digest) error {
@@ -369,6 +370,13 @@ func (m *MockDigestRepo) ExistsForPeriod(ctx context.Context, userID string, per
 		return m.ExistsForPeriodFn(ctx, userID, periodStart, periodEnd)
 	}
 	return false, nil
+}
+
+func (m *MockDigestRepo) ListUnsent(ctx context.Context, olderThan time.Time, limit int) ([]domain.Digest, error) {
+	if m.ListUnsentFn != nil {
+		return m.ListUnsentFn(ctx, olderThan, limit)
+	}
+	return nil, nil
 }
 
 // MockAccountRepo implements database.AccountRepository for testing.
