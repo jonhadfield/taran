@@ -1,10 +1,14 @@
 package digest
 
 import (
+	"context"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/hadfielj/taran/backend/internal/domain"
+	"github.com/hadfielj/taran/backend/internal/testutil"
 )
 
 func TestShouldGenerateForUser_MatchesHour(t *testing.T) {
@@ -169,5 +173,43 @@ func TestComputePeriod_WithTimezone(t *testing.T) {
 	}
 	if !start.Equal(expectedStart) {
 		t.Errorf("start = %v, want %v", start, expectedStart)
+	}
+}
+
+func TestRunNow_ConcurrentCallsOnlyOneExecutes(t *testing.T) {
+	var generateCalls atomic.Int32
+
+	s := NewScheduler(
+		&Generator{
+			Extractions: &testutil.MockExtractionRepo{},
+			Digests:     &testutil.MockDigestRepo{},
+			Provider:    &testutil.MockProvider{},
+		},
+		&testutil.MockEmailRepo{
+			ListActiveUserIDsFn: func(_ context.Context, _, _ time.Time) ([]string, error) {
+				// Simulate slow work so concurrent calls overlap
+				time.Sleep(50 * time.Millisecond)
+				generateCalls.Add(1)
+				return nil, nil
+			},
+		},
+		&testutil.MockDigestRepo{},
+		&testutil.MockPreferenceRepo{},
+		&testutil.MockSessionRepo{},
+		nil, "", "",
+	)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s.RunNow()
+		}()
+	}
+	wg.Wait()
+
+	if got := generateCalls.Load(); got != 1 {
+		t.Errorf("expected exactly 1 generation cycle, got %d", got)
 	}
 }

@@ -2,6 +2,7 @@ package digest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -216,6 +217,11 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 	}
 
 	if err := g.Digests.Create(ctx, digest); err != nil {
+		if errors.Is(err, database.ErrDigestDuplicate) {
+			slog.Info("digest dedup: concurrent insert detected, skipping",
+				"userID", userID, "periodStart", periodStart, "periodEnd", periodEnd)
+			return nil, nil
+		}
 		return nil, fmt.Errorf("store digest: %w", err)
 	}
 

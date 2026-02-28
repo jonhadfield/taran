@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/hadfielj/taran/backend/internal/database"
@@ -15,6 +16,7 @@ import (
 const retryDelay = 5 * time.Minute
 
 type Scheduler struct {
+	mu                sync.Mutex
 	generator         *Generator
 	emails            database.EmailRepository
 	digests           database.DigestRepository
@@ -41,7 +43,15 @@ func NewScheduler(generator *Generator, emails database.EmailRepository, digests
 // RunNow triggers digest generation for all eligible users and
 // attempts to send any orphaned unsent digests from previous runs.
 // Called by the cron HTTP endpoint (Cloud Scheduler).
+// Uses TryLock to ensure only one generation cycle runs at a time,
+// preventing duplicate digests from concurrent Cloud Scheduler triggers.
 func (s *Scheduler) RunNow() {
+	if !s.mu.TryLock() {
+		slog.Info("digest generation already in progress, skipping")
+		return
+	}
+	defer s.mu.Unlock()
+
 	s.sendOrphanedDigests()
 	s.generateDigests()
 }

@@ -3,13 +3,19 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/hadfielj/taran/backend/internal/domain"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// ErrDigestDuplicate is returned when a digest already exists for the same
+// user/period_start/period_end combination (unique constraint violation).
+var ErrDigestDuplicate = errors.New("digest already exists for this period")
 
 type DigestRepo struct {
 	pool *pgxpool.Pool
@@ -41,6 +47,10 @@ func (r *DigestRepo) Create(ctx context.Context, digest *domain.Digest) error {
 		digest.GeneratedAt, digest.SentAt, digest.CreatedAt,
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrDigestDuplicate
+		}
 		return fmt.Errorf("insert digest: %w", err)
 	}
 
