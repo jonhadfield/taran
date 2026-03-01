@@ -27,7 +27,7 @@ func New(addr string, handler http.Handler, tlsCfg *TLSConfig) *Server {
 			Addr:         addr,
 			Handler:      handler,
 			ReadTimeout:  30 * time.Second,
-			WriteTimeout: 30 * time.Second,
+			WriteTimeout: 120 * time.Second,
 			IdleTimeout:  60 * time.Second,
 		},
 	}
