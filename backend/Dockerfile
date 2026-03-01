@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o taran ./cmd/taran
 
 FROM alpine:latest
 
-RUN apk add --no-cache ca-certificates && \
+RUN apk add --no-cache ca-certificates tzdata && \
   adduser -D -h /app appuser
 
 COPY --from=build /build/taran /app/taran
