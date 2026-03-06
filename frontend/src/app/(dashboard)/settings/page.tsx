@@ -13,6 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { EmailAccount, ListResponse, UserPreference } from "@/types/api";
 import { SignOutButton } from "./sign-out-button";
+import { ExportDataButton } from "./export-data-button";
 import { ForwardingGuide } from "@/components/forwarding-guide";
 import { AccountSettings } from "./account-settings";
 import { ThemeColorSettings } from "./theme-color-settings";
@@ -257,6 +258,16 @@ export default function SettingsPage() {
       )}
 
       <Separator />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Data</CardTitle>
+          <CardDescription>Export all your emails and digests as JSON</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ExportDataButton />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

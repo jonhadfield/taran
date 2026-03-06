@@ -21,6 +21,7 @@ type WebhookHandler struct {
 	Accounts    database.AccountRepository
 	Emails      database.EmailRepository
 	Extractions database.ExtractionRepository
+	Attachments database.AttachmentRepository
 	Provider    llm.Provider
 	SenderPrefs database.SenderPreferenceRepository
 }
@@ -88,6 +89,25 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 		slog.Error("failed to store email", "error", err)
 		WriteError(w, http.StatusInternalServerError, "failed to store email")
 		return
+	}
+
+	// Store attachment metadata
+	if h.Attachments != nil && len(parsed.Attachments) > 0 {
+		var attachments []domain.EmailAttachment
+		for _, a := range parsed.Attachments {
+			attachments = append(attachments, domain.EmailAttachment{
+				ID:          uuid.New().String(),
+				EmailID:     emailRecord.ID,
+				Filename:    a.Filename,
+				ContentType: a.ContentType,
+				SizeBytes:   a.SizeBytes,
+				CreatedAt:   now,
+			})
+		}
+		if err := h.Attachments.CreateBatch(r.Context(), attachments); err != nil {
+			slog.Error("failed to store attachments", "emailID", emailRecord.ID, "error", err)
+			// Non-fatal: email was already stored, continue
+		}
 	}
 
 	slog.Info("email ingested",

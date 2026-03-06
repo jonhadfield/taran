@@ -16,6 +16,7 @@ type RouterDeps struct {
 	Pool               *pgxpool.Pool
 	WebhookSecret      string
 	APIKey             string
+	ExportHandler      *handler.ExportHandler
 	WebhookHandler     *handler.WebhookHandler
 	EmailHandler       *handler.EmailHandler
 	DigestHandler      *handler.DigestHandler
@@ -55,6 +56,8 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("POST /api/public/unsubscribe", deps.PreferenceHandler.Unsubscribe)
 	api.HandleFunc("GET /api/dashboard", deps.DashboardHandler.Get)
 	api.HandleFunc("GET /api/emails", deps.EmailHandler.List)
+	api.HandleFunc("PATCH /api/emails/batch", deps.EmailHandler.BatchUpdateState)
+	api.HandleFunc("DELETE /api/emails/batch", deps.EmailHandler.BatchDelete)
 	api.HandleFunc("GET /api/emails/{id}", deps.EmailHandler.Get)
 	api.HandleFunc("PATCH /api/emails/{id}", deps.EmailHandler.UpdateState)
 	api.HandleFunc("DELETE /api/emails/{id}", deps.EmailHandler.Delete)
@@ -75,8 +78,10 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("PATCH /api/senders", deps.SenderHandler.Update)
 	api.HandleFunc("GET /api/stats", deps.StatsHandler.Get)
 	api.HandleFunc("GET /api/stats/history", deps.StatsHistoryHandler.Get)
+	api.HandleFunc("POST /api/digests/preview", deps.DigestHandler.Preview)
 	api.HandleFunc("POST /api/digests/generate", deps.DigestHandler.Generate)
 	api.HandleFunc("GET /api/topics", deps.TopicHandler.List)
+	api.HandleFunc("GET /api/export", deps.ExportHandler.Export)
 	api.HandleFunc("POST /api/emails/{id}/feedback", deps.FeedbackHandler.Upsert)
 	api.HandleFunc("GET /api/emails/{id}/feedback", deps.FeedbackHandler.Get)
 	api.HandleFunc("DELETE /api/emails/{id}/feedback", deps.FeedbackHandler.Delete)

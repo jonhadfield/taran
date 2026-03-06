@@ -40,6 +40,13 @@ export function apiPatch<T>(path: string, body: unknown): Promise<T> {
   });
 }
 
+export function apiDeleteJSON<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
+    method: "DELETE",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function apiDelete(path: string): Promise<void> {
   const res = await fetch(`/api/proxy/${path}`, {
     method: "DELETE",

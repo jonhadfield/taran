@@ -17,12 +17,14 @@ type EmailProcessor interface {
 type EmailHandler struct {
 	Emails      database.EmailRepository
 	Extractions database.ExtractionRepository
+	Attachments database.AttachmentRepository
 	Processor   EmailProcessor
 }
 
 type EmailResponse struct {
 	domain.Email
-	Extraction *domain.Extraction `json:"extraction,omitempty"`
+	Extraction  *domain.Extraction      `json:"extraction,omitempty"`
+	Attachments []domain.EmailAttachment `json:"attachments,omitempty"`
 }
 
 func (h *EmailHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -76,6 +78,12 @@ func (h *EmailHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		resp.Extraction = extraction
 	}
+	if h.Attachments != nil {
+		attachments, err := h.Attachments.ListByEmailID(r.Context(), id)
+		if err == nil && len(attachments) > 0 {
+			resp.Attachments = attachments
+		}
+	}
 
 	WriteJSON(w, http.StatusOK, resp)
 }
@@ -110,6 +118,65 @@ func (h *EmailHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.Emails.Delete(r.Context(), userID, id); err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to delete email")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+const maxBatchSize = 100
+
+func (h *EmailHandler) BatchUpdateState(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+
+	var req struct {
+		IDs   []string         `json:"ids"`
+		State domain.EmailState `json:"state"`
+	}
+	if err := LimitedJSONDecoder(r).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		WriteError(w, http.StatusBadRequest, "ids required")
+		return
+	}
+	if len(req.IDs) > maxBatchSize {
+		WriteError(w, http.StatusBadRequest, "too many ids (max 100)")
+		return
+	}
+
+	if err := h.Emails.BatchUpdateState(r.Context(), userID, req.IDs, req.State); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to update emails")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
+func (h *EmailHandler) BatchDelete(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+
+	var req struct {
+		IDs []string `json:"ids"`
+	}
+	if err := LimitedJSONDecoder(r).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		WriteError(w, http.StatusBadRequest, "ids required")
+		return
+	}
+	if len(req.IDs) > maxBatchSize {
+		WriteError(w, http.StatusBadRequest, "too many ids (max 100)")
+		return
+	}
+
+	if err := h.Emails.BatchDelete(r.Context(), userID, req.IDs); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to delete emails")
 		return
 	}
 

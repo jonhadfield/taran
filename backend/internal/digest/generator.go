@@ -34,7 +34,17 @@ type Generator struct {
 	Preferences database.PreferenceRepository
 }
 
-func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodType string, periodStart, periodEnd time.Time) (*domain.Digest, error) {
+// filteredResult holds the output of the shared filtering pipeline.
+type filteredResult struct {
+	extractions []domain.Extraction
+	emailMap    map[string]*domain.Email
+	digestOpts  *llm.DigestOptions
+}
+
+// filterExtractions runs the full filtering pipeline: loads extractions for the
+// period, removes muted/blocked senders, applies feedback-based filtering,
+// keyword exclusions, and sorts by priority. Shared by GenerateForUser and PreviewForUser.
+func (g *Generator) filterExtractions(ctx context.Context, userID string, periodStart, periodEnd time.Time) (*filteredResult, error) {
 	extractions, err := g.Extractions.ListByUserAndPeriod(ctx, userID, periodStart, periodEnd)
 	if err != nil {
 		return nil, fmt.Errorf("list extractions: %w", err)
@@ -42,18 +52,6 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 
 	if len(extractions) == 0 {
 		return nil, nil
-	}
-
-	// Skip if a digest already exists for this exact period (dedup against concurrent triggers)
-	if g.Digests != nil {
-		exists, err := g.Digests.ExistsForPeriod(ctx, userID, periodStart, periodEnd)
-		if err != nil {
-			return nil, fmt.Errorf("check existing digest: %w", err)
-		}
-		if exists {
-			slog.Info("digest already exists for period, skipping", "userID", userID, "periodStart", periodStart, "periodEnd", periodEnd)
-			return nil, nil
-		}
 	}
 
 	// Batch-fetch all emails referenced by extractions (single query)
@@ -171,7 +169,73 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		}
 	}
 
-	summary, usage, err := g.Provider.GenerateDigest(ctx, extractions, periodType, digestOpts)
+	return &filteredResult{
+		extractions: extractions,
+		emailMap:    emailMap,
+		digestOpts:  digestOpts,
+	}, nil
+}
+
+// PreviewForUser returns which emails would be included in a digest
+// after all filtering, without calling the LLM or persisting anything.
+func (g *Generator) PreviewForUser(ctx context.Context, userID string, periodType string, periodStart, periodEnd time.Time) (*domain.DigestPreview, error) {
+	result, err := g.filterExtractions(ctx, userID, periodStart, periodEnd)
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return nil, nil
+	}
+
+	preview := &domain.DigestPreview{
+		PeriodStart: periodStart,
+		PeriodEnd:   periodEnd,
+		PeriodType:  periodType,
+		EmailCount:  len(result.extractions),
+	}
+
+	for _, ext := range result.extractions {
+		item := domain.DigestPreviewItem{
+			EmailID: ext.EmailID,
+			Summary: ext.Summary,
+		}
+		if em, ok := result.emailMap[ext.EmailID]; ok {
+			item.Subject = em.Subject
+			item.FromName = em.FromName
+			item.FromAddress = em.FromAddress
+			item.ReceivedAt = em.ReceivedAt
+		}
+		preview.Items = append(preview.Items, item)
+	}
+
+	return preview, nil
+}
+
+func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodType string, periodStart, periodEnd time.Time) (*domain.Digest, error) {
+	// Skip if a digest already exists for this exact period (dedup against concurrent triggers)
+	if g.Digests != nil {
+		exists, err := g.Digests.ExistsForPeriod(ctx, userID, periodStart, periodEnd)
+		if err != nil {
+			return nil, fmt.Errorf("check existing digest: %w", err)
+		}
+		if exists {
+			slog.Info("digest already exists for period, skipping", "userID", userID, "periodStart", periodStart, "periodEnd", periodEnd)
+			return nil, nil
+		}
+	}
+
+	result, err := g.filterExtractions(ctx, userID, periodStart, periodEnd)
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return nil, nil
+	}
+
+	extractions := result.extractions
+	emailMap := result.emailMap
+
+	summary, usage, err := g.Provider.GenerateDigest(ctx, extractions, periodType, result.digestOpts)
 	if err != nil {
 		return nil, fmt.Errorf("generate digest summary: %w", err)
 	}

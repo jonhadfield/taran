@@ -231,6 +231,59 @@ func (r *EmailRepo) Delete(ctx context.Context, userID, id string) error {
 	return nil
 }
 
+func (r *EmailRepo) BatchUpdateState(ctx context.Context, userID string, ids []string, state domain.EmailState) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	sets := []string{}
+	args := []any{}
+	argIdx := 1
+
+	if state.IsRead != nil {
+		sets = append(sets, fmt.Sprintf("is_read = $%d", argIdx))
+		args = append(args, *state.IsRead)
+		argIdx++
+	}
+	if state.IsStarred != nil {
+		sets = append(sets, fmt.Sprintf("is_starred = $%d", argIdx))
+		args = append(args, *state.IsStarred)
+		argIdx++
+	}
+	if state.IsArchived != nil {
+		sets = append(sets, fmt.Sprintf("is_archived = $%d", argIdx))
+		args = append(args, *state.IsArchived)
+		argIdx++
+	}
+	if len(sets) == 0 {
+		return nil
+	}
+
+	sets = append(sets, "updated_at = NOW()")
+
+	query := fmt.Sprintf("UPDATE email SET %s WHERE id = ANY($%d) AND user_id = $%d",
+		strings.Join(sets, ", "), argIdx, argIdx+1)
+	args = append(args, ids, userID)
+
+	_, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("batch update email state: %w", err)
+	}
+	return nil
+}
+
+func (r *EmailRepo) BatchDelete(ctx context.Context, userID string, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := r.pool.Exec(ctx,
+		"DELETE FROM email WHERE id = ANY($1) AND user_id = $2", ids, userID)
+	if err != nil {
+		return fmt.Errorf("batch delete emails: %w", err)
+	}
+	return nil
+}
+
 func (r *EmailRepo) CountByWeek(ctx context.Context, userID string, weeks int) ([]domain.WeekCount, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT date_trunc('week', received_at) AS week, COUNT(*)

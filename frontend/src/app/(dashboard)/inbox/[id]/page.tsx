@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { EmailResponse } from "@/types/api";
-import { ArrowLeft, Sparkles, CheckCircle2, Info } from "lucide-react";
+import { ArrowLeft, Sparkles, CheckCircle2, Info, Paperclip } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
@@ -189,6 +189,44 @@ export default async function EmailDetailPage({
 
         {email.extraction && (
           <FeedbackButtons emailId={id} />
+        )}
+
+        {email.attachments && email.attachments.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Paperclip className="size-5" />
+                Attachments ({email.attachments.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {email.attachments.map((att) => (
+                  <div
+                    key={att.ID}
+                    className="flex items-center justify-between rounded-lg border px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Paperclip className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="text-sm truncate">{att.Filename}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className="text-xs">
+                        {att.ContentType.split("/").pop()}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {att.SizeBytes < 1024
+                          ? `${att.SizeBytes} B`
+                          : att.SizeBytes < 1024 * 1024
+                            ? `${(att.SizeBytes / 1024).toFixed(1)} KB`
+                            : `${(att.SizeBytes / (1024 * 1024)).toFixed(1)} MB`}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <EmailContentCard htmlBody={email.HTMLBody} textBody={email.TextBody} />

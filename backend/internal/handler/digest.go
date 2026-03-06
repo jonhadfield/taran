@@ -57,6 +57,70 @@ func (h *DigestHandler) Get(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, d)
 }
 
+func (h *DigestHandler) Preview(w http.ResponseWriter, r *http.Request) {
+	if h.Generator == nil {
+		WriteError(w, http.StatusInternalServerError, "digest generation not configured")
+		return
+	}
+
+	userID := auth.UserIDFromContext(r.Context())
+
+	periodType := "daily"
+	if h.Preferences != nil {
+		pref, err := h.Preferences.Get(r.Context(), userID)
+		if err == nil && pref.DigestFrequency == "weekly" {
+			periodType = "weekly"
+		}
+	}
+
+	now := time.Now()
+	periodEnd := now
+	periodStart := now.Add(-24 * time.Hour)
+	if periodType == "weekly" {
+		periodStart = now.Add(-7 * 24 * time.Hour)
+	}
+
+	if v := r.URL.Query().Get("period_start"); v != "" {
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid period_start format, use RFC3339")
+			return
+		}
+		periodStart = t
+	}
+	if v := r.URL.Query().Get("period_end"); v != "" {
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid period_end format, use RFC3339")
+			return
+		}
+		periodEnd = t
+	}
+
+	if !periodEnd.After(periodStart) {
+		WriteError(w, http.StatusBadRequest, "period_end must be after period_start")
+		return
+	}
+	if periodEnd.Sub(periodStart) > 30*24*time.Hour {
+		WriteError(w, http.StatusBadRequest, "date range cannot exceed 30 days")
+		return
+	}
+
+	preview, err := h.Generator.PreviewForUser(r.Context(), userID, periodType, periodStart, periodEnd)
+	if err != nil {
+		slog.Error("failed to preview digest", "userID", userID, "error", err)
+		WriteError(w, http.StatusInternalServerError, "failed to preview digest")
+		return
+	}
+
+	if preview == nil {
+		WriteError(w, http.StatusUnprocessableEntity, "no emails found in the selected period")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, preview)
+}
+
 func (h *DigestHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	if h.Generator == nil {
 		WriteError(w, http.StatusInternalServerError, "digest generation not configured")

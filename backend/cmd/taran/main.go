@@ -70,6 +70,7 @@ func main() {
 	inviteRepo := database.NewInviteRepo(pool)
 	waitlistRepo := database.NewWaitlistRepo(pool)
 	digestFeedbackRepo := database.NewDigestFeedbackRepo(pool)
+	attachmentRepo := database.NewAttachmentRepo(pool)
 
 	// LLM Provider
 	provider, err := newLLMProvider(cfg)
@@ -111,12 +112,14 @@ func main() {
 		Accounts:    accountRepo,
 		Emails:      emailRepo,
 		Extractions: extractionRepo,
+		Attachments: attachmentRepo,
 		Provider:    provider,
 		SenderPrefs: senderPrefRepo,
 	}
 	emailHandler := &handler.EmailHandler{
 		Emails:      emailRepo,
 		Extractions: extractionRepo,
+		Attachments: attachmentRepo,
 		Processor:   proc,
 	}
 	digestHandler := &handler.DigestHandler{
@@ -174,6 +177,10 @@ func main() {
 		Invites:  inviteRepo,
 		Mailer:   m,
 	}
+	exportHandler := &handler.ExportHandler{
+		Emails:  emailRepo,
+		Digests: digestRepo,
+	}
 	cronHandler := &handler.CronHandler{
 		Scheduler: sched,
 	}
@@ -187,6 +194,7 @@ func main() {
 		Pool:               pool,
 		WebhookSecret:      cfg.Webhook.Secret,
 		APIKey:             cfg.Server.APIKey,
+		ExportHandler:      exportHandler,
 		WebhookHandler:     webhookHandler,
 		EmailHandler:       emailHandler,
 		DigestHandler:      digestHandler,

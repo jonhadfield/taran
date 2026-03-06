@@ -15,6 +15,8 @@ type EmailRepository interface {
 	List(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Email, int, error)
 	UpdateState(ctx context.Context, userID, id string, state domain.EmailState) error
 	Delete(ctx context.Context, userID, id string) error
+	BatchUpdateState(ctx context.Context, userID string, ids []string, state domain.EmailState) error
+	BatchDelete(ctx context.Context, userID string, ids []string) error
 	GetByMessageID(ctx context.Context, messageID string) (*domain.Email, error)
 	ListPending(ctx context.Context, limit int) ([]domain.Email, error)
 	SetStatus(ctx context.Context, id string, status domain.EmailStatus, reason string) error
@@ -95,6 +97,11 @@ type DigestFeedbackRepository interface {
 	Upsert(ctx context.Context, fb *domain.DigestFeedback) error
 	Delete(ctx context.Context, userID, digestID string) error
 	GetByDigestID(ctx context.Context, userID, digestID string) (*domain.DigestFeedback, error)
+}
+
+type AttachmentRepository interface {
+	CreateBatch(ctx context.Context, attachments []domain.EmailAttachment) error
+	ListByEmailID(ctx context.Context, emailID string) ([]domain.EmailAttachment, error)
 }
 
 type SenderPreferenceRepository interface {

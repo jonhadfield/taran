@@ -8,6 +8,12 @@ import (
 	"github.com/jhillyerd/enmime"
 )
 
+type Attachment struct {
+	Filename    string
+	ContentType string
+	SizeBytes   int
+}
+
 type ParsedEmail struct {
 	MessageID   string
 	From        string
@@ -17,6 +23,7 @@ type ParsedEmail struct {
 	TextBody    string
 	HTMLBody    string
 	DateHeader  time.Time
+	Attachments []Attachment
 }
 
 func Parse(raw []byte) (*ParsedEmail, error) {
@@ -42,15 +49,25 @@ func Parse(raw []byte) (*ParsedEmail, error) {
 		to = addrs[0].Address
 	}
 
+	var attachments []Attachment
+	for _, a := range env.Attachments {
+		attachments = append(attachments, Attachment{
+			Filename:    a.FileName,
+			ContentType: a.ContentType,
+			SizeBytes:   len(a.Content),
+		})
+	}
+
 	return &ParsedEmail{
-		MessageID:  env.GetHeader("Message-Id"),
-		From:       from,
-		FromName:   fromName,
-		To:         to,
-		Subject:    env.GetHeader("Subject"),
-		TextBody:   env.Text,
-		HTMLBody:   env.HTML,
-		DateHeader: dateHeader,
+		MessageID:   env.GetHeader("Message-Id"),
+		From:        from,
+		FromName:    fromName,
+		To:          to,
+		Subject:     env.GetHeader("Subject"),
+		TextBody:    env.Text,
+		HTMLBody:    env.HTML,
+		DateHeader:  dateHeader,
+		Attachments: attachments,
 	}, nil
 }
 

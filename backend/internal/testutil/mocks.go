@@ -33,7 +33,9 @@ type MockEmailRepo struct {
 	CountByWeekFn       func(ctx context.Context, userID string, weeks int) ([]domain.WeekCount, error)
 	TopSendersFn        func(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
 	ListSendersFn       func(ctx context.Context, userID string) ([]domain.SenderInfo, error)
-	CountByStatusFn     func(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
+	CountByStatusFn       func(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
+	BatchUpdateStateFn    func(ctx context.Context, userID string, ids []string, state domain.EmailState) error
+	BatchDeleteFn         func(ctx context.Context, userID string, ids []string) error
 
 	mu             sync.Mutex
 	SetStatusCalls []SetStatusCall
@@ -175,6 +177,20 @@ func (m *MockEmailRepo) CountByStatus(ctx context.Context, userID string) (map[d
 		return m.CountByStatusFn(ctx, userID)
 	}
 	return nil, nil
+}
+
+func (m *MockEmailRepo) BatchUpdateState(ctx context.Context, userID string, ids []string, state domain.EmailState) error {
+	if m.BatchUpdateStateFn != nil {
+		return m.BatchUpdateStateFn(ctx, userID, ids, state)
+	}
+	return nil
+}
+
+func (m *MockEmailRepo) BatchDelete(ctx context.Context, userID string, ids []string) error {
+	if m.BatchDeleteFn != nil {
+		return m.BatchDeleteFn(ctx, userID, ids)
+	}
+	return nil
 }
 
 // MockExtractionRepo implements database.ExtractionRepository for testing.

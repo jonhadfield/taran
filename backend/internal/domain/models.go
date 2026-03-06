@@ -105,6 +105,15 @@ type DigestItem struct {
 	Summary     string `json:"Summary,omitempty"`
 }
 
+type EmailAttachment struct {
+	ID          string    `json:"ID"`
+	EmailID     string    `json:"EmailID"`
+	Filename    string    `json:"Filename"`
+	ContentType string    `json:"ContentType"`
+	SizeBytes   int       `json:"SizeBytes"`
+	CreatedAt   time.Time `json:"CreatedAt"`
+}
+
 type EmailAccount struct {
 	ID           string
 	UserID       string
@@ -231,6 +240,23 @@ type DigestFeedback struct {
 	DigestID  string
 	Rating    string // "useful" or "not_useful"
 	CreatedAt time.Time
+}
+
+type DigestPreviewItem struct {
+	EmailID     string `json:"EmailID"`
+	Subject     string `json:"Subject"`
+	FromName    string `json:"FromName"`
+	FromAddress string `json:"FromAddress"`
+	Summary     string `json:"Summary"`
+	ReceivedAt  time.Time `json:"ReceivedAt"`
+}
+
+type DigestPreview struct {
+	PeriodStart time.Time          `json:"PeriodStart"`
+	PeriodEnd   time.Time          `json:"PeriodEnd"`
+	PeriodType  string             `json:"PeriodType"`
+	EmailCount  int                `json:"EmailCount"`
+	Items       []DigestPreviewItem `json:"Items"`
 }
 
 type ListOptions struct {

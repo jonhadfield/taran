@@ -10,6 +10,7 @@ import { CopyEmailAddress } from "@/components/copy-email-address";
 import Link from "next/link";
 import { InboxFilters } from "./inbox-filters";
 import { InboxRowActions } from "./inbox-row-actions";
+import { BulkActionBar } from "./bulk-action-bar";
 
 const avatarColors = [
   "bg-blue-500",
@@ -60,6 +61,7 @@ export function InboxList({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTopic, setActiveTopic] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const topics = initialTopics;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryString = buildQueryString(filter, debouncedSearch, activeTopic, limit);
@@ -85,9 +87,26 @@ export function InboxList({
   const handleFilterChange = useCallback((value: string) => {
     setFilter(value);
     setLimit(PAGE_SIZE);
+    setSelectedIds(new Set());
     const url = value === "all" ? "/inbox" : `/inbox?filter=${value}`;
     window.history.replaceState(null, "", url);
   }, []);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === emails.length) return new Set();
+      return new Set(emails.map((e) => e.ID));
+    });
+  }, [emails]);
 
   return (
     <div className="space-y-4">
@@ -150,6 +169,11 @@ export function InboxList({
         </div>
       )}
 
+      <BulkActionBar
+        selectedIds={selectedIds}
+        onClear={() => setSelectedIds(new Set())}
+      />
+
       {emails.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Inbox className="size-12 text-muted-foreground mb-4" />
@@ -170,58 +194,93 @@ export function InboxList({
       ) : (
         <>
           <div className="divide-y rounded-lg border">
+            {/* Select all header */}
+            {emails.length > 0 && (
+              <div className="flex items-center gap-3 px-3.5 py-2 bg-muted/30">
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border-input accent-primary cursor-pointer"
+                  checked={selectedIds.size === emails.length && emails.length > 0}
+                  ref={(el) => {
+                    if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < emails.length;
+                  }}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all emails"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {selectedIds.size > 0
+                    ? `${selectedIds.size} of ${emails.length} selected`
+                    : "Select all"}
+                </span>
+              </div>
+            )}
             {emails.map((email) => {
               const senderName = email.FromName || email.FromAddress;
               const initial = senderName.charAt(0).toUpperCase();
+              const isSelected = selectedIds.has(email.ID);
 
               return (
-                <Link
+                <div
                   key={email.ID}
-                  href={`/inbox/${email.ID}`}
-                  className="group/row flex items-center gap-3 p-3.5 transition-colors hover:bg-accent/50"
+                  className={`group/row flex items-center gap-3 p-3.5 transition-colors hover:bg-accent/50 ${isSelected ? "bg-accent/30" : ""}`}
                 >
-                  {/* Unread dot */}
-                  <div className="w-2 shrink-0">
-                    {!email.IsRead && (
-                      <span className="block size-2 rounded-full bg-blue-500" />
-                    )}
-                  </div>
+                  {/* Checkbox */}
+                  <input
+                    type="checkbox"
+                    className="size-4 shrink-0 rounded border-input accent-primary cursor-pointer"
+                    checked={isSelected}
+                    onChange={() => toggleSelect(email.ID)}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`Select ${email.Subject}`}
+                  />
 
-                  {/* Avatar */}
-                  <div
-                    className={`hidden sm:flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white ${getAvatarColor(senderName)}`}
+                  <Link
+                    href={`/inbox/${email.ID}`}
+                    className="flex flex-1 items-center gap-3 min-w-0"
                   >
-                    {initial}
-                  </div>
+                    {/* Unread dot */}
+                    <div className="w-2 shrink-0">
+                      {!email.IsRead && (
+                        <span className="block size-2 rounded-full bg-blue-500" />
+                      )}
+                    </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className={`text-sm truncate ${!email.IsRead ? "font-semibold" : ""}`}
-                      >
-                        {senderName}
-                      </span>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(email.ReceivedAt).toLocaleDateString()}
-                      </span>
+                    {/* Avatar */}
+                    <div
+                      className={`hidden sm:flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white ${getAvatarColor(senderName)}`}
+                    >
+                      {initial}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm text-muted-foreground truncate">
-                        {email.Subject}
-                      </p>
-                      {email.Status === "skipped" && (
-                        <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
-                          Skipped
-                        </Badge>
-                      )}
-                      {email.Status === "failed" && (
-                        <Badge variant="outline" className="shrink-0 text-xs text-destructive">
-                          Failed
-                        </Badge>
-                      )}
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={`text-sm truncate ${!email.IsRead ? "font-semibold" : ""}`}
+                        >
+                          {senderName}
+                        </span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(email.ReceivedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm text-muted-foreground truncate">
+                          {email.Subject}
+                        </p>
+                        {email.Status === "skipped" && (
+                          <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
+                            Skipped
+                          </Badge>
+                        )}
+                        {email.Status === "failed" && (
+                          <Badge variant="outline" className="shrink-0 text-xs text-destructive">
+                            Failed
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </Link>
 
                   {/* Actions - visible on hover */}
                   <InboxRowActions
@@ -229,7 +288,7 @@ export function InboxList({
                     isStarred={email.IsStarred}
                     isArchived={email.IsArchived}
                   />
-                </Link>
+                </div>
               );
             })}
           </div>

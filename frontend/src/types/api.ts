@@ -50,8 +50,18 @@ export interface Link {
   title: string;
 }
 
+export interface EmailAttachment {
+  ID: string;
+  EmailID: string;
+  Filename: string;
+  ContentType: string;
+  SizeBytes: number;
+  CreatedAt: string;
+}
+
 export interface EmailResponse extends Email {
   extraction?: Extraction;
+  attachments?: EmailAttachment[];
 }
 
 export interface Digest {
@@ -200,6 +210,23 @@ export interface DigestFeedback {
   DigestID: string;
   Rating: "useful" | "not_useful" | null;
   CreatedAt: string;
+}
+
+export interface DigestPreviewItem {
+  EmailID: string;
+  Subject: string;
+  FromName: string;
+  FromAddress: string;
+  Summary: string;
+  ReceivedAt: string;
+}
+
+export interface DigestPreview {
+  PeriodStart: string;
+  PeriodEnd: string;
+  PeriodType: string;
+  EmailCount: number;
+  Items: DigestPreviewItem[];
 }
 
 export interface DashboardData {
