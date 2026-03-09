@@ -23,6 +23,9 @@ const (
 	topicLessPreferredThreshold = 0.35
 )
 
+// ErrTokenLimitExceeded is returned when a user has exceeded their monthly token limit.
+var ErrTokenLimitExceeded = errors.New("monthly token limit exceeded")
+
 type Generator struct {
 	Emails      database.EmailRepository
 	Extractions database.ExtractionRepository
@@ -32,6 +35,7 @@ type Generator struct {
 	SenderPrefs database.SenderPreferenceRepository
 	Feedback    database.FeedbackRepository
 	Preferences database.PreferenceRepository
+	TokenUsage  database.TokenUsageRepository
 }
 
 // filteredResult holds the output of the shared filtering pipeline.
@@ -224,6 +228,21 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		}
 	}
 
+	// Check monthly token limit before making LLM call
+	if g.TokenUsage != nil && g.Preferences != nil {
+		pref, err := g.Preferences.Get(ctx, userID)
+		if err == nil && pref.MonthlyTokenLimit > 0 {
+			used, err := g.TokenUsage.GetMonthlyTotal(ctx, userID)
+			if err != nil {
+				slog.Warn("failed to check token limit, proceeding", "error", err)
+			} else if used >= pref.MonthlyTokenLimit {
+				slog.Warn("user exceeded monthly token limit",
+					"userID", userID, "used", used, "limit", pref.MonthlyTokenLimit)
+				return nil, ErrTokenLimitExceeded
+			}
+		}
+	}
+
 	result, err := g.filterExtractions(ctx, userID, periodStart, periodEnd)
 	if err != nil {
 		return nil, err
@@ -240,6 +259,24 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		return nil, fmt.Errorf("generate digest summary: %w", err)
 	}
 
+	// Record digest token usage
+	if g.TokenUsage != nil && usage != nil {
+		tu := &domain.TokenUsage{
+			ID:           uuid.New().String(),
+			UserID:       userID,
+			Operation:    "digest",
+			Provider:     g.Provider.Name(),
+			Model:        g.Provider.Model(),
+			InputTokens:  usage.InputTokens,
+			OutputTokens: usage.OutputTokens,
+			TotalTokens:  usage.TotalTokens,
+			CreatedAt:    time.Now(),
+		}
+		if err := g.TokenUsage.Create(ctx, tu); err != nil {
+			slog.Warn("failed to record digest token usage", "error", err)
+		}
+	}
+
 	now := time.Now()
 	digest := &domain.Digest{
 		ID:          uuid.New().String(),
@@ -252,6 +289,7 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		PeriodEnd:   periodEnd,
 		PeriodType:  periodType,
 		EmailCount:  len(extractions),
+		TokensUsed:  usage.TotalTokens,
 		Provider:    g.Provider.Name(),
 		Model:       g.Provider.Model(),
 		GeneratedAt: now,

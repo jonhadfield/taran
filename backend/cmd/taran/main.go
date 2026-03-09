@@ -71,6 +71,7 @@ func main() {
 	waitlistRepo := database.NewWaitlistRepo(pool)
 	digestFeedbackRepo := database.NewDigestFeedbackRepo(pool)
 	attachmentRepo := database.NewAttachmentRepo(pool)
+	tokenUsageRepo := database.NewTokenUsageRepo(pool)
 
 	// LLM Provider
 	provider, err := newLLMProvider(cfg)
@@ -84,7 +85,7 @@ func main() {
 	}
 
 	// Background worker
-	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, provider, senderPrefRepo)
+	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, provider, senderPrefRepo, tokenUsageRepo)
 	proc.Start(ctx)
 
 	// Mailer (optional — disabled if no Resend API key)
@@ -104,6 +105,7 @@ func main() {
 		SenderPrefs: senderPrefRepo,
 		Feedback:    feedbackRepo,
 		Preferences: preferenceRepo,
+		TokenUsage:  tokenUsageRepo,
 	}
 	sched := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m, cfg.Server.BaseURL, cfg.Server.UnsubscribeSecret)
 
@@ -115,6 +117,7 @@ func main() {
 		Attachments: attachmentRepo,
 		Provider:    provider,
 		SenderPrefs: senderPrefRepo,
+		TokenUsage:  tokenUsageRepo,
 	}
 	emailHandler := &handler.EmailHandler{
 		Emails:      emailRepo,
@@ -162,10 +165,15 @@ func main() {
 		Emails:  emailRepo,
 		Digests: digestRepo,
 	}
+	usageHandler := &handler.UsageHandler{
+		TokenUsage:  tokenUsageRepo,
+		Preferences: preferenceRepo,
+	}
 	adminStatsHandler := &handler.AdminStatsHandler{
 		Pool:        pool,
 		LLMProvider: provider.Name(),
 		LLMModel:    provider.Model(),
+		TokenUsage:  tokenUsageRepo,
 	}
 	inviteHandler := &handler.InviteHandler{
 		Invites:     inviteRepo,
@@ -205,6 +213,7 @@ func main() {
 		StatsHistoryHandler: statsHistoryHandler,
 		TopicHandler:       topicHandler,
 		FeedbackHandler:    feedbackHandler,
+		UsageHandler:       usageHandler,
 		DashboardHandler:   dashboardHandler,
 		InviteHandler:      inviteHandler,
 		WaitlistHandler:    waitlistHandler,

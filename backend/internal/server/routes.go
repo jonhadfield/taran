@@ -27,6 +27,7 @@ type RouterDeps struct {
 	StatsHistoryHandler *handler.StatsHistoryHandler
 	TopicHandler       *handler.TopicHandler
 	FeedbackHandler    *handler.FeedbackHandler
+	UsageHandler       *handler.UsageHandler
 	AdminStatsHandler  *handler.AdminStatsHandler
 	DashboardHandler   *handler.DashboardHandler
 	InviteHandler      *handler.InviteHandler
@@ -81,6 +82,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("POST /api/digests/preview", deps.DigestHandler.Preview)
 	api.HandleFunc("POST /api/digests/generate", deps.DigestHandler.Generate)
 	api.HandleFunc("GET /api/topics", deps.TopicHandler.List)
+	api.HandleFunc("GET /api/usage", deps.UsageHandler.Get)
 	api.HandleFunc("GET /api/export", deps.ExportHandler.Export)
 	api.HandleFunc("POST /api/emails/{id}/feedback", deps.FeedbackHandler.Upsert)
 	api.HandleFunc("GET /api/emails/{id}/feedback", deps.FeedbackHandler.Get)

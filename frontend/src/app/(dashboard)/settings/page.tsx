@@ -21,6 +21,7 @@ import { DigestDeliverySettings } from "./digest-delivery-settings";
 import { InboxDisplaySettings } from "./inbox-display-settings";
 import { DigestStyleSettings } from "./digest-style-settings";
 import { KeywordPreferencesSettings } from "./keyword-preferences-settings";
+import { UsageStatsCard } from "./usage-stats";
 import { useColorTheme } from "@/components/color-theme-provider";
 
 const COMMON_TIMEZONES = [
@@ -256,6 +257,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      <UsageStatsCard />
 
       <Separator />
 

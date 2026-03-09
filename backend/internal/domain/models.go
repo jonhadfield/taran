@@ -73,6 +73,7 @@ type Digest struct {
 	PeriodEnd   time.Time
 	PeriodType  string
 	EmailCount  int
+	TokensUsed  int
 	Provider    string
 	Model       string
 	GeneratedAt time.Time
@@ -136,6 +137,7 @@ type UserPreference struct {
 	InterestKeywords  []string
 	ExclusionKeywords []string
 	ColorTheme        string
+	MonthlyTokenLimit int
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
@@ -204,15 +206,16 @@ type ProcessingStats struct {
 }
 
 type AdminStats struct {
-	TotalUsers       int           `json:"TotalUsers"`
-	ActiveUsersWeek  int           `json:"ActiveUsersWeek"`
-	TotalEmails      int           `json:"TotalEmails"`
-	EmailsThisWeek   int           `json:"EmailsThisWeek"`
-	TotalDigests     int           `json:"TotalDigests"`
-	DigestsThisWeek  int           `json:"DigestsThisWeek"`
-	TopGlobalSenders []SenderCount `json:"TopGlobalSenders"`
-	LLMProvider      string        `json:"LLMProvider"`
-	LLMModel         string        `json:"LLMModel"`
+	TotalUsers          int           `json:"TotalUsers"`
+	ActiveUsersWeek     int           `json:"ActiveUsersWeek"`
+	TotalEmails         int           `json:"TotalEmails"`
+	EmailsThisWeek      int           `json:"EmailsThisWeek"`
+	TotalDigests        int           `json:"TotalDigests"`
+	DigestsThisWeek     int           `json:"DigestsThisWeek"`
+	TopGlobalSenders    []SenderCount `json:"TopGlobalSenders"`
+	LLMProvider         string        `json:"LLMProvider"`
+	LLMModel            string        `json:"LLMModel"`
+	MonthlyTokensUsed   int           `json:"MonthlyTokensUsed"`
 }
 
 type WeekCount struct {
@@ -257,6 +260,29 @@ type DigestPreview struct {
 	PeriodType  string             `json:"PeriodType"`
 	EmailCount  int                `json:"EmailCount"`
 	Items       []DigestPreviewItem `json:"Items"`
+}
+
+type TokenUsage struct {
+	ID           string
+	UserID       string
+	Operation    string // "triage", "extract", "digest"
+	Provider     string
+	Model        string
+	InputTokens  int
+	OutputTokens int
+	TotalTokens  int
+	CreatedAt    time.Time
+}
+
+type UsageStats struct {
+	MonthlyTokensUsed  int `json:"MonthlyTokensUsed"`
+	MonthlyTokenLimit  int `json:"MonthlyTokenLimit"` // 0 = unlimited
+	DailyTokensUsed    int `json:"DailyTokensUsed"`
+	TriageTokens       int `json:"TriageTokens"`
+	ExtractTokens      int `json:"ExtractTokens"`
+	DigestTokens       int `json:"DigestTokens"`
+	PeriodStart        time.Time `json:"PeriodStart"`
+	PeriodEnd          time.Time `json:"PeriodEnd"`
 }
 
 type ListOptions struct {

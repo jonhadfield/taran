@@ -104,6 +104,13 @@ type AttachmentRepository interface {
 	ListByEmailID(ctx context.Context, emailID string) ([]domain.EmailAttachment, error)
 }
 
+type TokenUsageRepository interface {
+	Create(ctx context.Context, tu *domain.TokenUsage) error
+	GetMonthlyTotal(ctx context.Context, userID string) (int, error)
+	GetUsageStats(ctx context.Context, userID string) (*domain.UsageStats, error)
+	GetGlobalMonthlyTotal(ctx context.Context) (int, error)
+}
+
 type SenderPreferenceRepository interface {
 	Upsert(ctx context.Context, pref *domain.SenderPreference) error
 	GetByAddress(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error)

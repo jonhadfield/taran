@@ -160,6 +160,18 @@ export interface AdminStats {
   TopGlobalSenders: SenderCount[];
   LLMProvider: string;
   LLMModel: string;
+  MonthlyTokensUsed: number;
+}
+
+export interface UsageStats {
+  MonthlyTokensUsed: number;
+  MonthlyTokenLimit: number;
+  DailyTokensUsed: number;
+  TriageTokens: number;
+  ExtractTokens: number;
+  DigestTokens: number;
+  PeriodStart: string;
+  PeriodEnd: string;
 }
 
 export interface Invite {

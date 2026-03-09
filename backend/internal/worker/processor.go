@@ -28,6 +28,7 @@ type Processor struct {
 	extractions database.ExtractionRepository
 	provider    llm.Provider
 	senderPrefs database.SenderPreferenceRepository
+	tokenUsage  database.TokenUsageRepository
 	wg          sync.WaitGroup
 	concurrency int
 }
@@ -38,6 +39,7 @@ func NewProcessor(
 	extractions database.ExtractionRepository,
 	provider llm.Provider,
 	senderPrefs database.SenderPreferenceRepository,
+	tokenUsage database.TokenUsageRepository,
 ) *Processor {
 	return &Processor{
 		queue:       make(chan string, bufferSize),
@@ -46,6 +48,7 @@ func NewProcessor(
 		extractions: extractions,
 		provider:    provider,
 		senderPrefs: senderPrefs,
+		tokenUsage:  tokenUsage,
 		concurrency: concurrency,
 	}
 }
@@ -132,7 +135,7 @@ func (p *Processor) sweeper(ctx context.Context) {
 }
 
 func (p *Processor) processEmail(ctx context.Context, emailID string) {
-	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.provider, p.senderPrefs)
+	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.provider, p.senderPrefs, p.tokenUsage)
 }
 
 // ProcessEmail runs LLM extraction on a single email. It can be called
@@ -144,6 +147,7 @@ func ProcessEmail(
 	extractions database.ExtractionRepository,
 	provider llm.Provider,
 	senderPrefs database.SenderPreferenceRepository,
+	tokenUsage database.TokenUsageRepository,
 ) {
 	logger := slog.With("emailID", emailID)
 
@@ -189,10 +193,13 @@ func ProcessEmail(
 	if len(contentPreview) > 500 {
 		contentPreview = contentPreview[:500]
 	}
-	triageResult, _, triageErr := provider.TriageEmail(ctx, em.Subject, em.FromAddress, contentPreview)
+	triageResult, triageUsage, triageErr := provider.TriageEmail(ctx, em.Subject, em.FromAddress, contentPreview)
 	if triageErr != nil {
 		logger.Warn("triage failed, proceeding to extraction", "error", triageErr)
-	} else if !triageResult.Extract {
+	} else {
+		recordTokenUsage(ctx, tokenUsage, em.UserID, "triage", provider, triageUsage)
+	}
+	if triageErr == nil && !triageResult.Extract {
 		logger.Info("triage skipped email", "reason", triageResult.Reason)
 		emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped, triageResult.Reason)
 		return
@@ -253,8 +260,30 @@ func ProcessEmail(
 		return
 	}
 
+	recordTokenUsage(ctx, tokenUsage, em.UserID, "extract", provider, usage)
+
 	logger.Info("email processed",
 		"provider", provider.Name(),
 		"tokens", usage.TotalTokens,
 	)
+}
+
+func recordTokenUsage(ctx context.Context, repo database.TokenUsageRepository, userID, operation string, provider llm.Provider, usage *llm.Usage) {
+	if repo == nil || usage == nil {
+		return
+	}
+	tu := &domain.TokenUsage{
+		ID:           uuid.New().String(),
+		UserID:       userID,
+		Operation:    operation,
+		Provider:     provider.Name(),
+		Model:        provider.Model(),
+		InputTokens:  usage.InputTokens,
+		OutputTokens: usage.OutputTokens,
+		TotalTokens:  usage.TotalTokens,
+		CreatedAt:    time.Now(),
+	}
+	if err := repo.Create(ctx, tu); err != nil {
+		slog.Warn("failed to record token usage", "operation", operation, "error", err)
+	}
 }

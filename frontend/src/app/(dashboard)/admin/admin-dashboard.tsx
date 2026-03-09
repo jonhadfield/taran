@@ -3,7 +3,7 @@
 import { usePolling } from "@/hooks/use-polling";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AdminStats } from "@/types/api";
-import { Users, Mail, BookOpen, TrendingUp, Cpu } from "lucide-react";
+import { Users, Mail, BookOpen, TrendingUp, Cpu, Gauge } from "lucide-react";
 
 const emptyStats: AdminStats = {
   TotalUsers: 0,
@@ -15,6 +15,7 @@ const emptyStats: AdminStats = {
   TopGlobalSenders: [],
   LLMProvider: "",
   LLMModel: "",
+  MonthlyTokensUsed: 0,
 };
 
 export function AdminDashboard() {
@@ -66,22 +67,45 @@ export function AdminDashboard() {
         ))}
       </div>
 
-      {stats.LLMProvider && (
+      <div className="grid gap-4 sm:grid-cols-2">
+        {stats.LLMProvider && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                LLM Provider
+              </CardTitle>
+              <Cpu className="size-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold capitalize">{stats.LLMProvider}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Model: <span className="font-mono">{stats.LLMModel}</span>
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              LLM Provider
+              Monthly Token Usage
             </CardTitle>
-            <Cpu className="size-4 text-muted-foreground" />
+            <Gauge className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold capitalize">{stats.LLMProvider}</div>
+            <div className="text-2xl font-bold">
+              {stats.MonthlyTokensUsed >= 1_000_000
+                ? `${(stats.MonthlyTokensUsed / 1_000_000).toFixed(1)}M`
+                : stats.MonthlyTokensUsed >= 1_000
+                ? `${(stats.MonthlyTokensUsed / 1_000).toFixed(1)}K`
+                : stats.MonthlyTokensUsed}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Model: <span className="font-mono">{stats.LLMModel}</span>
+              tokens this month (all users)
             </p>
           </CardContent>
         </Card>
-      )}
+      </div>
 
       {stats.TopGlobalSenders.length > 0 && (
         <Card>

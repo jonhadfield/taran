@@ -37,13 +37,13 @@ func (r *DigestRepo) Create(ctx context.Context, digest *domain.Digest) error {
 
 	_, err = tx.Exec(ctx,
 		`INSERT INTO digest (id, user_id, title, summary, highlights, top_topics,
-		    period_start, period_end, period_type, email_count, provider, model,
+		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
 		    generated_at, sent_at, created_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
 		digest.ID, digest.UserID, digest.Title, digest.Summary,
 		highlights, topTopics,
 		digest.PeriodStart, digest.PeriodEnd, digest.PeriodType,
-		digest.EmailCount, digest.Provider, digest.Model,
+		digest.EmailCount, digest.TokensUsed, digest.Provider, digest.Model,
 		digest.GeneratedAt, digest.SentAt, digest.CreatedAt,
 	)
 	if err != nil {
@@ -71,7 +71,7 @@ func (r *DigestRepo) Create(ctx context.Context, digest *domain.Digest) error {
 func (r *DigestRepo) GetByID(ctx context.Context, userID, id string) (*domain.Digest, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, title, summary, highlights, top_topics,
-		    period_start, period_end, period_type, email_count, provider, model,
+		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
 		    generated_at, sent_at, created_at, share_token
 		 FROM digest WHERE id = $1 AND user_id = $2`, id, userID)
 
@@ -92,7 +92,7 @@ func (r *DigestRepo) GetByID(ctx context.Context, userID, id string) (*domain.Di
 func (r *DigestRepo) GetByIDInternal(ctx context.Context, id string) (*domain.Digest, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, title, summary, highlights, top_topics,
-		    period_start, period_end, period_type, email_count, provider, model,
+		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
 		    generated_at, sent_at, created_at, share_token
 		 FROM digest WHERE id = $1`, id)
 
@@ -141,7 +141,7 @@ func (r *DigestRepo) List(ctx context.Context, userID string, opts domain.ListOp
 
 	query := fmt.Sprintf(
 		`SELECT id, user_id, title, summary, highlights, top_topics,
-		    period_start, period_end, period_type, email_count, provider, model,
+		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
 		    generated_at, sent_at, created_at, share_token
 		 FROM digest WHERE %s ORDER BY period_start DESC LIMIT $%d OFFSET $%d`,
 		whereClause, argIdx, argIdx+1)
@@ -205,7 +205,7 @@ func (r *DigestRepo) ClearShareToken(ctx context.Context, id, userID string) err
 func (r *DigestRepo) GetByShareToken(ctx context.Context, token string) (*domain.Digest, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, title, summary, highlights, top_topics,
-		    period_start, period_end, period_type, email_count, provider, model,
+		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
 		    generated_at, sent_at, created_at, share_token
 		 FROM digest WHERE share_token = $1`, token)
 
@@ -238,7 +238,7 @@ func (r *DigestRepo) ExistsForPeriod(ctx context.Context, userID string, periodS
 func (r *DigestRepo) ListUnsent(ctx context.Context, olderThan time.Time, limit int) ([]domain.Digest, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, title, summary, highlights, top_topics,
-		    period_start, period_end, period_type, email_count, provider, model,
+		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
 		    generated_at, sent_at, created_at, share_token
 		 FROM digest
 		 WHERE sent_at IS NULL AND generated_at < $1
@@ -296,7 +296,7 @@ func scanDigest(row scannable) (*domain.Digest, error) {
 	err := row.Scan(
 		&d.ID, &d.UserID, &d.Title, &d.Summary, &highlights, &topTopics,
 		&d.PeriodStart, &d.PeriodEnd, &d.PeriodType, &d.EmailCount,
-		&d.Provider, &d.Model, &d.GeneratedAt, &d.SentAt, &d.CreatedAt,
+		&d.TokensUsed, &d.Provider, &d.Model, &d.GeneratedAt, &d.SentAt, &d.CreatedAt,
 		&d.ShareToken,
 	)
 	if err != nil {

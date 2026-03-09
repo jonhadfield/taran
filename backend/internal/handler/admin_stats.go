@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -12,6 +13,7 @@ type AdminStatsHandler struct {
 	Pool        *pgxpool.Pool
 	LLMProvider string
 	LLMModel    string
+	TokenUsage  database.TokenUsageRepository
 }
 
 func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +67,13 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	stats.LLMProvider = h.LLMProvider
 	stats.LLMModel = h.LLMModel
+
+	if h.TokenUsage != nil {
+		total, err := h.TokenUsage.GetGlobalMonthlyTotal(ctx)
+		if err == nil {
+			stats.MonthlyTokensUsed = total
+		}
+	}
 
 	WriteJSON(w, http.StatusOK, stats)
 }

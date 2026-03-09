@@ -37,14 +37,15 @@ type WebhookConfig struct {
 }
 
 type LLMConfig struct {
-	Provider                 string
-	AnthropicKey             string
-	AnthropicModel           string
-	OpenAIKey                string
-	OpenAIModel              string
-	OllamaURL                string
-	OllamaModel              string
+	Provider                  string
+	AnthropicKey              string
+	AnthropicModel            string
+	OpenAIKey                 string
+	OpenAIModel               string
+	OllamaURL                 string
+	OllamaModel               string
 	AutoSelectedOverAnthropic bool
+	DefaultMonthlyTokenLimit  int
 }
 
 type DigestConfig struct {
@@ -169,6 +170,7 @@ func Load() (*Config, error) {
 			OllamaURL:                envOr("TARAN_OLLAMA_URL", "http://localhost:11434"),
 			OllamaModel:              os.Getenv("TARAN_OLLAMA_MODEL"),
 			AutoSelectedOverAnthropic: autoSelectedOverAnthropic,
+			DefaultMonthlyTokenLimit:  envInt("TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT", 0),
 		},
 		Digest: DigestConfig{},
 		Email: EmailConfig{
@@ -187,6 +189,15 @@ func (c *Config) Addr() string {
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func envInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
 	}
 	return fallback
 }
