@@ -53,7 +53,7 @@ func (p *OpenAIProvider) TriageEmail(ctx context.Context, subject, fromAddress, 
 
 	var result TriageResult
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
-		return nil, nil, fmt.Errorf("parse triage result: %w (response: %s)", err, text)
+		return nil, usage, fmt.Errorf("parse triage result: %w (response: %s)", err, text)
 	}
 
 	return &result, usage, nil
@@ -87,7 +87,7 @@ func (p *OpenAIProvider) ExtractEmail(ctx context.Context, subject, content, fro
 
 	var result ExtractionResult
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
-		return nil, nil, fmt.Errorf("parse extraction result: %w (response: %s)", err, text)
+		return nil, usage, fmt.Errorf("parse extraction result: %w (response: %s)", err, text)
 	}
 
 	return &result, usage, nil
@@ -118,7 +118,7 @@ func (p *OpenAIProvider) GenerateDigest(ctx context.Context, extractions []domai
 
 	var result DigestSummary
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
-		return nil, nil, fmt.Errorf("parse digest result: %w (response: %s)", err, text)
+		return nil, usage, fmt.Errorf("parse digest result: %w (response: %s)", err, text)
 	}
 
 	return &result, usage, nil

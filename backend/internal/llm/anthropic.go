@@ -53,7 +53,7 @@ func (p *AnthropicProvider) TriageEmail(ctx context.Context, subject, fromAddres
 
 	var result TriageResult
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
-		return nil, nil, fmt.Errorf("parse triage result: %w (response: %s)", err, text)
+		return nil, usage, fmt.Errorf("parse triage result: %w (response: %s)", err, text)
 	}
 
 	return &result, usage, nil
@@ -88,7 +88,7 @@ func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, 
 
 	var result ExtractionResult
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
-		return nil, nil, fmt.Errorf("parse extraction result: %w (response: %s)", err, text)
+		return nil, usage, fmt.Errorf("parse extraction result: %w (response: %s)", err, text)
 	}
 
 	return &result, usage, nil
@@ -120,7 +120,7 @@ func (p *AnthropicProvider) GenerateDigest(ctx context.Context, extractions []do
 
 	var result DigestSummary
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
-		return nil, nil, fmt.Errorf("parse digest result: %w (response: %s)", err, text)
+		return nil, usage, fmt.Errorf("parse digest result: %w (response: %s)", err, text)
 	}
 
 	return &result, usage, nil

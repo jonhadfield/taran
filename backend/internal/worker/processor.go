@@ -194,10 +194,10 @@ func ProcessEmail(
 		contentPreview = contentPreview[:500]
 	}
 	triageResult, triageUsage, triageErr := provider.TriageEmail(ctx, em.Subject, em.FromAddress, contentPreview)
+	// Always record triage tokens when available, even if parsing failed
+	recordTokenUsage(ctx, tokenUsage, em.UserID, "triage", provider, triageUsage)
 	if triageErr != nil {
 		logger.Warn("triage failed, proceeding to extraction", "error", triageErr)
-	} else {
-		recordTokenUsage(ctx, tokenUsage, em.UserID, "triage", provider, triageUsage)
 	}
 	if triageErr == nil && !triageResult.Extract {
 		logger.Info("triage skipped email", "reason", triageResult.Reason)
