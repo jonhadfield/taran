@@ -25,22 +25,32 @@ func (h *SenderHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Merge sender preference status
+	// Merge sender preference status and category overrides
 	prefs, err := h.SenderPrefs.ListByUser(r.Context(), userID)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to list sender preferences")
 		return
 	}
-	prefMap := make(map[string]string)
+	type prefInfo struct {
+		Status   string
+		Category string
+	}
+	prefMap := make(map[string]prefInfo)
 	for _, p := range prefs {
-		prefMap[p.FromAddress] = p.Status
+		prefMap[p.FromAddress] = prefInfo{Status: p.Status, Category: p.Category}
 	}
 
 	for i := range senders {
-		if s, ok := prefMap[senders[i].FromAddress]; ok {
-			senders[i].Status = s
+		if p, ok := prefMap[senders[i].FromAddress]; ok {
+			senders[i].Status = p.Status
+			if p.Category != "" {
+				senders[i].Category = p.Category
+			} else {
+				senders[i].Category = senders[i].AutoCategory
+			}
 		} else {
 			senders[i].Status = "normal"
+			senders[i].Category = senders[i].AutoCategory
 		}
 	}
 
@@ -53,6 +63,7 @@ func (h *SenderHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		FromAddress string `json:"FromAddress"`
 		Status      string `json:"Status"`
+		Category    string `json:"Category"`
 	}
 	if err := LimitedJSONDecoder(r).Decode(&body); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
@@ -70,12 +81,19 @@ func (h *SenderHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	validCategories := map[string]bool{"": true, "newsletter": true, "personal": true, "transactional": true, "marketing": true, "notification": true, "other": true}
+	if !validCategories[body.Category] {
+		WriteError(w, http.StatusBadRequest, "Category must be one of: newsletter, personal, transactional, marketing, notification, other (or empty for auto)")
+		return
+	}
+
 	now := time.Now()
 	pref := &domain.SenderPreference{
 		ID:          uuid.New().String(),
 		UserID:      userID,
 		FromAddress: body.FromAddress,
 		Status:      body.Status,
+		Category:    body.Category,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}

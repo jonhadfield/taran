@@ -37,10 +37,11 @@ type updatePreferenceRequest struct {
 	DigestDay       *int    `json:"DigestDay"`
 	DigestTimezone  *string `json:"DigestTimezone"`
 	TopicLimit      *int    `json:"TopicLimit"`
-	DigestStyle       *string   `json:"DigestStyle"`
-	InterestKeywords  *[]string `json:"InterestKeywords"`
-	ExclusionKeywords *[]string `json:"ExclusionKeywords"`
-	ColorTheme        *string   `json:"ColorTheme"`
+	DigestStyle        *string   `json:"DigestStyle"`
+	InterestKeywords   *[]string `json:"InterestKeywords"`
+	ExclusionKeywords  *[]string `json:"ExclusionKeywords"`
+	ColorTheme         *string   `json:"ColorTheme"`
+	ExcludedCategories *[]string `json:"ExcludedCategories"`
 }
 
 func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +130,17 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		req.ExclusionKeywords = &cleaned
 	}
 
+	// Validate excluded categories
+	if req.ExcludedCategories != nil {
+		validCats := map[string]bool{"newsletter": true, "personal": true, "transactional": true, "marketing": true, "notification": true, "other": true}
+		for _, cat := range *req.ExcludedCategories {
+			if !validCats[cat] {
+				WriteError(w, http.StatusBadRequest, "excluded category must be one of: newsletter, personal, transactional, marketing, notification, other")
+				return
+			}
+		}
+	}
+
 	// Load existing preference and merge
 	existing, err := h.Preferences.Get(r.Context(), userID)
 	if err != nil {
@@ -165,6 +177,9 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.ColorTheme != nil {
 		existing.ColorTheme = *req.ColorTheme
+	}
+	if req.ExcludedCategories != nil {
+		existing.ExcludedCategories = *req.ExcludedCategories
 	}
 
 	if err := h.Preferences.Upsert(r.Context(), existing); err != nil {

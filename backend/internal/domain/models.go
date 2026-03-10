@@ -137,9 +137,10 @@ type UserPreference struct {
 	InterestKeywords  []string
 	ExclusionKeywords []string
 	ColorTheme        string
-	MonthlyTokenLimit int
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	MonthlyTokenLimit    int
+	ExcludedCategories   []string // categories excluded from digests (default: notification, transactional, marketing)
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
 }
 
 type Session struct {
@@ -155,15 +156,18 @@ type SenderPreference struct {
 	UserID      string
 	FromAddress string
 	Status      string // "normal", "muted", "blocked", "favorite"
+	Category    string // user override: "newsletter", "personal", "transactional", "marketing", "notification", "other", or "" (auto)
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
 
 type SenderInfo struct {
-	FromAddress string `json:"FromAddress"`
-	FromName    string `json:"FromName"`
-	EmailCount  int    `json:"EmailCount"`
-	Status      string `json:"Status"`
+	FromAddress  string `json:"FromAddress"`
+	FromName     string `json:"FromName"`
+	EmailCount   int    `json:"EmailCount"`
+	Status       string `json:"Status"`
+	Category     string `json:"Category"`     // user override or auto-detected
+	AutoCategory string `json:"AutoCategory"` // most common LLM-detected category
 }
 
 type SenderCount struct {
@@ -296,4 +300,5 @@ type ListOptions struct {
 	Before     *time.Time
 	Search     *string
 	Topic      *string
+	Category   *string
 }

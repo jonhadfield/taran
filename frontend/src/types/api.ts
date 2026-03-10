@@ -118,6 +118,7 @@ export interface UserPreference {
   InterestKeywords: string[];
   ExclusionKeywords: string[];
   ColorTheme: string;
+  ExcludedCategories: string[];
   CreatedAt: string;
   UpdatedAt: string;
 }
@@ -127,6 +128,8 @@ export interface SenderInfo {
   FromName: string;
   EmailCount: number;
   Status: string;
+  Category: string;
+  AutoCategory: string;
 }
 
 export interface SenderCount {

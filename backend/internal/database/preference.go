@@ -21,27 +21,28 @@ func NewPreferenceRepo(pool *pgxpool.Pool) *PreferenceRepo {
 
 func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPreference, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, topic_limit, digest_style, interest_keywords, exclusion_keywords, color_theme, monthly_token_limit, created_at, updated_at
+		`SELECT user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, topic_limit, digest_style, interest_keywords, exclusion_keywords, color_theme, monthly_token_limit, excluded_categories, created_at, updated_at
 		 FROM user_preference WHERE user_id = $1`, userID)
 
 	var p domain.UserPreference
-	var interestRaw, exclusionRaw []byte
-	err := row.Scan(&p.UserID, &p.DigestEmail, &p.DigestFrequency, &p.DigestHour, &p.DigestDay, &p.DigestTimezone, &p.TopicLimit, &p.DigestStyle, &interestRaw, &exclusionRaw, &p.ColorTheme, &p.MonthlyTokenLimit, &p.CreatedAt, &p.UpdatedAt)
+	var interestRaw, exclusionRaw, excludedCatsRaw []byte
+	err := row.Scan(&p.UserID, &p.DigestEmail, &p.DigestFrequency, &p.DigestHour, &p.DigestDay, &p.DigestTimezone, &p.TopicLimit, &p.DigestStyle, &interestRaw, &exclusionRaw, &p.ColorTheme, &p.MonthlyTokenLimit, &excludedCatsRaw, &p.CreatedAt, &p.UpdatedAt)
 	if err == pgx.ErrNoRows {
 		return &domain.UserPreference{
-			UserID:            userID,
-			DigestEmail:       false,
-			DigestFrequency:   "daily",
-			DigestHour:        7,
-			DigestDay:         1, // Monday
-			DigestTimezone:    "UTC",
-			TopicLimit:        15,
-			DigestStyle:       "detailed",
-			InterestKeywords:  []string{},
-			ExclusionKeywords: []string{},
-			ColorTheme:        "neutral",
-			CreatedAt:         time.Now(),
-			UpdatedAt:         time.Now(),
+			UserID:             userID,
+			DigestEmail:        false,
+			DigestFrequency:    "daily",
+			DigestHour:         7,
+			DigestDay:          1, // Monday
+			DigestTimezone:     "UTC",
+			TopicLimit:         15,
+			DigestStyle:        "detailed",
+			InterestKeywords:   []string{},
+			ExclusionKeywords:  []string{},
+			ColorTheme:         "neutral",
+			ExcludedCategories: []string{"notification", "transactional", "marketing"},
+			CreatedAt:          time.Now(),
+			UpdatedAt:          time.Now(),
 		}, nil
 	}
 	if err != nil {
@@ -49,11 +50,15 @@ func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPr
 	}
 	p.InterestKeywords = []string{}
 	p.ExclusionKeywords = []string{}
+	p.ExcludedCategories = []string{"notification", "transactional", "marketing"}
 	if len(interestRaw) > 0 {
 		_ = json.Unmarshal(interestRaw, &p.InterestKeywords)
 	}
 	if len(exclusionRaw) > 0 {
 		_ = json.Unmarshal(exclusionRaw, &p.ExclusionKeywords)
+	}
+	if len(excludedCatsRaw) > 0 {
+		_ = json.Unmarshal(excludedCatsRaw, &p.ExcludedCategories)
 	}
 	return &p, nil
 }
@@ -67,15 +72,19 @@ func (r *PreferenceRepo) Upsert(ctx context.Context, pref *domain.UserPreference
 	if err != nil {
 		return fmt.Errorf("marshal exclusion keywords: %w", err)
 	}
+	excludedCatsJSON, err := json.Marshal(pref.ExcludedCategories)
+	if err != nil {
+		return fmt.Errorf("marshal excluded categories: %w", err)
+	}
 
 	_, err = r.pool.Exec(ctx,
-		`INSERT INTO user_preference (user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, topic_limit, digest_style, interest_keywords, exclusion_keywords, color_theme, monthly_token_limit, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+		`INSERT INTO user_preference (user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, topic_limit, digest_style, interest_keywords, exclusion_keywords, color_theme, monthly_token_limit, excluded_categories, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
 		 ON CONFLICT (user_id) DO UPDATE SET
 		     digest_email = $2, digest_frequency = $3, digest_hour = $4, digest_day = $5, digest_timezone = $6, topic_limit = $7, digest_style = $8,
-		     interest_keywords = $9, exclusion_keywords = $10, color_theme = $11, monthly_token_limit = $12,
+		     interest_keywords = $9, exclusion_keywords = $10, color_theme = $11, monthly_token_limit = $12, excluded_categories = $13,
 		     updated_at = NOW()`,
-		pref.UserID, pref.DigestEmail, pref.DigestFrequency, pref.DigestHour, pref.DigestDay, pref.DigestTimezone, pref.TopicLimit, pref.DigestStyle, interestJSON, exclusionJSON, pref.ColorTheme, pref.MonthlyTokenLimit)
+		pref.UserID, pref.DigestEmail, pref.DigestFrequency, pref.DigestHour, pref.DigestDay, pref.DigestTimezone, pref.TopicLimit, pref.DigestStyle, interestJSON, exclusionJSON, pref.ColorTheme, pref.MonthlyTokenLimit, excludedCatsJSON)
 	if err != nil {
 		return fmt.Errorf("upsert preference: %w", err)
 	}

@@ -30,15 +30,25 @@ function getAvatarColor(name: string) {
 
 const PAGE_SIZE = 50;
 
-export function buildQueryString(filter: string, search: string, topic: string, limit: number) {
+export function buildQueryString(filter: string, search: string, topic: string, limit: number, category?: string) {
   const params = [`limit=${limit}`];
   if (filter === "unread") params.push("is_read=false");
   if (filter === "starred") params.push("is_starred=true");
   if (filter === "archived") params.push("is_archived=true");
   if (search) params.push(`search=${encodeURIComponent(search)}`);
   if (topic) params.push(`topic=${encodeURIComponent(topic)}`);
+  if (category) params.push(`category=${encodeURIComponent(category)}`);
   return params.join("&");
 }
+
+const CATEGORY_LABELS: Record<string, string> = {
+  newsletter: "Newsletters",
+  personal: "Personal",
+  transactional: "Transactional",
+  marketing: "Marketing",
+  notification: "Notifications",
+  other: "Other",
+};
 
 interface InboxListProps {
   initialEmails: Email[];
@@ -60,11 +70,12 @@ export function InboxList({
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTopic, setActiveTopic] = useState("");
+  const [activeCategory, setActiveCategory] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const topics = initialTopics;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const queryString = buildQueryString(filter, debouncedSearch, activeTopic, limit);
+  const queryString = buildQueryString(filter, debouncedSearch, activeTopic, limit, activeCategory);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -138,6 +149,35 @@ export function InboxList({
       </div>
 
       <InboxFilters value={filter} onChange={handleFilterChange} />
+
+      {/* Category filter */}
+      <div className="flex flex-wrap gap-1.5">
+        <Badge
+          variant={activeCategory === "" ? "default" : "outline"}
+          className="cursor-pointer"
+          role="button"
+          aria-pressed={activeCategory === ""}
+          tabIndex={0}
+          onClick={() => setActiveCategory("")}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveCategory(""); } }}
+        >
+          All types
+        </Badge>
+        {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+          <Badge
+            key={value}
+            variant={activeCategory === value ? "default" : "outline"}
+            className="cursor-pointer"
+            role="button"
+            aria-pressed={activeCategory === value}
+            tabIndex={0}
+            onClick={() => setActiveCategory(activeCategory === value ? "" : value)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveCategory(activeCategory === value ? "" : value); } }}
+          >
+            {label}
+          </Badge>
+        ))}
+      </div>
 
       {topics.length > 0 && (
         <div className="flex flex-wrap gap-1.5">

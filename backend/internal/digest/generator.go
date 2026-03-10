@@ -49,7 +49,16 @@ type filteredResult struct {
 // period, removes muted/blocked senders, applies feedback-based filtering,
 // keyword exclusions, and sorts by priority. Shared by GenerateForUser and PreviewForUser.
 func (g *Generator) filterExtractions(ctx context.Context, userID string, periodStart, periodEnd time.Time) (*filteredResult, error) {
-	extractions, err := g.Extractions.ListByUserAndPeriod(ctx, userID, periodStart, periodEnd)
+	// Load user's excluded categories (or use defaults)
+	var excludedCategories []string
+	if g.Preferences != nil {
+		pref, err := g.Preferences.Get(ctx, userID)
+		if err == nil && len(pref.ExcludedCategories) > 0 {
+			excludedCategories = pref.ExcludedCategories
+		}
+	}
+
+	extractions, err := g.Extractions.ListByUserAndPeriod(ctx, userID, periodStart, periodEnd, excludedCategories...)
 	if err != nil {
 		return nil, fmt.Errorf("list extractions: %w", err)
 	}
@@ -74,7 +83,7 @@ func (g *Generator) filterExtractions(ctx context.Context, userID string, period
 		}
 	}
 
-	// Filter out extractions from muted/blocked senders and boost favorites
+	// Filter out extractions from muted/blocked senders, apply category overrides, and boost favorites
 	if g.SenderPrefs != nil {
 		prefs, err := g.SenderPrefs.ListByUser(ctx, userID)
 		if err != nil {
@@ -82,12 +91,16 @@ func (g *Generator) filterExtractions(ctx context.Context, userID string, period
 		} else {
 			excluded := make(map[string]bool)
 			favorites := make(map[string]bool)
+			categoryOverrides := make(map[string]string)
 			for _, p := range prefs {
 				switch p.Status {
 				case "muted", "blocked":
 					excluded[p.FromAddress] = true
 				case "favorite":
 					favorites[p.FromAddress] = true
+				}
+				if p.Category != "" {
+					categoryOverrides[p.FromAddress] = p.Category
 				}
 			}
 
@@ -110,6 +123,27 @@ func (g *Generator) filterExtractions(ctx context.Context, userID string, period
 					if !excluded[addr] {
 						filtered = append(filtered, ext)
 					}
+				}
+				extractions = filtered
+				if len(extractions) == 0 {
+					return nil, nil
+				}
+			}
+
+			// Apply sender category overrides: if a sender has a user-assigned category
+			// that is in the excluded list, remove those extractions too.
+			if len(categoryOverrides) > 0 && len(excludedCategories) > 0 {
+				excludedSet := make(map[string]bool, len(excludedCategories))
+				for _, c := range excludedCategories {
+					excludedSet[c] = true
+				}
+				var filtered []domain.Extraction
+				for _, ext := range extractions {
+					addr := emailAddr[ext.EmailID]
+					if cat, ok := categoryOverrides[addr]; ok && excludedSet[cat] {
+						continue
+					}
+					filtered = append(filtered, ext)
 				}
 				extractions = filtered
 				if len(extractions) == 0 {

@@ -28,12 +28,34 @@ const STATUS_OPTIONS = [
   { value: "blocked", label: "Blocked" },
 ];
 
+const CATEGORY_OPTIONS = [
+  { value: "", label: "Auto" },
+  { value: "newsletter", label: "Newsletter" },
+  { value: "personal", label: "Personal" },
+  { value: "transactional", label: "Transactional" },
+  { value: "marketing", label: "Marketing" },
+  { value: "notification", label: "Notification" },
+  { value: "other", label: "Other" },
+];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  newsletter: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  personal: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  transactional: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+  marketing: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  notification: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  other: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+};
+
+const ALL_CATEGORIES = ["newsletter", "personal", "transactional", "marketing", "notification", "other"];
+
 export default function SendersPage() {
   const [senders, setSenders] = useState<SenderInfo[]>([]);
   const [suggestions, setSuggestions] = useState<SenderSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [dismissedSuggestions, setDismissedSuggestions] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const fetchSenders = async () => {
     try {
@@ -62,14 +84,24 @@ export default function SendersPage() {
     fetchSuggestions();
   }, []);
 
-  const handleStatusChange = async (fromAddress: string, status: string) => {
+  const handleUpdate = async (fromAddress: string, updates: { Status?: string; Category?: string }) => {
     setUpdating(fromAddress);
     try {
-      await apiPatch("senders", { FromAddress: fromAddress, Status: status });
+      const sender = senders.find((s) => s.FromAddress === fromAddress);
+      await apiPatch("senders", {
+        FromAddress: fromAddress,
+        Status: updates.Status ?? sender?.Status ?? "normal",
+        Category: updates.Category ?? (sender?.Category !== sender?.AutoCategory ? sender?.Category : "") ?? "",
+      });
       setSenders((prev) =>
-        prev.map((s) =>
-          s.FromAddress === fromAddress ? { ...s, Status: status } : s
-        )
+        prev.map((s) => {
+          if (s.FromAddress !== fromAddress) return s;
+          return {
+            ...s,
+            ...(updates.Status !== undefined && { Status: updates.Status }),
+            ...(updates.Category !== undefined && { Category: updates.Category || s.AutoCategory }),
+          };
+        })
       );
     } catch {
       // keep existing state
@@ -110,14 +142,54 @@ export default function SendersPage() {
     setSuggestions([]);
   };
 
+  const filteredSenders = categoryFilter === "all"
+    ? senders
+    : senders.filter((s) => s.Category === categoryFilter);
+
+  // Count senders per category
+  const categoryCounts = senders.reduce<Record<string, number>>((acc, s) => {
+    const cat = s.Category || "other";
+    acc[cat] = (acc[cat] || 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-balance">Senders</h1>
         <span className="text-sm text-muted-foreground">
-          {senders.length} senders
+          {filteredSenders.length} of {senders.length} senders
         </span>
       </div>
+
+      {/* Category filter tabs */}
+      {!loading && senders.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setCategoryFilter("all")}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              categoryFilter === "all"
+                ? "bg-foreground text-background"
+                : "bg-muted text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            All ({senders.length})
+          </button>
+          {ALL_CATEGORIES.filter((cat) => categoryCounts[cat]).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(cat)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                categoryFilter === cat
+                  ? "bg-foreground text-background"
+                  : CATEGORY_COLORS[cat] + " hover:opacity-80"
+              }`}
+            >
+              {cat.charAt(0).toUpperCase() + cat.slice(1)} ({categoryCounts[cat]})
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Mute suggestions banner */}
       {suggestions.length > 0 && !dismissedSuggestions && (
@@ -183,9 +255,10 @@ export default function SendersPage() {
         </div>
       ) : (
         <div className="divide-y rounded-lg border">
-          {senders.map((sender) => {
+          {filteredSenders.map((sender) => {
             const name = sender.FromName || sender.FromAddress;
             const initial = name.charAt(0).toUpperCase();
+            const isOverridden = sender.Category !== sender.AutoCategory && sender.AutoCategory !== "";
 
             return (
               <div
@@ -199,20 +272,45 @@ export default function SendersPage() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">{name}</p>
+                    {sender.Category && (
+                      <span className={`hidden sm:inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[sender.Category] || CATEGORY_COLORS.other}`}>
+                        {sender.Category}
+                        {isOverridden && " *"}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {sender.FromAddress}
                   </p>
                 </div>
 
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
                   {sender.EmailCount} email{sender.EmailCount !== 1 ? "s" : ""}
                 </span>
 
                 <select
+                  value={sender.Category === sender.AutoCategory ? "" : sender.Category}
+                  onChange={(e) =>
+                    handleUpdate(sender.FromAddress, { Category: e.target.value })
+                  }
+                  disabled={updating === sender.FromAddress}
+                  className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-[100px] hidden sm:block"
+                >
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.value === "" && sender.AutoCategory
+                        ? `Auto (${sender.AutoCategory})`
+                        : opt.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
                   value={sender.Status}
                   onChange={(e) =>
-                    handleStatusChange(sender.FromAddress, e.target.value)
+                    handleUpdate(sender.FromAddress, { Status: e.target.value })
                   }
                   disabled={updating === sender.FromAddress}
                   className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring max-w-full sm:max-w-[120px]"

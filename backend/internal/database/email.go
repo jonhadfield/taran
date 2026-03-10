@@ -145,6 +145,13 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 		args = append(args, topicJSON)
 		argIdx++
 	}
+	if opts.Category != nil && *opts.Category != "" {
+		where = append(where, fmt.Sprintf(
+			"EXISTS (SELECT 1 FROM extraction ex WHERE ex.email_id = email.id AND ex.source_category = $%d)",
+			argIdx))
+		args = append(args, *opts.Category)
+		argIdx++
+	}
 
 	whereClause := strings.Join(where, " AND ")
 
@@ -404,8 +411,20 @@ func (r *EmailRepo) TopSenders(ctx context.Context, userID string, from, to time
 
 func (r *EmailRepo) ListSenders(ctx context.Context, userID string) ([]domain.SenderInfo, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT from_address, COALESCE(MAX(from_name), '') as from_name, COUNT(*) as cnt
-		 FROM email WHERE user_id = $1 GROUP BY from_address ORDER BY cnt DESC`,
+		`SELECT e.from_address,
+		        COALESCE(MAX(e.from_name), '') as from_name,
+		        COUNT(*) as cnt,
+		        COALESCE((
+		            SELECT ex.source_category
+		            FROM extraction ex
+		            JOIN email e2 ON e2.id = ex.email_id
+		            WHERE e2.user_id = $1 AND e2.from_address = e.from_address
+		              AND ex.source_category != ''
+		            GROUP BY ex.source_category
+		            ORDER BY COUNT(*) DESC
+		            LIMIT 1
+		        ), '') as auto_category
+		 FROM email e WHERE e.user_id = $1 GROUP BY e.from_address ORDER BY cnt DESC`,
 		userID)
 	if err != nil {
 		return nil, fmt.Errorf("list senders: %w", err)
@@ -415,7 +434,7 @@ func (r *EmailRepo) ListSenders(ctx context.Context, userID string) ([]domain.Se
 	var senders []domain.SenderInfo
 	for rows.Next() {
 		var s domain.SenderInfo
-		if err := rows.Scan(&s.FromAddress, &s.FromName, &s.EmailCount); err != nil {
+		if err := rows.Scan(&s.FromAddress, &s.FromName, &s.EmailCount, &s.AutoCategory); err != nil {
 			return nil, fmt.Errorf("scan sender info: %w", err)
 		}
 		senders = append(senders, s)

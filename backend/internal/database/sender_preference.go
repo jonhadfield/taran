@@ -19,10 +19,10 @@ func NewSenderPreferenceRepo(pool *pgxpool.Pool) *SenderPreferenceRepo {
 
 func (r *SenderPreferenceRepo) Upsert(ctx context.Context, pref *domain.SenderPreference) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO sender_preference (id, user_id, from_address, status, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6)
-		 ON CONFLICT (user_id, from_address) DO UPDATE SET status = $4, updated_at = $6`,
-		pref.ID, pref.UserID, pref.FromAddress, pref.Status, pref.CreatedAt, pref.UpdatedAt,
+		`INSERT INTO sender_preference (id, user_id, from_address, status, category, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 ON CONFLICT (user_id, from_address) DO UPDATE SET status = $4, category = $5, updated_at = $7`,
+		pref.ID, pref.UserID, pref.FromAddress, pref.Status, pref.Category, pref.CreatedAt, pref.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert sender preference: %w", err)
@@ -32,12 +32,12 @@ func (r *SenderPreferenceRepo) Upsert(ctx context.Context, pref *domain.SenderPr
 
 func (r *SenderPreferenceRepo) GetByAddress(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT id, user_id, from_address, status, created_at, updated_at
+		`SELECT id, user_id, from_address, status, category, created_at, updated_at
 		 FROM sender_preference WHERE user_id = $1 AND from_address = $2`,
 		userID, fromAddress)
 
 	var p domain.SenderPreference
-	err := row.Scan(&p.ID, &p.UserID, &p.FromAddress, &p.Status, &p.CreatedAt, &p.UpdatedAt)
+	err := row.Scan(&p.ID, &p.UserID, &p.FromAddress, &p.Status, &p.Category, &p.CreatedAt, &p.UpdatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
@@ -49,7 +49,7 @@ func (r *SenderPreferenceRepo) GetByAddress(ctx context.Context, userID, fromAdd
 
 func (r *SenderPreferenceRepo) ListByUser(ctx context.Context, userID string) ([]domain.SenderPreference, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, user_id, from_address, status, created_at, updated_at
+		`SELECT id, user_id, from_address, status, category, created_at, updated_at
 		 FROM sender_preference WHERE user_id = $1 ORDER BY updated_at DESC`,
 		userID)
 	if err != nil {
@@ -60,7 +60,7 @@ func (r *SenderPreferenceRepo) ListByUser(ctx context.Context, userID string) ([
 	var prefs []domain.SenderPreference
 	for rows.Next() {
 		var p domain.SenderPreference
-		if err := rows.Scan(&p.ID, &p.UserID, &p.FromAddress, &p.Status, &p.CreatedAt, &p.UpdatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.UserID, &p.FromAddress, &p.Status, &p.Category, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan sender preference: %w", err)
 		}
 		prefs = append(prefs, p)

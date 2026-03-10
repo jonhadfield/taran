@@ -79,16 +79,26 @@ func (r *ExtractionRepo) GetByEmailIDScoped(ctx context.Context, userID, emailID
 	return scanExtraction(row)
 }
 
-func (r *ExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT e.id, e.email_id, e.summary, e.key_points, e.topics, e.links, e.action_items,
+func (r *ExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID string, from, to time.Time, excludedCategories ...string) ([]domain.Extraction, error) {
+	if len(excludedCategories) == 0 {
+		excludedCategories = []string{"notification", "transactional", "marketing"}
+	}
+
+	query := `SELECT e.id, e.email_id, e.summary, e.key_points, e.topics, e.links, e.action_items,
 		    e.sentiment, e.source_category, e.provider, e.model, e.tokens_used, e.processed_at, e.created_at
 		 FROM extraction e
 		 JOIN email em ON em.id = e.email_id
 		 WHERE em.user_id = $1 AND em.received_at >= $2 AND em.received_at < $3
-		   AND em.status = 'processed'
-		   AND e.source_category NOT IN ('notification', 'transactional', 'marketing')
-		 ORDER BY em.received_at DESC`, userID, from, to)
+		   AND em.status = 'processed'`
+
+	args := []any{userID, from, to}
+	if len(excludedCategories) > 0 {
+		query += ` AND e.source_category != ALL($4)`
+		args = append(args, excludedCategories)
+	}
+	query += ` ORDER BY em.received_at DESC`
+
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list extractions: %w", err)
 	}

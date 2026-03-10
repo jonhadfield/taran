@@ -21,6 +21,7 @@ import { DigestDeliverySettings } from "./digest-delivery-settings";
 import { InboxDisplaySettings } from "./inbox-display-settings";
 import { DigestStyleSettings } from "./digest-style-settings";
 import { KeywordPreferencesSettings } from "./keyword-preferences-settings";
+import { DigestCategoriesSettings } from "./digest-categories-settings";
 import { UsageStatsCard } from "./usage-stats";
 import { useColorTheme } from "@/components/color-theme-provider";
 
@@ -66,6 +67,7 @@ export default function SettingsPage() {
   const [digestStyle, setDigestStyle] = useState("detailed");
   const [interestKeywords, setInterestKeywords] = useState<string[]>([]);
   const [exclusionKeywords, setExclusionKeywords] = useState<string[]>([]);
+  const [excludedCategories, setExcludedCategories] = useState<string[]>(["notification", "transactional", "marketing"]);
   const [prefLoading, setPrefLoading] = useState(true);
   const [prefSaving, setPrefSaving] = useState(false);
 
@@ -97,6 +99,7 @@ export default function SettingsPage() {
       setDigestStyle(pref.DigestStyle || "detailed");
       setInterestKeywords(pref.InterestKeywords || []);
       setExclusionKeywords(pref.ExclusionKeywords || []);
+      setExcludedCategories(pref.ExcludedCategories || ["notification", "transactional", "marketing"]);
       // Sync color theme from server (in case cookie was stale)
       if (pref.ColorTheme && pref.ColorTheme !== colorTheme) {
         setColorTheme(pref.ColorTheme as Parameters<typeof setColorTheme>[0]);
@@ -113,7 +116,7 @@ export default function SettingsPage() {
     fetchPreferences();
   }, []);
 
-  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme">>) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme" | "ExcludedCategories">>) => {
     setPrefSaving(true);
     try {
       const updated = await apiPatch<UserPreference>("preferences", updates);
@@ -126,6 +129,7 @@ export default function SettingsPage() {
       setDigestStyle(updated.DigestStyle || "detailed");
       setInterestKeywords(updated.InterestKeywords || []);
       setExclusionKeywords(updated.ExclusionKeywords || []);
+      setExcludedCategories(updated.ExcludedCategories || ["notification", "transactional", "marketing"]);
       toast.success("Preferences saved");
     } catch {
       toast.error("Failed to save preferences");
@@ -226,6 +230,16 @@ export default function SettingsPage() {
         onDigestStyleChange={(value) => {
           setDigestStyle(value);
           updatePreference({ DigestStyle: value });
+        }}
+      />
+
+      <DigestCategoriesSettings
+        excludedCategories={excludedCategories}
+        prefLoading={prefLoading}
+        prefSaving={prefSaving}
+        onExcludedCategoriesChange={(categories) => {
+          setExcludedCategories(categories);
+          updatePreference({ ExcludedCategories: categories });
         }}
       />
 

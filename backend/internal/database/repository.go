@@ -35,7 +35,7 @@ type ExtractionRepository interface {
 	GetByEmailIDScoped(ctx context.Context, userID, emailID string) (*domain.Extraction, error)
 	DeleteByEmailID(ctx context.Context, emailID string) error
 	DeleteByEmailIDScoped(ctx context.Context, userID, emailID string) error
-	ListByUserAndPeriod(ctx context.Context, userID string, from, to time.Time) ([]domain.Extraction, error)
+	ListByUserAndPeriod(ctx context.Context, userID string, from, to time.Time, excludedCategories ...string) ([]domain.Extraction, error)
 	ListTopicsByUser(ctx context.Context, userID string, limit int) ([]string, error)
 }
 
