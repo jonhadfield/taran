@@ -27,6 +27,7 @@ type EmailRepository interface {
 	TopSenders(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
 	ListSenders(ctx context.Context, userID string) ([]domain.SenderInfo, error)
 	CountByStatus(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
+	CountBySenderWeek(ctx context.Context, userID, fromAddress string, weeks int) ([]domain.WeekCount, error)
 }
 
 type ExtractionRepository interface {

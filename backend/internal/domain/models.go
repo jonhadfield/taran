@@ -29,9 +29,11 @@ type Email struct {
 	StatusReason   string
 	IsRead         bool
 	IsStarred      bool
-	IsArchived     bool
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	IsArchived        bool
+	UnsubscribeURL    string
+	UnsubscribeMailto string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type EmailState struct {

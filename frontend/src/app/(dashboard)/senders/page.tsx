@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderInfo, SenderSuggestion } from "@/types/api";
 import { Users, Loader2, X } from "lucide-react";
+import { SenderSparkline } from "./sender-sparkline";
 
 const avatarColors = [
   "bg-blue-500",
@@ -289,6 +290,10 @@ export default function SendersPage() {
                 <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
                   {sender.EmailCount} email{sender.EmailCount !== 1 ? "s" : ""}
                 </span>
+
+                <div className="hidden sm:block">
+                  <SenderSparkline fromAddress={sender.FromAddress} />
+                </div>
 
                 <select
                   value={sender.Category === sender.AutoCategory ? "" : sender.Category}

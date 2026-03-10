@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -104,6 +105,41 @@ func (h *SenderHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
+func (h *SenderHandler) History(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+
+	address := r.URL.Query().Get("address")
+	if address == "" {
+		WriteError(w, http.StatusBadRequest, "address query parameter is required")
+		return
+	}
+
+	weeks := 12
+	if wq := r.URL.Query().Get("weeks"); wq != "" {
+		n, err := strconv.Atoi(wq)
+		if err != nil || n < 1 {
+			WriteError(w, http.StatusBadRequest, "weeks must be a positive integer")
+			return
+		}
+		if n > 52 {
+			n = 52
+		}
+		weeks = n
+	}
+
+	counts, err := h.Emails.CountBySenderWeek(r.Context(), userID, address, weeks)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to get sender history")
+		return
+	}
+
+	if counts == nil {
+		counts = []domain.WeekCount{}
+	}
+
+	WriteJSON(w, http.StatusOK, counts)
 }
 
 type senderSuggestion struct {

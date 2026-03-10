@@ -81,9 +81,11 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 		HTMLBody:    parsed.HTMLBody,
 		ReceivedAt:  now,
 		DateHeader:  parsed.DateHeader,
-		Status:      domain.EmailStatusPending,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		Status:            domain.EmailStatusPending,
+		UnsubscribeURL:    parsed.UnsubscribeURL,
+		UnsubscribeMailto: parsed.UnsubscribeMailto,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 
 	if err := h.Emails.Create(r.Context(), emailRecord); err != nil {

@@ -3,6 +3,7 @@ package email
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jhillyerd/enmime"
@@ -15,15 +16,18 @@ type Attachment struct {
 }
 
 type ParsedEmail struct {
-	MessageID   string
-	From        string
-	FromName    string
-	To          string
-	Subject     string
-	TextBody    string
-	HTMLBody    string
-	DateHeader  time.Time
-	Attachments []Attachment
+	MessageID        string
+	From             string
+	FromName         string
+	To               string
+	Subject          string
+	TextBody         string
+	HTMLBody         string
+	DateHeader       time.Time
+	Attachments      []Attachment
+	UnsubscribeURL   string // HTTP(S) URL from List-Unsubscribe header
+	UnsubscribeMailto string // mailto address from List-Unsubscribe header
+	UnsubscribePost  bool   // true if List-Unsubscribe-Post header present (RFC 8058)
 }
 
 func Parse(raw []byte) (*ParsedEmail, error) {
@@ -58,17 +62,48 @@ func Parse(raw []byte) (*ParsedEmail, error) {
 		})
 	}
 
+	unsubURL, unsubMailto := parseListUnsubscribe(env.GetHeader("List-Unsubscribe"))
+	unsubPost := strings.Contains(env.GetHeader("List-Unsubscribe-Post"), "List-Unsubscribe=One-Click")
+
 	return &ParsedEmail{
-		MessageID:   env.GetHeader("Message-Id"),
-		From:        from,
-		FromName:    fromName,
-		To:          to,
-		Subject:     env.GetHeader("Subject"),
-		TextBody:    env.Text,
-		HTMLBody:    env.HTML,
-		DateHeader:  dateHeader,
-		Attachments: attachments,
+		MessageID:         env.GetHeader("Message-Id"),
+		From:              from,
+		FromName:          fromName,
+		To:                to,
+		Subject:           env.GetHeader("Subject"),
+		TextBody:          env.Text,
+		HTMLBody:          env.HTML,
+		DateHeader:        dateHeader,
+		Attachments:       attachments,
+		UnsubscribeURL:    unsubURL,
+		UnsubscribeMailto: unsubMailto,
+		UnsubscribePost:   unsubPost,
 	}, nil
+}
+
+// parseListUnsubscribe extracts HTTP and mailto URLs from a List-Unsubscribe header.
+// Format: <https://example.com/unsub>, <mailto:unsub@example.com>
+func parseListUnsubscribe(header string) (httpURL, mailto string) {
+	if header == "" {
+		return "", ""
+	}
+	for _, part := range strings.Split(header, ",") {
+		part = strings.TrimSpace(part)
+		// Strip angle brackets
+		part = strings.TrimPrefix(part, "<")
+		part = strings.TrimSuffix(part, ">")
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(part, "https://") || strings.HasPrefix(part, "http://") {
+			if httpURL == "" {
+				httpURL = part
+			}
+		} else if strings.HasPrefix(part, "mailto:") {
+			if mailto == "" {
+				mailto = strings.TrimPrefix(part, "mailto:")
+			}
+		}
+	}
+	return httpURL, mailto
 }
 
 func parseDate(s string) (time.Time, error) {

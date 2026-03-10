@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/database"
@@ -238,4 +240,57 @@ func intParam(r *http.Request, key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+var unsubscribeClient = &http.Client{Timeout: 10 * time.Second}
+
+func (h *EmailHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	id := r.PathValue("id")
+
+	email, err := h.Emails.GetByID(r.Context(), userID, id)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "email not found")
+		return
+	}
+
+	if email.UnsubscribeURL == "" && email.UnsubscribeMailto == "" {
+		WriteError(w, http.StatusNotFound, "no unsubscribe option available for this email")
+		return
+	}
+
+	// Prefer HTTP one-click unsubscribe (RFC 8058)
+	if email.UnsubscribeURL != "" {
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, email.UnsubscribeURL,
+			strings.NewReader("List-Unsubscribe=One-Click"))
+		if err != nil {
+			slog.Error("failed to create unsubscribe request", "url", email.UnsubscribeURL, "error", err)
+			// Fall back to redirect
+			WriteJSON(w, http.StatusOK, map[string]string{"status": "redirect", "url": email.UnsubscribeURL})
+			return
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		resp, err := unsubscribeClient.Do(req)
+		if err != nil {
+			slog.Warn("one-click unsubscribe POST failed, falling back to redirect", "url", email.UnsubscribeURL, "error", err)
+			WriteJSON(w, http.StatusOK, map[string]string{"status": "redirect", "url": email.UnsubscribeURL})
+			return
+		}
+		resp.Body.Close()
+
+		if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+			slog.Info("one-click unsubscribe succeeded", "emailID", id, "url", email.UnsubscribeURL)
+			WriteJSON(w, http.StatusOK, map[string]string{"status": "unsubscribed", "method": "one-click"})
+			return
+		}
+
+		// Server rejected the POST — fall back to redirect
+		slog.Warn("one-click unsubscribe returned non-success", "status", resp.StatusCode, "url", email.UnsubscribeURL)
+		WriteJSON(w, http.StatusOK, map[string]string{"status": "redirect", "url": email.UnsubscribeURL})
+		return
+	}
+
+	// Mailto fallback
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "mailto", "address": email.UnsubscribeMailto})
 }

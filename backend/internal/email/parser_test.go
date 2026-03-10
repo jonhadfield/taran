@@ -150,3 +150,55 @@ func TestParse_InvalidMIME(t *testing.T) {
 		t.Error("expected error for invalid MIME, got nil")
 	}
 }
+
+func TestParseListUnsubscribe(t *testing.T) {
+	tests := []struct {
+		name      string
+		header    string
+		wantURL   string
+		wantEmail string
+	}{
+		{
+			name:      "both URL and mailto",
+			header:    "<https://example.com/unsub>, <mailto:unsub@example.com>",
+			wantURL:   "https://example.com/unsub",
+			wantEmail: "unsub@example.com",
+		},
+		{
+			name:      "URL only",
+			header:    "<https://example.com/unsub>",
+			wantURL:   "https://example.com/unsub",
+			wantEmail: "",
+		},
+		{
+			name:      "mailto only",
+			header:    "<mailto:leave@list.example.com>",
+			wantURL:   "",
+			wantEmail: "leave@list.example.com",
+		},
+		{
+			name:      "empty header",
+			header:    "",
+			wantURL:   "",
+			wantEmail: "",
+		},
+		{
+			name:      "http URL",
+			header:    "<http://example.com/unsub?id=123>",
+			wantURL:   "http://example.com/unsub?id=123",
+			wantEmail: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotURL, gotEmail := parseListUnsubscribe(tt.header)
+			if gotURL != tt.wantURL {
+				t.Errorf("URL = %q, want %q", gotURL, tt.wantURL)
+			}
+			if gotEmail != tt.wantEmail {
+				t.Errorf("Email = %q, want %q", gotEmail, tt.wantEmail)
+			}
+		})
+	}
+}

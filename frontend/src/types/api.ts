@@ -16,6 +16,8 @@ export interface Email {
   IsRead: boolean;
   IsStarred: boolean;
   IsArchived: boolean;
+  UnsubscribeURL: string;
+  UnsubscribeMailto: string;
   CreatedAt: string;
   UpdatedAt: string;
 }

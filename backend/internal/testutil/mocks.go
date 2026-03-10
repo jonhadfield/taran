@@ -34,6 +34,7 @@ type MockEmailRepo struct {
 	TopSendersFn        func(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
 	ListSendersFn       func(ctx context.Context, userID string) ([]domain.SenderInfo, error)
 	CountByStatusFn       func(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
+	CountBySenderWeekFn   func(ctx context.Context, userID, fromAddress string, weeks int) ([]domain.WeekCount, error)
 	BatchUpdateStateFn    func(ctx context.Context, userID string, ids []string, state domain.EmailState) error
 	BatchDeleteFn         func(ctx context.Context, userID string, ids []string) error
 
@@ -191,6 +192,13 @@ func (m *MockEmailRepo) BatchDelete(ctx context.Context, userID string, ids []st
 		return m.BatchDeleteFn(ctx, userID, ids)
 	}
 	return nil
+}
+
+func (m *MockEmailRepo) CountBySenderWeek(ctx context.Context, userID, fromAddress string, weeks int) ([]domain.WeekCount, error) {
+	if m.CountBySenderWeekFn != nil {
+		return m.CountBySenderWeekFn(ctx, userID, fromAddress, weeks)
+	}
+	return nil, nil
 }
 
 // MockExtractionRepo implements database.ExtractionRepository for testing.

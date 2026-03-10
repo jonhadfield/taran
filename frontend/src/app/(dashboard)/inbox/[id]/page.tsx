@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
 import { FeedbackButtons } from "./feedback-buttons";
 import { ReprocessButton } from "./reprocess-button";
+import { UnsubscribeButton } from "./unsubscribe-button";
 import dynamic from "next/dynamic";
 
 const EmailContentCard = dynamic(
@@ -85,6 +86,10 @@ export default async function EmailDetailPage({
           </div>
           <EmailActions email={email} />
         </div>
+
+        {(email.UnsubscribeURL || email.UnsubscribeMailto) && (
+          <UnsubscribeButton emailId={id} />
+        )}
 
         <Separator />
 
