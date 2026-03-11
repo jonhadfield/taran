@@ -237,6 +237,15 @@ type AdminStats struct {
 	DefaultMonthlyTokenLimit int           `json:"DefaultMonthlyTokenLimit"`
 }
 
+type AdminUser struct {
+	ID                string `json:"ID"`
+	Email             string `json:"Email"`
+	Name              string `json:"Name"`
+	EmailCount        int    `json:"EmailCount"`
+	MonthlyTokensUsed int    `json:"MonthlyTokensUsed"`
+	MonthlyTokenLimit int    `json:"MonthlyTokenLimit"`
+}
+
 type WeekCount struct {
 	Week  time.Time `json:"Week"`
 	Count int       `json:"Count"`

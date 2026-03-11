@@ -86,6 +86,61 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, stats)
 }
 
+func (h *AdminStatsHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	monthStart := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	rows, err := h.Pool.Query(ctx, `
+		SELECT
+			u.id,
+			u.email,
+			COALESCE(u.name, '') as name,
+			COALESCE(ec.cnt, 0) as email_count,
+			COALESCE(tu.tokens, 0) as monthly_tokens,
+			COALESCE(p.monthly_token_limit, 0) as token_limit
+		FROM "user" u
+		LEFT JOIN (
+			SELECT user_id, COUNT(*) as cnt FROM email GROUP BY user_id
+		) ec ON ec.user_id = u.id
+		LEFT JOIN (
+			SELECT user_id, SUM(total_tokens) as tokens
+			FROM token_usage WHERE created_at >= $1
+			GROUP BY user_id
+		) tu ON tu.user_id = u.id
+		LEFT JOIN user_preference p ON p.user_id = u.id
+		ORDER BY COALESCE(tu.tokens, 0) DESC`, monthStart)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to list users")
+		return
+	}
+	defer rows.Close()
+
+	defaultLimit := 500000
+	if h.AppSettings != nil {
+		if v, err := h.AppSettings.GetInt(ctx, "default_monthly_token_limit", 500000); err == nil {
+			defaultLimit = v
+		}
+	}
+
+	var users []domain.AdminUser
+	for rows.Next() {
+		var u domain.AdminUser
+		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.EmailCount, &u.MonthlyTokensUsed, &u.MonthlyTokenLimit); err != nil {
+			continue
+		}
+		// If user has no custom limit, show the global default
+		if u.MonthlyTokenLimit == 0 {
+			u.MonthlyTokenLimit = defaultLimit
+		}
+		users = append(users, u)
+	}
+	if users == nil {
+		users = []domain.AdminUser{}
+	}
+
+	WriteJSON(w, http.StatusOK, users)
+}
+
 func (h *AdminStatsHandler) SetDefaultTokenLimit(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		DefaultMonthlyTokenLimit int `json:"DefaultMonthlyTokenLimit"`

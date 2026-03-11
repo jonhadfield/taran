@@ -101,6 +101,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	admin.HandleFunc("POST /api/admin/digests/{id}/send", deps.DigestHandler.SendEmail)
 	admin.HandleFunc("POST /api/admin/digests/generate", deps.DigestHandler.Generate)
 	admin.HandleFunc("GET /api/admin/stats", deps.AdminStatsHandler.Get)
+	admin.HandleFunc("GET /api/admin/users", deps.AdminStatsHandler.ListUsers)
 	admin.HandleFunc("POST /api/admin/invites", deps.InviteHandler.Create)
 	admin.HandleFunc("GET /api/admin/invites", deps.InviteHandler.List)
 	admin.HandleFunc("GET /api/admin/waitlist", deps.WaitlistHandler.List)

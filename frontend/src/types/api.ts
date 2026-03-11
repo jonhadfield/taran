@@ -181,6 +181,15 @@ export interface AdminStats {
   DefaultMonthlyTokenLimit: number;
 }
 
+export interface AdminUser {
+  ID: string;
+  Email: string;
+  Name: string;
+  EmailCount: number;
+  MonthlyTokensUsed: number;
+  MonthlyTokenLimit: number;
+}
+
 export interface UsageStats {
   MonthlyTokensUsed: number;
   MonthlyTokenLimit: number;
