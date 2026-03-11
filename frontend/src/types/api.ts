@@ -18,6 +18,7 @@ export interface Email {
   IsArchived: boolean;
   UnsubscribeURL: string;
   UnsubscribeMailto: string;
+  RetryCount: number;
   CreatedAt: string;
   UpdatedAt: string;
 }
@@ -177,6 +178,7 @@ export interface AdminStats {
   LLMProvider: string;
   LLMModel: string;
   MonthlyTokensUsed: number;
+  DefaultMonthlyTokenLimit: number;
 }
 
 export interface UsageStats {

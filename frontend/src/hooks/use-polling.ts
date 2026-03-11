@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiGet } from "@/lib/api";
 
 interface PollingResult<T> {
   data: T;
   loading: boolean;
   error: string | null;
+  refresh: () => void;
 }
 
 export function usePolling<T>(
@@ -17,11 +18,14 @@ export function usePolling<T>(
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshCount, setRefreshCount] = useState(0);
+
+  const refresh = useCallback(() => setRefreshCount((c) => c + 1), []);
 
   useEffect(() => {
     let cancelled = false;
 
-    // Fetch immediately when path changes
+    // Fetch immediately when path changes or refresh is called
     apiGet<T>(path)
       .then((res) => {
         if (!cancelled) {
@@ -55,7 +59,7 @@ export function usePolling<T>(
       cancelled = true;
       clearInterval(id);
     };
-  }, [path, intervalMs]);
+  }, [path, intervalMs, refreshCount]);
 
-  return { data, loading, error };
+  return { data, loading, error, refresh };
 }

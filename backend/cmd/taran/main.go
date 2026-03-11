@@ -64,7 +64,9 @@ func main() {
 	extractionRepo := database.NewExtractionRepo(pool)
 	digestRepo := database.NewDigestRepo(pool)
 	sessionRepo := database.NewSessionRepo(pool)
+	appSettingRepo := database.NewAppSettingRepo(pool)
 	preferenceRepo := database.NewPreferenceRepo(pool)
+	preferenceRepo.AppSettings = appSettingRepo
 	senderPrefRepo := database.NewSenderPreferenceRepo(pool)
 	feedbackRepo := database.NewFeedbackRepo(pool)
 	inviteRepo := database.NewInviteRepo(pool)
@@ -85,7 +87,7 @@ func main() {
 	}
 
 	// Background worker
-	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, provider, senderPrefRepo, tokenUsageRepo)
+	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, provider, senderPrefRepo, tokenUsageRepo, preferenceRepo)
 	proc.Start(ctx)
 
 	// Mailer (optional — disabled if no Resend API key)
@@ -118,6 +120,7 @@ func main() {
 		Provider:    provider,
 		SenderPrefs: senderPrefRepo,
 		TokenUsage:  tokenUsageRepo,
+		Preferences: preferenceRepo,
 	}
 	emailHandler := &handler.EmailHandler{
 		Emails:      emailRepo,
@@ -174,6 +177,8 @@ func main() {
 		LLMProvider: provider.Name(),
 		LLMModel:    provider.Model(),
 		TokenUsage:  tokenUsageRepo,
+		Preferences: preferenceRepo,
+		AppSettings: appSettingRepo,
 	}
 	inviteHandler := &handler.InviteHandler{
 		Invites:     inviteRepo,

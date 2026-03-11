@@ -22,13 +22,13 @@ func (r *EmailRepo) Create(ctx context.Context, email *domain.Email) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO email (id, user_id, email_account_id, message_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
 		email.ID, email.UserID, email.AccountID, email.MessageID,
 		email.FromAddress, email.FromName, email.ToAddress, email.Subject,
 		email.TextBody, email.HTMLBody, email.ReceivedAt, email.DateHeader,
 		email.Status, email.StatusReason, email.IsRead, email.IsStarred, email.IsArchived,
-		email.UnsubscribeURL, email.UnsubscribeMailto,
+		email.UnsubscribeURL, email.UnsubscribeMailto, email.RetryCount,
 		email.CreatedAt, email.UpdatedAt,
 	)
 	if err != nil {
@@ -41,7 +41,7 @@ func (r *EmailRepo) GetByID(ctx context.Context, userID, id string) (*domain.Ema
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, email_account_id, message_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, created_at, updated_at
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, created_at, updated_at
 		 FROM email WHERE id = $1 AND user_id = $2`, id, userID)
 
 	return scanEmail(row)
@@ -51,7 +51,7 @@ func (r *EmailRepo) GetByIDInternal(ctx context.Context, id string) (*domain.Ema
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, email_account_id, message_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, created_at, updated_at
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, created_at, updated_at
 		 FROM email WHERE id = $1`, id)
 
 	return scanEmail(row)
@@ -64,7 +64,7 @@ func (r *EmailRepo) GetByIDsInternal(ctx context.Context, ids []string) ([]domai
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, email_account_id, message_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, created_at, updated_at
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, created_at, updated_at
 		 FROM email WHERE id = ANY($1)`, ids)
 	if err != nil {
 		return nil, fmt.Errorf("get emails by ids: %w", err)
@@ -89,7 +89,7 @@ func (r *EmailRepo) GetByMessageID(ctx context.Context, messageID string) (*doma
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, email_account_id, message_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, created_at, updated_at
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, created_at, updated_at
 		 FROM email WHERE message_id = $1`, messageID)
 
 	return scanEmail(row)
@@ -187,7 +187,7 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 	query := fmt.Sprintf(
 		`SELECT id, user_id, email_account_id, message_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, created_at, updated_at
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, created_at, updated_at
 		 FROM email WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d`,
 		whereClause, orderBy, argIdx, argIdx+1)
 	args = append(args, limit, offset)
@@ -335,7 +335,7 @@ func (r *EmailRepo) ListPending(ctx context.Context, limit int) ([]domain.Email,
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, email_account_id, message_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, created_at, updated_at
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, created_at, updated_at
 		 FROM email WHERE status = 'pending' ORDER BY created_at LIMIT $1`, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list pending: %w", err)
@@ -351,6 +351,56 @@ func (r *EmailRepo) ListPending(ctx context.Context, limit int) ([]domain.Email,
 		emails = append(emails, *e)
 	}
 	return emails, nil
+}
+
+func (r *EmailRepo) ListRetryable(ctx context.Context, maxRetries, limit int) ([]domain.Email, error) {
+	// Find failed emails where:
+	// 1. retry_count < maxRetries
+	// 2. enough time has passed since last update (exponential backoff: 5min, 20min, 80min, ...)
+	// 3. failure reason is retryable (not "email has no content", "sender is blocked")
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, user_id, email_account_id, message_id, from_address, from_name,
+		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, created_at, updated_at
+		 FROM email
+		 WHERE status = 'failed'
+		   AND retry_count < $1
+		   AND status_reason NOT IN ('email has no content', 'sender is blocked')
+		   AND updated_at < NOW() - (INTERVAL '5 minutes' * POWER(4, retry_count))
+		 ORDER BY updated_at ASC
+		 LIMIT $2`, maxRetries, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list retryable: %w", err)
+	}
+	defer rows.Close()
+
+	var emails []domain.Email
+	for rows.Next() {
+		e, err := scanEmailRows(rows)
+		if err != nil {
+			return nil, err
+		}
+		emails = append(emails, *e)
+	}
+	return emails, nil
+}
+
+func (r *EmailRepo) IncrementRetryCount(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx,
+		"UPDATE email SET retry_count = retry_count + 1, updated_at = NOW() WHERE id = $1", id)
+	if err != nil {
+		return fmt.Errorf("increment retry count: %w", err)
+	}
+	return nil
+}
+
+func (r *EmailRepo) ResetRetryCount(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx,
+		"UPDATE email SET retry_count = 0, updated_at = NOW() WHERE id = $1", id)
+	if err != nil {
+		return fmt.Errorf("reset retry count: %w", err)
+	}
+	return nil
 }
 
 func (r *EmailRepo) SetStatus(ctx context.Context, id string, status domain.EmailStatus, reason string) error {
@@ -543,7 +593,7 @@ func scanEmail(row scannable) (*domain.Email, error) {
 		&e.FromAddress, &e.FromName, &e.ToAddress, &e.Subject,
 		&e.TextBody, &e.HTMLBody, &e.ReceivedAt, &e.DateHeader,
 		&e.Status, &e.StatusReason, &e.IsRead, &e.IsStarred, &e.IsArchived,
-		&e.UnsubscribeURL, &e.UnsubscribeMailto,
+		&e.UnsubscribeURL, &e.UnsubscribeMailto, &e.RetryCount,
 		&e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {

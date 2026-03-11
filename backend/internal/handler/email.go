@@ -236,6 +236,9 @@ func (h *EmailHandler) Reprocess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Reset retry count so manual reprocess starts fresh
+	_ = h.Emails.ResetRetryCount(r.Context(), id)
+
 	h.Processor.Enqueue(id)
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "queued"})

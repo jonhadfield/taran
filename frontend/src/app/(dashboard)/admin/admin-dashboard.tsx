@@ -1,9 +1,20 @@
 "use client";
 
+import { useState } from "react";
+import { toast } from "sonner";
 import { usePolling } from "@/hooks/use-polling";
+import { apiPatch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import type { AdminStats } from "@/types/api";
 import { Users, Mail, BookOpen, TrendingUp, Cpu, Gauge } from "lucide-react";
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
+}
 
 const emptyStats: AdminStats = {
   TotalUsers: 0,
@@ -16,10 +27,14 @@ const emptyStats: AdminStats = {
   LLMProvider: "",
   LLMModel: "",
   MonthlyTokensUsed: 0,
+  DefaultMonthlyTokenLimit: 0,
 };
 
 export function AdminDashboard() {
-  const { data: stats } = usePolling<AdminStats>("admin/stats", emptyStats, 30_000);
+  const { data: stats, refresh } = usePolling<AdminStats>("admin/stats", emptyStats, 30_000);
+  const [editingLimit, setEditingLimit] = useState(false);
+  const [limitValue, setLimitValue] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const cards = [
     {
@@ -47,6 +62,25 @@ export function AdminDashboard() {
       icon: TrendingUp,
     },
   ];
+
+  const handleSaveLimit = async () => {
+    const parsed = parseInt(limitValue, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      toast.error("Enter a valid number (0 for unlimited)");
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiPatch("admin/settings/token-limit", { DefaultMonthlyTokenLimit: parsed });
+      toast.success("Default token limit updated");
+      setEditingLimit(false);
+      refresh();
+    } catch {
+      toast.error("Failed to update token limit");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -94,15 +128,46 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.MonthlyTokensUsed >= 1_000_000
-                ? `${(stats.MonthlyTokensUsed / 1_000_000).toFixed(1)}M`
-                : stats.MonthlyTokensUsed >= 1_000
-                ? `${(stats.MonthlyTokensUsed / 1_000).toFixed(1)}K`
-                : stats.MonthlyTokensUsed}
+              {formatTokens(stats.MonthlyTokensUsed)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               tokens this month (all users)
             </p>
+            <div className="mt-3 pt-3 border-t">
+              <p className="text-xs text-muted-foreground mb-1">Default limit per user</p>
+              {editingLimit ? (
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={limitValue}
+                    onChange={(e) => setLimitValue(e.target.value)}
+                    placeholder="0 = unlimited"
+                    className="h-8 w-32 text-sm"
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveLimit()}
+                  />
+                  <Button size="sm" variant="default" onClick={handleSaveLimit} disabled={saving}>
+                    {saving ? "..." : "Save"}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingLimit(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setLimitValue(String(stats.DefaultMonthlyTokenLimit));
+                    setEditingLimit(true);
+                  }}
+                  className="text-sm font-medium hover:underline cursor-pointer"
+                >
+                  {stats.DefaultMonthlyTokenLimit > 0
+                    ? formatTokens(stats.DefaultMonthlyTokenLimit)
+                    : "Unlimited"}{" "}
+                  <span className="text-xs text-muted-foreground">(click to edit)</span>
+                </button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -32,6 +32,7 @@ type Email struct {
 	IsArchived        bool
 	UnsubscribeURL    string
 	UnsubscribeMailto string
+	RetryCount        int
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
@@ -232,7 +233,8 @@ type AdminStats struct {
 	TopGlobalSenders    []SenderCount `json:"TopGlobalSenders"`
 	LLMProvider         string        `json:"LLMProvider"`
 	LLMModel            string        `json:"LLMModel"`
-	MonthlyTokensUsed   int           `json:"MonthlyTokensUsed"`
+	MonthlyTokensUsed        int           `json:"MonthlyTokensUsed"`
+	DefaultMonthlyTokenLimit int           `json:"DefaultMonthlyTokenLimit"`
 }
 
 type WeekCount struct {

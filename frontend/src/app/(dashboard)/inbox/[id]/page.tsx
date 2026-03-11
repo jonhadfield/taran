@@ -103,6 +103,16 @@ export default async function EmailDetailPage({
               {email.StatusReason && (
                 <p className="text-sm text-muted-foreground">{email.StatusReason}</p>
               )}
+              {email.Status === "failed" && email.RetryCount > 0 && email.RetryCount < 5 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Retried {email.RetryCount} time{email.RetryCount !== 1 ? "s" : ""}, will retry again automatically
+                </p>
+              )}
+              {email.Status === "failed" && email.RetryCount >= 5 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Auto-retry exhausted after {email.RetryCount} attempts
+                </p>
+              )}
               <ReprocessButton emailId={id} />
             </div>
           </div>

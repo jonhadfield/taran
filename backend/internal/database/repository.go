@@ -29,6 +29,9 @@ type EmailRepository interface {
 	CountByStatus(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
 	CountBySenderWeek(ctx context.Context, userID, fromAddress string, weeks int) ([]domain.WeekCount, error)
 	GetSenderDetail(ctx context.Context, userID, fromAddress string) (*domain.SenderDetail, error)
+	ListRetryable(ctx context.Context, maxRetries, limit int) ([]domain.Email, error)
+	IncrementRetryCount(ctx context.Context, id string) error
+	ResetRetryCount(ctx context.Context, id string) error
 }
 
 type ExtractionRepository interface {

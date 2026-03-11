@@ -25,6 +25,7 @@ type WebhookHandler struct {
 	Provider    llm.Provider
 	SenderPrefs database.SenderPreferenceRepository
 	TokenUsage  database.TokenUsageRepository
+	Preferences database.PreferenceRepository
 }
 
 func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +123,7 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 
 	// Process extraction synchronously so the summary is available immediately
 	if h.Provider != nil {
-		worker.ProcessEmail(r.Context(), emailRecord.ID, h.Emails, h.Extractions, h.Provider, h.SenderPrefs, h.TokenUsage)
+		worker.ProcessEmail(r.Context(), emailRecord.ID, h.Emails, h.Extractions, h.Provider, h.SenderPrefs, h.TokenUsage, h.Preferences)
 	}
 
 	WriteJSON(w, http.StatusAccepted, map[string]string{

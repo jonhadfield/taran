@@ -19,6 +19,8 @@ const (
 	sweepInterval     = 5 * time.Minute
 	sweepBatchSize    = 100
 	startupRequeueMax = 500
+	retryMaxAttempts  = 5 // max auto-retries for failed emails (backoff: 5m, 20m, 80m, 320m, 1280m)
+	retryBatchSize    = 20
 )
 
 type Processor struct {
@@ -29,6 +31,7 @@ type Processor struct {
 	provider    llm.Provider
 	senderPrefs database.SenderPreferenceRepository
 	tokenUsage  database.TokenUsageRepository
+	preferences database.PreferenceRepository
 	wg          sync.WaitGroup
 	concurrency int
 }
@@ -40,6 +43,7 @@ func NewProcessor(
 	provider llm.Provider,
 	senderPrefs database.SenderPreferenceRepository,
 	tokenUsage database.TokenUsageRepository,
+	preferences database.PreferenceRepository,
 ) *Processor {
 	return &Processor{
 		queue:       make(chan string, bufferSize),
@@ -49,6 +53,7 @@ func NewProcessor(
 		provider:    provider,
 		senderPrefs: senderPrefs,
 		tokenUsage:  tokenUsage,
+		preferences: preferences,
 		concurrency: concurrency,
 	}
 }
@@ -112,30 +117,65 @@ func (p *Processor) sweeper(ctx context.Context) {
 		case <-p.done:
 			return
 		case <-ticker.C:
-			pending, err := p.emails.ListPending(ctx, sweepBatchSize)
-			if err != nil {
-				slog.Error("sweeper: failed to list pending emails", "error", err)
-				continue
-			}
-			if len(pending) > 0 {
-				enqueued := 0
-				for _, e := range pending {
-					select {
-					case p.queue <- e.ID:
-						enqueued++
-					default:
-						// Queue full, stop trying
-						break
-					}
-				}
-				slog.Info("sweeper: re-queued orphaned emails", "found", len(pending), "enqueued", enqueued)
-			}
+			p.sweepPending(ctx)
+			p.sweepRetryable(ctx)
 		}
 	}
 }
 
+func (p *Processor) sweepPending(ctx context.Context) {
+	pending, err := p.emails.ListPending(ctx, sweepBatchSize)
+	if err != nil {
+		slog.Error("sweeper: failed to list pending emails", "error", err)
+		return
+	}
+	if len(pending) == 0 {
+		return
+	}
+	enqueued := 0
+	for _, e := range pending {
+		select {
+		case p.queue <- e.ID:
+			enqueued++
+		default:
+			break
+		}
+	}
+	slog.Info("sweeper: re-queued orphaned emails", "found", len(pending), "enqueued", enqueued)
+}
+
+func (p *Processor) sweepRetryable(ctx context.Context) {
+	retryable, err := p.emails.ListRetryable(ctx, retryMaxAttempts, retryBatchSize)
+	if err != nil {
+		slog.Error("sweeper: failed to list retryable emails", "error", err)
+		return
+	}
+	if len(retryable) == 0 {
+		return
+	}
+	enqueued := 0
+	for _, e := range retryable {
+		// Increment retry count and reset to pending before enqueuing
+		if err := p.emails.IncrementRetryCount(ctx, e.ID); err != nil {
+			slog.Error("sweeper: failed to increment retry count", "emailID", e.ID, "error", err)
+			continue
+		}
+		if err := p.emails.SetStatus(ctx, e.ID, domain.EmailStatusPending, ""); err != nil {
+			slog.Error("sweeper: failed to reset status for retry", "emailID", e.ID, "error", err)
+			continue
+		}
+		select {
+		case p.queue <- e.ID:
+			enqueued++
+		default:
+			break
+		}
+	}
+	slog.Info("sweeper: retrying failed emails", "found", len(retryable), "enqueued", enqueued)
+}
+
 func (p *Processor) processEmail(ctx context.Context, emailID string) {
-	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.provider, p.senderPrefs, p.tokenUsage)
+	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.provider, p.senderPrefs, p.tokenUsage, p.preferences)
 }
 
 // ProcessEmail runs LLM extraction on a single email. It can be called
@@ -148,6 +188,7 @@ func ProcessEmail(
 	provider llm.Provider,
 	senderPrefs database.SenderPreferenceRepository,
 	tokenUsage database.TokenUsageRepository,
+	preferences database.PreferenceRepository,
 ) {
 	logger := slog.With("emailID", emailID)
 
@@ -170,6 +211,19 @@ func ProcessEmail(
 			logger.Info("sender is blocked, skipping", "from", em.FromAddress)
 			emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped, "sender is blocked")
 			return
+		}
+	}
+
+	// Check monthly token limit
+	if preferences != nil && tokenUsage != nil {
+		pref, err := preferences.Get(ctx, em.UserID)
+		if err == nil && pref.MonthlyTokenLimit > 0 {
+			used, err := tokenUsage.GetMonthlyTotal(ctx, em.UserID)
+			if err == nil && used >= pref.MonthlyTokenLimit {
+				logger.Warn("monthly token limit exceeded", "used", used, "limit", pref.MonthlyTokenLimit)
+				emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped, "monthly token limit exceeded")
+				return
+			}
 		}
 	}
 

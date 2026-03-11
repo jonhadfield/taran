@@ -12,11 +12,22 @@ import (
 )
 
 type PreferenceRepo struct {
-	pool *pgxpool.Pool
+	pool        *pgxpool.Pool
+	AppSettings *AppSettingRepo
 }
 
 func NewPreferenceRepo(pool *pgxpool.Pool) *PreferenceRepo {
 	return &PreferenceRepo{pool: pool}
+}
+
+func (r *PreferenceRepo) defaultTokenLimit(ctx context.Context) int {
+	if r.AppSettings != nil {
+		limit, err := r.AppSettings.GetInt(ctx, "default_monthly_token_limit", 500000)
+		if err == nil {
+			return limit
+		}
+	}
+	return 500000
 }
 
 func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPreference, error) {
@@ -40,6 +51,7 @@ func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPr
 			InterestKeywords:   []string{},
 			ExclusionKeywords:  []string{},
 			ColorTheme:         "neutral",
+			MonthlyTokenLimit:  r.defaultTokenLimit(ctx),
 			ExcludedCategories: []string{"notification", "transactional", "marketing"},
 			CreatedAt:          time.Now(),
 			UpdatedAt:          time.Now(),
@@ -59,6 +71,10 @@ func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPr
 	}
 	if len(excludedCatsRaw) > 0 {
 		_ = json.Unmarshal(excludedCatsRaw, &p.ExcludedCategories)
+	}
+	// If user has no custom limit set, use the global default
+	if p.MonthlyTokenLimit == 0 {
+		p.MonthlyTokenLimit = r.defaultTokenLimit(ctx)
 	}
 	return &p, nil
 }

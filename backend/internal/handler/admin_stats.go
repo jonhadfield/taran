@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -14,6 +15,8 @@ type AdminStatsHandler struct {
 	LLMProvider string
 	LLMModel    string
 	TokenUsage  database.TokenUsageRepository
+	Preferences database.PreferenceRepository
+	AppSettings *database.AppSettingRepo
 }
 
 func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +71,11 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	stats.LLMProvider = h.LLMProvider
 	stats.LLMModel = h.LLMModel
 
+	if h.AppSettings != nil {
+		limit, _ := h.AppSettings.GetInt(ctx, "default_monthly_token_limit", 500000)
+		stats.DefaultMonthlyTokenLimit = limit
+	}
+
 	if h.TokenUsage != nil {
 		total, err := h.TokenUsage.GetGlobalMonthlyTotal(ctx)
 		if err == nil {
@@ -76,4 +84,66 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, stats)
+}
+
+func (h *AdminStatsHandler) SetDefaultTokenLimit(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		DefaultMonthlyTokenLimit int `json:"DefaultMonthlyTokenLimit"`
+	}
+	if err := LimitedJSONDecoder(r).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.DefaultMonthlyTokenLimit < 0 {
+		WriteError(w, http.StatusBadRequest, "token limit cannot be negative")
+		return
+	}
+
+	if err := h.AppSettings.Set(r.Context(), "default_monthly_token_limit", fmt.Sprintf("%d", req.DefaultMonthlyTokenLimit)); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to update default token limit")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]any{
+		"status":                   "updated",
+		"DefaultMonthlyTokenLimit": req.DefaultMonthlyTokenLimit,
+	})
+}
+
+func (h *AdminStatsHandler) SetUserTokenLimit(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("id")
+	if userID == "" {
+		WriteError(w, http.StatusBadRequest, "user id required")
+		return
+	}
+
+	var req struct {
+		MonthlyTokenLimit int `json:"MonthlyTokenLimit"`
+	}
+	if err := LimitedJSONDecoder(r).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.MonthlyTokenLimit < 0 {
+		WriteError(w, http.StatusBadRequest, "token limit cannot be negative")
+		return
+	}
+
+	pref, err := h.Preferences.Get(r.Context(), userID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to get user preferences")
+		return
+	}
+
+	pref.MonthlyTokenLimit = req.MonthlyTokenLimit
+	if err := h.Preferences.Upsert(r.Context(), pref); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to update token limit")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]any{
+		"status":            "updated",
+		"UserID":            userID,
+		"MonthlyTokenLimit": req.MonthlyTokenLimit,
+	})
 }

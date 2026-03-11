@@ -205,6 +205,18 @@ func (m *MockEmailRepo) GetSenderDetail(ctx context.Context, userID, fromAddress
 	return nil, nil
 }
 
+func (m *MockEmailRepo) ListRetryable(ctx context.Context, maxRetries, limit int) ([]domain.Email, error) {
+	return nil, nil
+}
+
+func (m *MockEmailRepo) IncrementRetryCount(ctx context.Context, id string) error {
+	return nil
+}
+
+func (m *MockEmailRepo) ResetRetryCount(ctx context.Context, id string) error {
+	return nil
+}
+
 // MockExtractionRepo implements database.ExtractionRepository for testing.
 type MockExtractionRepo struct {
 	CreateFn                func(ctx context.Context, extraction *domain.Extraction) error

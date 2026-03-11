@@ -105,6 +105,8 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	admin.HandleFunc("GET /api/admin/invites", deps.InviteHandler.List)
 	admin.HandleFunc("GET /api/admin/waitlist", deps.WaitlistHandler.List)
 	admin.HandleFunc("POST /api/admin/waitlist/{id}/approve", deps.WaitlistHandler.Approve)
+	admin.HandleFunc("PATCH /api/admin/users/{id}/token-limit", deps.AdminStatsHandler.SetUserTokenLimit)
+	admin.HandleFunc("PATCH /api/admin/settings/token-limit", deps.AdminStatsHandler.SetDefaultTokenLimit)
 	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(admin))
 
 	authedAPI := publicPathSkip(auth.APIKeyAuth(deps.APIKey, deps.SessionAuth.Middleware(api)), api)
