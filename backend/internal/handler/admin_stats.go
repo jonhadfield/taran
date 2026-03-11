@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -110,6 +111,7 @@ func (h *AdminStatsHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 		LEFT JOIN user_preference p ON p.user_id = u.id
 		ORDER BY COALESCE(tu.tokens, 0) DESC`, monthStart)
 	if err != nil {
+		slog.Error("admin: failed to query users", "error", err)
 		WriteError(w, http.StatusInternalServerError, "failed to list users")
 		return
 	}
@@ -125,9 +127,14 @@ func (h *AdminStatsHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	var users []domain.AdminUser
 	for rows.Next() {
 		var u domain.AdminUser
-		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.EmailCount, &u.MonthlyTokensUsed, &u.MonthlyTokenLimit); err != nil {
+		var emailCount, monthlyTokens, tokenLimit int64
+		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &emailCount, &monthlyTokens, &tokenLimit); err != nil {
+			slog.Error("admin: failed to scan user row", "error", err)
 			continue
 		}
+		u.EmailCount = int(emailCount)
+		u.MonthlyTokensUsed = int(monthlyTokens)
+		u.MonthlyTokenLimit = int(tokenLimit)
 		// If user has no custom limit, show the global default
 		if u.MonthlyTokenLimit == 0 {
 			u.MonthlyTokenLimit = defaultLimit
