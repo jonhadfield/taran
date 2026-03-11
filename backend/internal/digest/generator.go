@@ -344,10 +344,12 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 	for _, ext := range extractions {
 		if em, ok := emailMap[ext.EmailID]; ok {
 			digest.EmailSummaries = append(digest.EmailSummaries, domain.DigestEmailSummary{
-				EmailID:    ext.EmailID,
-				Subject:    em.Subject,
-				SenderName: em.FromName,
-				Summary:    ext.Summary,
+				EmailID:     ext.EmailID,
+				Subject:     em.Subject,
+				SenderName:  em.FromName,
+				Summary:     ext.Summary,
+				ActionItems: ext.ActionItems,
+				Category:    ext.SourceCategory,
 			})
 		}
 	}

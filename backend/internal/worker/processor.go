@@ -285,6 +285,15 @@ func ProcessEmail(
 		return
 	}
 
+	// Apply sender category override if user has set one
+	sourceCategory := result.SourceCategory
+	if senderPrefs != nil {
+		pref, _ := senderPrefs.GetByAddress(ctx, em.UserID, em.FromAddress)
+		if pref != nil && pref.Category != "" {
+			sourceCategory = pref.Category
+		}
+	}
+
 	now := time.Now()
 	extraction := &domain.Extraction{
 		ID:             uuid.New().String(),
@@ -295,7 +304,7 @@ func ProcessEmail(
 		Links:          result.Links,
 		ActionItems:    result.ActionItems,
 		Sentiment:      result.Sentiment,
-		SourceCategory: result.SourceCategory,
+		SourceCategory: sourceCategory,
 		Provider:       provider.Name(),
 		Model:          provider.Model(),
 		TokensUsed:     usage.TotalTokens,

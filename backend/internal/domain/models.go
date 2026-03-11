@@ -90,10 +90,12 @@ type Digest struct {
 }
 
 type DigestEmailSummary struct {
-	EmailID    string
-	Subject    string
-	SenderName string
-	Summary    string
+	EmailID     string
+	Subject     string
+	SenderName  string
+	Summary     string
+	ActionItems []string
+	Category    string
 }
 
 type DigestItem struct {
