@@ -134,6 +134,17 @@ export interface SenderInfo {
   AutoCategory: string;
 }
 
+export interface SenderDetail {
+  FromAddress: string;
+  FromName: string;
+  EmailCount: number;
+  Status: string;
+  Category: string;
+  AutoCategory: string;
+  FirstSeen: string;
+  LastSeen: string;
+}
+
 export interface SenderCount {
   FromAddress: string;
   FromName: string;

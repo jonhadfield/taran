@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderInfo, SenderSuggestion } from "@/types/api";
 import { Users, Loader2, X } from "lucide-react";
+import Link from "next/link";
 import { SenderSparkline } from "./sender-sparkline";
 
 const avatarColors = [
@@ -272,7 +273,10 @@ export default function SendersPage() {
                   {initial}
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <Link
+                  href={`/senders/${encodeURIComponent(sender.FromAddress)}`}
+                  className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
+                >
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium truncate">{name}</p>
                     {sender.Category && (
@@ -285,7 +289,7 @@ export default function SendersPage() {
                   <p className="text-xs text-muted-foreground truncate">
                     {sender.FromAddress}
                   </p>
-                </div>
+                </Link>
 
                 <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
                   {sender.EmailCount} email{sender.EmailCount !== 1 ? "s" : ""}

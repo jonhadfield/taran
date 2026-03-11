@@ -5,7 +5,7 @@ import { usePolling } from "@/hooks/use-polling";
 import type { Email, ListResponse } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Inbox, Search, X } from "lucide-react";
+import { Inbox, Search, X, SlidersHorizontal, Paperclip, Calendar } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import Link from "next/link";
 import { InboxFilters } from "./inbox-filters";
@@ -30,7 +30,20 @@ function getAvatarColor(name: string) {
 
 const PAGE_SIZE = 50;
 
-export function buildQueryString(filter: string, search: string, topic: string, limit: number, category?: string) {
+interface SearchFilters {
+  hasAttachment: boolean;
+  since: string;
+  before: string;
+}
+
+export function buildQueryString(
+  filter: string,
+  search: string,
+  topic: string,
+  limit: number,
+  category?: string,
+  searchFilters?: SearchFilters,
+) {
   const params = [`limit=${limit}`];
   if (filter === "unread") params.push("is_read=false");
   if (filter === "starred") params.push("is_starred=true");
@@ -38,6 +51,9 @@ export function buildQueryString(filter: string, search: string, topic: string, 
   if (search) params.push(`search=${encodeURIComponent(search)}`);
   if (topic) params.push(`topic=${encodeURIComponent(topic)}`);
   if (category) params.push(`category=${encodeURIComponent(category)}`);
+  if (searchFilters?.hasAttachment) params.push("has_attachment=true");
+  if (searchFilters?.since) params.push(`since=${searchFilters.since}`);
+  if (searchFilters?.before) params.push(`before=${searchFilters.before}`);
   return params.join("&");
 }
 
@@ -73,9 +89,20 @@ export function InboxList({
   const [activeCategory, setActiveCategory] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    hasAttachment: false,
+    since: "",
+    before: "",
+  });
   const topics = initialTopics;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const queryString = buildQueryString(filter, debouncedSearch, activeTopic, limit, activeCategory);
+  const activeFilterCount = [
+    searchFilters.hasAttachment,
+    searchFilters.since,
+    searchFilters.before,
+  ].filter(Boolean).length;
+  const queryString = buildQueryString(filter, debouncedSearch, activeTopic, limit, activeCategory, searchFilters);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -127,24 +154,110 @@ export function InboxList({
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search emails..."
-          aria-label="Search emails"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-8 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        />
-        {searchInput && (
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search emails..."
+              aria-label="Search emails"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-8 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            {searchInput && (
+              <button
+                onClick={() => setSearchInput("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            )}
+          </div>
           <button
-            onClick={() => setSearchInput("")}
-            aria-label="Clear search"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => setShowFilters(!showFilters)}
+            className={`inline-flex items-center gap-1.5 rounded-md border px-3 h-9 text-sm transition-colors ${
+              showFilters || activeFilterCount > 0
+                ? "bg-primary text-primary-foreground border-primary"
+                : "hover:bg-accent"
+            }`}
+            aria-label="Toggle search filters"
           >
-            <X className="size-4" />
+            <SlidersHorizontal className="size-3.5" />
+            <span className="hidden sm:inline">Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="inline-flex items-center justify-center size-5 rounded-full bg-background text-foreground text-xs font-medium">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
+        </div>
+
+        {/* Expanded filters */}
+        {showFilters && (
+          <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/30 p-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Calendar className="size-3" />
+                From
+              </label>
+              <input
+                type="date"
+                value={searchFilters.since}
+                onChange={(e) =>
+                  setSearchFilters((f) => ({ ...f, since: e.target.value }))
+                }
+                className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Calendar className="size-3" />
+                To
+              </label>
+              <input
+                type="date"
+                value={searchFilters.before}
+                onChange={(e) =>
+                  setSearchFilters((f) => ({ ...f, before: e.target.value }))
+                }
+                className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+            <label className="inline-flex items-center gap-2 h-8 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={searchFilters.hasAttachment}
+                onChange={(e) =>
+                  setSearchFilters((f) => ({
+                    ...f,
+                    hasAttachment: e.target.checked,
+                  }))
+                }
+                className="size-4 rounded border-input accent-primary"
+              />
+              <span className="flex items-center gap-1 text-xs font-medium">
+                <Paperclip className="size-3" />
+                Has attachment
+              </span>
+            </label>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={() =>
+                  setSearchFilters({
+                    hasAttachment: false,
+                    since: "",
+                    before: "",
+                  })
+                }
+                className="h-8 rounded-md border px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         )}
       </div>
 

@@ -58,6 +58,27 @@ func (h *EmailHandler) List(w http.ResponseWriter, r *http.Request) {
 	if v := r.URL.Query().Get("category"); v != "" {
 		opts.Category = &v
 	}
+	if v := r.URL.Query().Get("from_address"); v != "" {
+		opts.FromAddress = &v
+	}
+	if v := r.URL.Query().Get("has_attachment"); v == "true" {
+		b := true
+		opts.HasAttachment = &b
+	}
+	if v := r.URL.Query().Get("since"); v != "" {
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			opts.Since = &t
+		} else if t, err := time.Parse("2006-01-02", v); err == nil {
+			opts.Since = &t
+		}
+	}
+	if v := r.URL.Query().Get("before"); v != "" {
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			opts.Before = &t
+		} else if t, err := time.Parse("2006-01-02", v); err == nil {
+			opts.Before = &t
+		}
+	}
 
 	emails, total, err := h.Emails.List(r.Context(), userID, opts)
 	if err != nil {

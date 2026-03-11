@@ -131,12 +131,12 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 		argIdx++
 	}
 	if opts.Search != nil && *opts.Search != "" {
-		searchTerm := "%" + *opts.Search + "%"
+		// Full-text search on tsvector column, plus ILIKE fallback on from_address for exact email matches
 		where = append(where, fmt.Sprintf(
-			"(subject ILIKE $%d OR from_name ILIKE $%d OR from_address ILIKE $%d OR EXISTS (SELECT 1 FROM extraction ex WHERE ex.email_id = email.id AND ex.summary ILIKE $%d))",
-			argIdx, argIdx+1, argIdx+2, argIdx+3))
-		args = append(args, searchTerm, searchTerm, searchTerm, searchTerm)
-		argIdx += 4
+			"(search_tsv @@ plainto_tsquery('english', $%d) OR from_address ILIKE $%d)",
+			argIdx, argIdx+1))
+		args = append(args, *opts.Search, "%"+*opts.Search+"%")
+		argIdx += 2
 	}
 	if opts.Topic != nil && *opts.Topic != "" {
 		topicJSON := fmt.Sprintf(`[%q]`, *opts.Topic)
@@ -153,6 +153,14 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 		args = append(args, *opts.Category)
 		argIdx++
 	}
+	if opts.FromAddress != nil && *opts.FromAddress != "" {
+		where = append(where, fmt.Sprintf("from_address = $%d", argIdx))
+		args = append(args, *opts.FromAddress)
+		argIdx++
+	}
+	if opts.HasAttachment != nil && *opts.HasAttachment {
+		where = append(where, "EXISTS (SELECT 1 FROM email_attachment ea WHERE ea.email_id = email.id)")
+	}
 
 	whereClause := strings.Join(where, " AND ")
 
@@ -168,12 +176,20 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 	}
 	offset := opts.Offset
 
+	orderBy := "received_at DESC"
+	if opts.Search != nil && *opts.Search != "" {
+		// Rank by full-text relevance when searching, with date as tiebreaker
+		orderBy = fmt.Sprintf("ts_rank(search_tsv, plainto_tsquery('english', $%d)) DESC, received_at DESC", argIdx)
+		args = append(args, *opts.Search)
+		argIdx++
+	}
+
 	query := fmt.Sprintf(
 		`SELECT id, user_id, email_account_id, message_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
 		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, created_at, updated_at
-		 FROM email WHERE %s ORDER BY received_at DESC LIMIT $%d OFFSET $%d`,
-		whereClause, argIdx, argIdx+1)
+		 FROM email WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d`,
+		whereClause, orderBy, argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -462,6 +478,35 @@ func (r *EmailRepo) CountByStatus(ctx context.Context, userID string) (map[domai
 		counts[status] = count
 	}
 	return counts, nil
+}
+
+func (r *EmailRepo) GetSenderDetail(ctx context.Context, userID, fromAddress string) (*domain.SenderDetail, error) {
+	row := r.pool.QueryRow(ctx,
+		`SELECT e.from_address,
+		        COALESCE(MAX(e.from_name), '') as from_name,
+		        COUNT(*) as cnt,
+		        MIN(e.received_at) as first_seen,
+		        MAX(e.received_at) as last_seen,
+		        COALESCE((
+		            SELECT ex.source_category
+		            FROM extraction ex
+		            JOIN email e2 ON e2.id = ex.email_id
+		            WHERE e2.user_id = $1 AND e2.from_address = $2
+		              AND ex.source_category != ''
+		            GROUP BY ex.source_category
+		            ORDER BY COUNT(*) DESC
+		            LIMIT 1
+		        ), '') as auto_category
+		 FROM email e WHERE e.user_id = $1 AND e.from_address = $2
+		 GROUP BY e.from_address`,
+		userID, fromAddress)
+
+	var d domain.SenderDetail
+	err := row.Scan(&d.FromAddress, &d.FromName, &d.EmailCount, &d.FirstSeen, &d.LastSeen, &d.AutoCategory)
+	if err != nil {
+		return nil, fmt.Errorf("get sender detail: %w", err)
+	}
+	return &d, nil
 }
 
 func (r *EmailRepo) CountBySenderWeek(ctx context.Context, userID, fromAddress string, weeks int) ([]domain.WeekCount, error) {

@@ -201,6 +201,10 @@ func (m *MockEmailRepo) CountBySenderWeek(ctx context.Context, userID, fromAddre
 	return nil, nil
 }
 
+func (m *MockEmailRepo) GetSenderDetail(ctx context.Context, userID, fromAddress string) (*domain.SenderDetail, error) {
+	return nil, nil
+}
+
 // MockExtractionRepo implements database.ExtractionRepository for testing.
 type MockExtractionRepo struct {
 	CreateFn                func(ctx context.Context, extraction *domain.Extraction) error

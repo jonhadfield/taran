@@ -172,6 +172,17 @@ type SenderInfo struct {
 	AutoCategory string `json:"AutoCategory"` // most common LLM-detected category
 }
 
+type SenderDetail struct {
+	FromAddress  string    `json:"FromAddress"`
+	FromName     string    `json:"FromName"`
+	EmailCount   int       `json:"EmailCount"`
+	Status       string    `json:"Status"`
+	Category     string    `json:"Category"`
+	AutoCategory string    `json:"AutoCategory"`
+	FirstSeen    time.Time `json:"FirstSeen"`
+	LastSeen     time.Time `json:"LastSeen"`
+}
+
 type SenderCount struct {
 	FromAddress string `json:"FromAddress"`
 	FromName    string `json:"FromName"`
@@ -292,15 +303,17 @@ type UsageStats struct {
 }
 
 type ListOptions struct {
-	Limit      int
-	Offset     int
-	Status     *EmailStatus
-	IsRead     *bool
-	IsStarred  *bool
-	IsArchived *bool
-	Since      *time.Time
-	Before     *time.Time
-	Search     *string
-	Topic      *string
-	Category   *string
+	Limit         int
+	Offset        int
+	Status        *EmailStatus
+	IsRead        *bool
+	IsStarred     *bool
+	IsArchived    *bool
+	Since         *time.Time
+	Before        *time.Time
+	Search        *string
+	Topic         *string
+	Category      *string
+	FromAddress   *string
+	HasAttachment *bool
 }

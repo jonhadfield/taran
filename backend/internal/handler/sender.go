@@ -58,6 +58,38 @@ func (h *SenderHandler) List(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, senders)
 }
 
+func (h *SenderHandler) GetDetail(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+
+	address := r.URL.Query().Get("address")
+	if address == "" {
+		WriteError(w, http.StatusBadRequest, "address query parameter is required")
+		return
+	}
+
+	detail, err := h.Emails.GetSenderDetail(r.Context(), userID, address)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "sender not found")
+		return
+	}
+
+	// Merge sender preference overrides
+	pref, err := h.SenderPrefs.GetByAddress(r.Context(), userID, address)
+	if err == nil && pref != nil {
+		detail.Status = pref.Status
+		if pref.Category != "" {
+			detail.Category = pref.Category
+		} else {
+			detail.Category = detail.AutoCategory
+		}
+	} else {
+		detail.Status = "normal"
+		detail.Category = detail.AutoCategory
+	}
+
+	WriteJSON(w, http.StatusOK, detail)
+}
+
 func (h *SenderHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 
