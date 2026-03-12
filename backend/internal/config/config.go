@@ -46,6 +46,7 @@ type LLMConfig struct {
 	OllamaModel               string
 	AutoSelectedOverAnthropic bool
 	DefaultMonthlyTokenLimit  int
+	EncryptionKey             string
 }
 
 type DigestConfig struct {
@@ -171,6 +172,7 @@ func Load() (*Config, error) {
 			OllamaModel:              os.Getenv("TARAN_OLLAMA_MODEL"),
 			AutoSelectedOverAnthropic: autoSelectedOverAnthropic,
 			DefaultMonthlyTokenLimit:  envInt("TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT", 500000),
+			EncryptionKey:             os.Getenv("TARAN_ENCRYPTION_KEY"),
 		},
 		Digest: DigestConfig{},
 		Email: EmailConfig{

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hadfielj/taran/backend/internal/domain"
+	"github.com/hadfielj/taran/backend/internal/llm"
 	"github.com/hadfielj/taran/backend/internal/testutil"
 )
 
@@ -183,7 +184,7 @@ func TestRunNow_ConcurrentCallsOnlyOneExecutes(t *testing.T) {
 		&Generator{
 			Extractions: &testutil.MockExtractionRepo{},
 			Digests:     &testutil.MockDigestRepo{},
-			Provider:    &testutil.MockProvider{},
+			Resolver:    llm.NewProviderResolver(&testutil.MockProvider{}, nil, nil, nil),
 		},
 		&testutil.MockEmailRepo{
 			ListActiveUserIDsFn: func(_ context.Context, _, _ time.Time) ([]string, error) {

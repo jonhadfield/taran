@@ -221,6 +221,15 @@ export interface SenderSuggestion {
   TotalCount: number;
 }
 
+export interface UserLLMKey {
+  Provider: string;
+  KeyHint: string;
+  Model: string;
+  IsActive: boolean;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
 export interface ListResponse<T> {
   data: T[];
   total: number;

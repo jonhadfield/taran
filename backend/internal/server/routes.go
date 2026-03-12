@@ -33,6 +33,7 @@ type RouterDeps struct {
 	InviteHandler      *handler.InviteHandler
 	WaitlistHandler    *handler.WaitlistHandler
 	SessionAuth        *auth.SessionAuth
+	LLMKeyHandler      *handler.LLMKeyHandler
 	CronHandler        *handler.CronHandler
 }
 
@@ -86,6 +87,10 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("POST /api/digests/generate", deps.DigestHandler.Generate)
 	api.HandleFunc("GET /api/topics", deps.TopicHandler.List)
 	api.HandleFunc("GET /api/usage", deps.UsageHandler.Get)
+	api.HandleFunc("GET /api/llm-keys", deps.LLMKeyHandler.List)
+	api.HandleFunc("PUT /api/llm-keys/{provider}", deps.LLMKeyHandler.Put)
+	api.HandleFunc("PATCH /api/llm-keys/{provider}", deps.LLMKeyHandler.Patch)
+	api.HandleFunc("DELETE /api/llm-keys/{provider}", deps.LLMKeyHandler.Delete)
 	api.HandleFunc("GET /api/export", deps.ExportHandler.Export)
 	api.HandleFunc("POST /api/emails/{id}/feedback", deps.FeedbackHandler.Upsert)
 	api.HandleFunc("GET /api/emails/{id}/feedback", deps.FeedbackHandler.Get)

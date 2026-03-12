@@ -31,7 +31,7 @@ type Generator struct {
 	Extractions database.ExtractionRepository
 	Digests     database.DigestRepository
 	Accounts    database.AccountRepository
-	Provider    llm.Provider
+	Resolver    *llm.ProviderResolver
 	SenderPrefs database.SenderPreferenceRepository
 	Feedback    database.FeedbackRepository
 	Preferences database.PreferenceRepository
@@ -288,7 +288,13 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 	extractions := result.extractions
 	emailMap := result.emailMap
 
-	summary, usage, err := g.Provider.GenerateDigest(ctx, extractions, periodType, result.digestOpts)
+	// Resolve LLM provider for this user (BYOK or platform fallback)
+	provider, err := g.Resolver.ResolveForUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("resolve provider: %w", err)
+	}
+
+	summary, usage, err := provider.GenerateDigest(ctx, extractions, periodType, result.digestOpts)
 	if err != nil {
 		return nil, fmt.Errorf("generate digest summary: %w", err)
 	}
@@ -299,8 +305,8 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 			ID:           uuid.New().String(),
 			UserID:       userID,
 			Operation:    "digest",
-			Provider:     g.Provider.Name(),
-			Model:        g.Provider.Model(),
+			Provider:     provider.Name(),
+			Model:        provider.Model(),
 			InputTokens:  usage.InputTokens,
 			OutputTokens: usage.OutputTokens,
 			TotalTokens:  usage.TotalTokens,
@@ -324,8 +330,8 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		PeriodType:  periodType,
 		EmailCount:  len(extractions),
 		TokensUsed:  usage.TotalTokens,
-		Provider:    g.Provider.Name(),
-		Model:       g.Provider.Model(),
+		Provider:    provider.Name(),
+		Model:       provider.Model(),
 		GeneratedAt: now,
 		CreatedAt:   now,
 	}

@@ -34,7 +34,7 @@ func TestGenerateForUser_Success(t *testing.T) {
 				return nil
 			},
 		},
-		Provider: &testutil.MockProvider{
+		Resolver: llm.NewProviderResolver(&testutil.MockProvider{
 			NameVal:  "test-provider",
 			ModelVal: "test-model",
 			GenerateDigestFn: func(_ context.Context, _ []domain.Extraction, _ string, _ *llm.DigestOptions) (*llm.DigestSummary, *llm.Usage, error) {
@@ -45,7 +45,7 @@ func TestGenerateForUser_Success(t *testing.T) {
 					TopTopics:  []string{"topic1"},
 				}, &llm.Usage{TotalTokens: 50}, nil
 			},
-		},
+		}, nil, nil, nil),
 	}
 
 	start := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -100,11 +100,11 @@ func TestGenerateForUser_LLMError(t *testing.T) {
 				return []domain.Extraction{{ID: "ext-1"}}, nil
 			},
 		},
-		Provider: &testutil.MockProvider{
+		Resolver: llm.NewProviderResolver(&testutil.MockProvider{
 			GenerateDigestFn: func(_ context.Context, _ []domain.Extraction, _ string, _ *llm.DigestOptions) (*llm.DigestSummary, *llm.Usage, error) {
 				return nil, nil, fmt.Errorf("LLM error")
 			},
-		},
+		}, nil, nil, nil),
 	}
 
 	start := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -133,7 +133,7 @@ func TestGenerateForUser_StoreError(t *testing.T) {
 				return fmt.Errorf("db error")
 			},
 		},
-		Provider: &testutil.MockProvider{},
+		Resolver: llm.NewProviderResolver(&testutil.MockProvider{}, nil, nil, nil),
 	}
 
 	start := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -169,7 +169,7 @@ func TestGenerateForUser_ItemsSortOrder(t *testing.T) {
 				return nil
 			},
 		},
-		Provider: &testutil.MockProvider{},
+		Resolver: llm.NewProviderResolver(&testutil.MockProvider{}, nil, nil, nil),
 	}
 
 	start := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)

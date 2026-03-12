@@ -23,6 +23,7 @@ import { DigestStyleSettings } from "./digest-style-settings";
 import { KeywordPreferencesSettings } from "./keyword-preferences-settings";
 import { DigestCategoriesSettings } from "./digest-categories-settings";
 import { UsageStatsCard } from "./usage-stats";
+import { ApiKeysSettings } from "./api-keys-settings";
 import { useColorTheme } from "@/components/color-theme-provider";
 
 const COMMON_TIMEZONES = [
@@ -271,6 +272,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      <ApiKeysSettings />
 
       <UsageStatsCard />
 

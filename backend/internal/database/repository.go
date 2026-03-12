@@ -116,6 +116,14 @@ type TokenUsageRepository interface {
 	GetGlobalMonthlyTotal(ctx context.Context) (int, error)
 }
 
+type UserLLMKeyRepository interface {
+	Upsert(ctx context.Context, key *domain.UserLLMKey) error
+	GetByUserAndProvider(ctx context.Context, userID, provider string) (*domain.UserLLMKey, error)
+	ListByUser(ctx context.Context, userID string) ([]domain.UserLLMKey, error)
+	Update(ctx context.Context, userID, provider string, isActive *bool, model *string) error
+	Delete(ctx context.Context, userID, provider string) error
+}
+
 type SenderPreferenceRepository interface {
 	Upsert(ctx context.Context, pref *domain.SenderPreference) error
 	GetByAddress(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error)

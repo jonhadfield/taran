@@ -28,7 +28,7 @@ type Processor struct {
 	done        chan struct{}
 	emails      database.EmailRepository
 	extractions database.ExtractionRepository
-	provider    llm.Provider
+	resolver    *llm.ProviderResolver
 	senderPrefs database.SenderPreferenceRepository
 	tokenUsage  database.TokenUsageRepository
 	preferences database.PreferenceRepository
@@ -40,7 +40,7 @@ func NewProcessor(
 	bufferSize, concurrency int,
 	emails database.EmailRepository,
 	extractions database.ExtractionRepository,
-	provider llm.Provider,
+	resolver *llm.ProviderResolver,
 	senderPrefs database.SenderPreferenceRepository,
 	tokenUsage database.TokenUsageRepository,
 	preferences database.PreferenceRepository,
@@ -50,7 +50,7 @@ func NewProcessor(
 		done:        make(chan struct{}),
 		emails:      emails,
 		extractions: extractions,
-		provider:    provider,
+		resolver:    resolver,
 		senderPrefs: senderPrefs,
 		tokenUsage:  tokenUsage,
 		preferences: preferences,
@@ -175,7 +175,7 @@ func (p *Processor) sweepRetryable(ctx context.Context) {
 }
 
 func (p *Processor) processEmail(ctx context.Context, emailID string) {
-	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.provider, p.senderPrefs, p.tokenUsage, p.preferences)
+	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.resolver, p.senderPrefs, p.tokenUsage, p.preferences)
 }
 
 // ProcessEmail runs LLM extraction on a single email. It can be called
@@ -185,7 +185,7 @@ func ProcessEmail(
 	emailID string,
 	emails database.EmailRepository,
 	extractions database.ExtractionRepository,
-	provider llm.Provider,
+	resolver *llm.ProviderResolver,
 	senderPrefs database.SenderPreferenceRepository,
 	tokenUsage database.TokenUsageRepository,
 	preferences database.PreferenceRepository,
@@ -201,6 +201,14 @@ func ProcessEmail(
 	if err != nil {
 		logger.Error("failed to fetch email", "error", err)
 		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "failed to fetch email")
+		return
+	}
+
+	// Resolve LLM provider for this user (BYOK or platform fallback)
+	provider, err := resolver.ResolveForUser(ctx, em.UserID)
+	if err != nil {
+		logger.Error("failed to resolve LLM provider", "error", err)
+		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "failed to resolve LLM provider")
 		return
 	}
 

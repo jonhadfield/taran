@@ -315,6 +315,19 @@ type UsageStats struct {
 	PeriodEnd          time.Time `json:"PeriodEnd"`
 }
 
+type UserLLMKey struct {
+	ID           string
+	UserID       string
+	Provider     string // "anthropic", "openai"
+	EncryptedKey []byte
+	KeyNonce     []byte
+	KeyHint      string // last 4 chars of the API key
+	Model        string // optional model override
+	IsActive     bool
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
 type ListOptions struct {
 	Limit         int
 	Offset        int

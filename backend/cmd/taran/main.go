@@ -13,6 +13,7 @@ import (
 
 	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/config"
+	"github.com/hadfielj/taran/backend/internal/crypto"
 	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/digest"
 	"github.com/hadfielj/taran/backend/internal/handler"
@@ -86,8 +87,23 @@ func main() {
 		slog.Warn("both Anthropic and OpenAI API keys set, using OpenAI", "model", provider.Model())
 	}
 
+	// BYOK encryption (optional)
+	userLLMKeyRepo := database.NewUserLLMKeyRepo(pool)
+	var encryptor *crypto.Encryptor
+	if cfg.LLM.EncryptionKey != "" {
+		encryptor, err = crypto.NewEncryptor(cfg.LLM.EncryptionKey)
+		if err != nil {
+			slog.Error("failed to create encryptor", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("BYOK encryption enabled")
+	}
+
+	// Provider resolver (BYOK → platform fallback)
+	resolver := llm.NewProviderResolver(provider, userLLMKeyRepo, encryptor, &cfg.LLM)
+
 	// Background worker
-	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, provider, senderPrefRepo, tokenUsageRepo, preferenceRepo)
+	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, resolver, senderPrefRepo, tokenUsageRepo, preferenceRepo)
 	proc.Start(ctx)
 
 	// Mailer (optional — disabled if no Resend API key)
@@ -103,7 +119,7 @@ func main() {
 		Extractions: extractionRepo,
 		Digests:     digestRepo,
 		Accounts:    accountRepo,
-		Provider:    provider,
+		Resolver:    resolver,
 		SenderPrefs: senderPrefRepo,
 		Feedback:    feedbackRepo,
 		Preferences: preferenceRepo,
@@ -117,7 +133,7 @@ func main() {
 		Emails:      emailRepo,
 		Extractions: extractionRepo,
 		Attachments: attachmentRepo,
-		Provider:    provider,
+		Resolver:    resolver,
 		SenderPrefs: senderPrefRepo,
 		TokenUsage:  tokenUsageRepo,
 		Preferences: preferenceRepo,
@@ -194,6 +210,10 @@ func main() {
 		Emails:  emailRepo,
 		Digests: digestRepo,
 	}
+	llmKeyHandler := &handler.LLMKeyHandler{
+		Keys:      userLLMKeyRepo,
+		Encryptor: encryptor,
+	}
 	cronHandler := &handler.CronHandler{
 		Scheduler: sched,
 	}
@@ -224,6 +244,7 @@ func main() {
 		WaitlistHandler:    waitlistHandler,
 		AdminStatsHandler:  adminStatsHandler,
 		SessionAuth:        sessionAuth,
+		LLMKeyHandler:      llmKeyHandler,
 		CronHandler:        cronHandler,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
