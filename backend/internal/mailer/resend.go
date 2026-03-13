@@ -87,6 +87,67 @@ func buildInviteHTML(fromName string) string {
 	return b.String()
 }
 
+func (m *ResendMailer) SendTokenWarning(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error {
+	htmlBody := buildTokenWarningHTML(usagePercent, tokensUsed, tokenLimit)
+
+	params := &resend.SendEmailRequest{
+		From:    m.fromAddress,
+		To:      []string{toEmail},
+		Subject: fmt.Sprintf("MailBrief: You've used %d%% of your monthly token limit", usagePercent),
+		Html:    htmlBody,
+	}
+
+	_, err := m.client.Emails.SendWithContext(ctx, params)
+	if err != nil {
+		return fmt.Errorf("send token warning email: %w", err)
+	}
+	return nil
+}
+
+func buildTokenWarningHTML(usagePercent int, tokensUsed, tokenLimit int) string {
+	var b strings.Builder
+
+	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"></head>`)
+	b.WriteString(`<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;">`)
+
+	b.WriteString(`<h1 style="font-size:22px;margin-bottom:8px;">Token Usage Alert</h1>`)
+
+	b.WriteString(fmt.Sprintf(`<p style="font-size:16px;line-height:1.5;">You've used <strong>%d%%</strong> of your monthly token limit on MailBrief.</p>`, usagePercent))
+
+	// Usage bar
+	b.WriteString(`<div style="background:#f3f4f6;border-radius:8px;height:24px;margin:16px 0;overflow:hidden;">`)
+	barColor := "#f59e0b"
+	if usagePercent >= 95 {
+		barColor = "#ef4444"
+	}
+	b.WriteString(fmt.Sprintf(`<div style="background:%s;height:100%%;width:%d%%;border-radius:8px;"></div>`, barColor, usagePercent))
+	b.WriteString(`</div>`)
+
+	b.WriteString(fmt.Sprintf(`<p style="font-size:14px;color:#6b7280;">%s / %s tokens used this month.</p>`,
+		formatTokenCount(tokensUsed), formatTokenCount(tokenLimit)))
+
+	b.WriteString(`<p style="font-size:14px;line-height:1.5;color:#374151;">Once you reach your limit, email processing will pause until the next billing period. You can increase your limit or add your own API key in settings.</p>`)
+
+	b.WriteString(`<a href="https://mailbrief.io/settings" style="display:inline-block;background:#0066cc;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:16px;font-weight:500;margin-top:8px;">Manage Settings</a>`)
+
+	b.WriteString(`<hr style="border:none;border-top:1px solid #eee;margin-top:32px;">`)
+	b.WriteString(`<p style="color:#999;font-size:12px;">Sent by <a href="https://mailbrief.io" style="color:#999;">MailBrief</a></p>`)
+
+	b.WriteString(`</body></html>`)
+
+	return b.String()
+}
+
+func formatTokenCount(n int) string {
+	if n >= 1000000 {
+		return fmt.Sprintf("%.1fM", float64(n)/1000000)
+	}
+	if n >= 1000 {
+		return fmt.Sprintf("%.0fK", float64(n)/1000)
+	}
+	return fmt.Sprintf("%d", n)
+}
+
 var categoryColors = map[string]string{
 	"newsletter":    "#1d4ed8",
 	"personal":      "#059669",

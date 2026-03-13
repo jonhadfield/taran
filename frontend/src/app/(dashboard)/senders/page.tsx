@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderInfo, SenderSuggestion } from "@/types/api";
+import { Badge } from "@/components/ui/badge";
 import { Users, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { SenderSparkline } from "./sender-sparkline";
@@ -291,6 +292,10 @@ export default function SendersPage() {
                   </p>
                 </Link>
 
+                <Badge variant="secondary" className="shrink-0 text-xs sm:hidden">
+                  {sender.EmailCount}
+                </Badge>
+
                 <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
                   {sender.EmailCount} email{sender.EmailCount !== 1 ? "s" : ""}
                 </span>
@@ -322,7 +327,7 @@ export default function SendersPage() {
                     handleUpdate(sender.FromAddress, { Status: e.target.value })
                   }
                   disabled={updating === sender.FromAddress}
-                  className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring max-w-full sm:max-w-[120px]"
+                  className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-[90px] sm:w-[120px]"
                 >
                   {STATUS_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>

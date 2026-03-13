@@ -32,12 +32,12 @@ func (r *PreferenceRepo) defaultTokenLimit(ctx context.Context) int {
 
 func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPreference, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, topic_limit, digest_style, interest_keywords, exclusion_keywords, color_theme, monthly_token_limit, excluded_categories, created_at, updated_at
+		`SELECT user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, topic_limit, digest_style, interest_keywords, exclusion_keywords, color_theme, monthly_token_limit, excluded_categories, token_warning_sent_at, created_at, updated_at
 		 FROM user_preference WHERE user_id = $1`, userID)
 
 	var p domain.UserPreference
 	var interestRaw, exclusionRaw, excludedCatsRaw []byte
-	err := row.Scan(&p.UserID, &p.DigestEmail, &p.DigestFrequency, &p.DigestHour, &p.DigestDay, &p.DigestTimezone, &p.TopicLimit, &p.DigestStyle, &interestRaw, &exclusionRaw, &p.ColorTheme, &p.MonthlyTokenLimit, &excludedCatsRaw, &p.CreatedAt, &p.UpdatedAt)
+	err := row.Scan(&p.UserID, &p.DigestEmail, &p.DigestFrequency, &p.DigestHour, &p.DigestDay, &p.DigestTimezone, &p.TopicLimit, &p.DigestStyle, &interestRaw, &exclusionRaw, &p.ColorTheme, &p.MonthlyTokenLimit, &excludedCatsRaw, &p.TokenWarningSentAt, &p.CreatedAt, &p.UpdatedAt)
 	if err == pgx.ErrNoRows {
 		return &domain.UserPreference{
 			UserID:             userID,
@@ -103,6 +103,15 @@ func (r *PreferenceRepo) Upsert(ctx context.Context, pref *domain.UserPreference
 		pref.UserID, pref.DigestEmail, pref.DigestFrequency, pref.DigestHour, pref.DigestDay, pref.DigestTimezone, pref.TopicLimit, pref.DigestStyle, interestJSON, exclusionJSON, pref.ColorTheme, pref.MonthlyTokenLimit, excludedCatsJSON)
 	if err != nil {
 		return fmt.Errorf("upsert preference: %w", err)
+	}
+	return nil
+}
+
+func (r *PreferenceRepo) SetTokenWarningSent(ctx context.Context, userID string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE user_preference SET token_warning_sent_at = NOW() WHERE user_id = $1`, userID)
+	if err != nil {
+		return fmt.Errorf("set token warning sent: %w", err)
 	}
 	return nil
 }

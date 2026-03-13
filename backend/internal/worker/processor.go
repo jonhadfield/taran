@@ -11,6 +11,7 @@ import (
 	"github.com/hadfielj/taran/backend/internal/domain"
 	emailpkg "github.com/hadfielj/taran/backend/internal/email"
 	"github.com/hadfielj/taran/backend/internal/llm"
+	"github.com/hadfielj/taran/backend/internal/mailer"
 )
 
 const (
@@ -34,6 +35,10 @@ type Processor struct {
 	preferences database.PreferenceRepository
 	wg          sync.WaitGroup
 	concurrency int
+
+	// Optional deps for token warning emails (set after construction)
+	Mailer   mailer.Mailer
+	Sessions database.SessionRepository
 }
 
 func NewProcessor(
@@ -176,6 +181,14 @@ func (p *Processor) sweepRetryable(ctx context.Context) {
 
 func (p *Processor) processEmail(ctx context.Context, emailID string) {
 	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.resolver, p.senderPrefs, p.tokenUsage, p.preferences)
+
+	// Check token warning after processing (best-effort, non-blocking)
+	if p.Mailer != nil && p.Sessions != nil && p.tokenUsage != nil && p.preferences != nil {
+		em, err := p.emails.GetByIDInternal(ctx, emailID)
+		if err == nil && em != nil {
+			p.checkTokenWarning(ctx, em.UserID)
+		}
+	}
 }
 
 // ProcessEmail runs LLM extraction on a single email. It can be called
@@ -357,4 +370,44 @@ func recordTokenUsage(ctx context.Context, repo database.TokenUsageRepository, u
 	if err := repo.Create(ctx, tu); err != nil {
 		slog.Warn("failed to record token usage", "operation", operation, "error", err)
 	}
+}
+
+func (p *Processor) checkTokenWarning(ctx context.Context, userID string) {
+	pref, err := p.preferences.Get(ctx, userID)
+	if err != nil || pref.MonthlyTokenLimit <= 0 {
+		return
+	}
+
+	// Only send warning once per month
+	now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	if pref.TokenWarningSentAt != nil && pref.TokenWarningSentAt.After(monthStart) {
+		return
+	}
+
+	monthlyUsed, err := p.tokenUsage.GetMonthlyTotal(ctx, userID)
+	if err != nil {
+		return
+	}
+
+	usagePercent := monthlyUsed * 100 / pref.MonthlyTokenLimit
+	if usagePercent < 80 {
+		return
+	}
+
+	userEmail, err := p.Sessions.GetUserEmail(ctx, userID)
+	if err != nil || userEmail == "" {
+		return
+	}
+
+	if err := p.Mailer.SendTokenWarning(ctx, userEmail, usagePercent, monthlyUsed, pref.MonthlyTokenLimit); err != nil {
+		slog.Warn("failed to send token warning email", "user_id", userID, "error", err)
+		return
+	}
+
+	if err := p.preferences.SetTokenWarningSent(ctx, userID); err != nil {
+		slog.Warn("failed to update token warning timestamp", "user_id", userID, "error", err)
+	}
+
+	slog.Info("sent token warning email", "user_id", userID, "usage_percent", usagePercent)
 }

@@ -217,6 +217,18 @@ func (m *MockEmailRepo) ResetRetryCount(ctx context.Context, id string) error {
 	return nil
 }
 
+func (m *MockEmailRepo) ListFailedAll(ctx context.Context, limit, offset int) ([]domain.FailedEmail, int, error) {
+	return nil, 0, nil
+}
+
+func (m *MockEmailRepo) BatchResetForRetry(ctx context.Context, ids []string) (int, error) {
+	return 0, nil
+}
+
+func (m *MockEmailRepo) DeleteInternal(ctx context.Context, id string) error {
+	return nil
+}
+
 // MockExtractionRepo implements database.ExtractionRepository for testing.
 type MockExtractionRepo struct {
 	CreateFn                func(ctx context.Context, extraction *domain.Extraction) error
@@ -503,10 +515,15 @@ func (m *MockPreferenceRepo) Upsert(ctx context.Context, pref *domain.UserPrefer
 	return nil
 }
 
+func (m *MockPreferenceRepo) SetTokenWarningSent(ctx context.Context, userID string) error {
+	return nil
+}
+
 // MockMailer implements mailer.Mailer for testing.
 type MockMailer struct {
-	SendDigestFn func(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error
-	SendInviteFn func(ctx context.Context, toEmail, fromName string) error
+	SendDigestFn       func(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error
+	SendInviteFn       func(ctx context.Context, toEmail, fromName string) error
+	SendTokenWarningFn func(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error
 }
 
 func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error {
@@ -519,6 +536,13 @@ func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, dig
 func (m *MockMailer) SendInvite(ctx context.Context, toEmail, fromName string) error {
 	if m.SendInviteFn != nil {
 		return m.SendInviteFn(ctx, toEmail, fromName)
+	}
+	return nil
+}
+
+func (m *MockMailer) SendTokenWarning(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error {
+	if m.SendTokenWarningFn != nil {
+		return m.SendTokenWarningFn(ctx, toEmail, usagePercent, tokensUsed, tokenLimit)
 	}
 	return nil
 }

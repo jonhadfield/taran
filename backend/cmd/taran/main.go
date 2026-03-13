@@ -76,14 +76,19 @@ func main() {
 	attachmentRepo := database.NewAttachmentRepo(pool)
 	tokenUsageRepo := database.NewTokenUsageRepo(pool)
 
-	// LLM Provider
+	// LLM Provider (with optional fallback)
 	provider, err := newLLMProvider(cfg)
 	if err != nil {
 		slog.Error("failed to create LLM provider", "error", err)
 		os.Exit(1)
 	}
 	slog.Info("LLM provider configured", "provider", provider.Name(), "model", provider.Model())
-	if cfg.LLM.AutoSelectedOverAnthropic {
+
+	// If both API keys are set, wrap in a fallback provider
+	if secondary := newSecondaryProvider(cfg); secondary != nil {
+		slog.Info("LLM fallback enabled", "primary", provider.Name(), "secondary", secondary.Name())
+		provider = llm.NewFallbackProvider(provider, secondary)
+	} else if cfg.LLM.AutoSelectedOverAnthropic {
 		slog.Warn("both Anthropic and OpenAI API keys set, using OpenAI", "model", provider.Model())
 	}
 
@@ -104,7 +109,6 @@ func main() {
 
 	// Background worker
 	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, resolver, senderPrefRepo, tokenUsageRepo, preferenceRepo)
-	proc.Start(ctx)
 
 	// Mailer (optional — disabled if no Resend API key)
 	var m mailer.Mailer
@@ -112,6 +116,11 @@ func main() {
 		m = mailer.NewResendMailer(cfg.Email.ResendAPIKey, cfg.Email.FromAddress)
 		slog.Info("digest email delivery enabled via Resend")
 	}
+
+	// Wire token warning deps into processor before starting
+	proc.Mailer = m
+	proc.Sessions = sessionRepo
+	proc.Start(ctx)
 
 	// Digest scheduler
 	gen := &digest.Generator{
@@ -127,16 +136,20 @@ func main() {
 	}
 	sched := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m, cfg.Server.BaseURL, cfg.Server.UnsubscribeSecret)
 
+	// Webhook payload repo (for dead letter queue / replay)
+	webhookPayloadRepo := database.NewWebhookPayloadRepo(pool)
+
 	// Handlers
 	webhookHandler := &handler.WebhookHandler{
-		Accounts:    accountRepo,
-		Emails:      emailRepo,
-		Extractions: extractionRepo,
-		Attachments: attachmentRepo,
-		Resolver:    resolver,
-		SenderPrefs: senderPrefRepo,
-		TokenUsage:  tokenUsageRepo,
-		Preferences: preferenceRepo,
+		Accounts:        accountRepo,
+		Emails:          emailRepo,
+		Extractions:     extractionRepo,
+		Attachments:     attachmentRepo,
+		WebhookPayloads: webhookPayloadRepo,
+		Resolver:        resolver,
+		SenderPrefs:     senderPrefRepo,
+		TokenUsage:      tokenUsageRepo,
+		Preferences:     preferenceRepo,
 	}
 	emailHandler := &handler.EmailHandler{
 		Emails:      emailRepo,
@@ -181,8 +194,9 @@ func main() {
 		Emails:   emailRepo,
 	}
 	dashboardHandler := &handler.DashboardHandler{
-		Emails:  emailRepo,
-		Digests: digestRepo,
+		Emails:      emailRepo,
+		Digests:     digestRepo,
+		Extractions: extractionRepo,
 	}
 	usageHandler := &handler.UsageHandler{
 		TokenUsage:  tokenUsageRepo,
@@ -214,6 +228,17 @@ func main() {
 		Keys:      userLLMKeyRepo,
 		Encryptor: encryptor,
 	}
+	adminWebhookHandler := &handler.AdminWebhookHandler{
+		Emails:          emailRepo,
+		Extractions:     extractionRepo,
+		WebhookPayloads: webhookPayloadRepo,
+		Accounts:        accountRepo,
+		Resolver:        resolver,
+		SenderPrefs:     senderPrefRepo,
+		TokenUsage:      tokenUsageRepo,
+		Preferences:     preferenceRepo,
+		Processor:       proc,
+	}
 	cronHandler := &handler.CronHandler{
 		Scheduler: sched,
 	}
@@ -244,8 +269,9 @@ func main() {
 		WaitlistHandler:    waitlistHandler,
 		AdminStatsHandler:  adminStatsHandler,
 		SessionAuth:        sessionAuth,
-		LLMKeyHandler:      llmKeyHandler,
-		CronHandler:        cronHandler,
+		LLMKeyHandler:        llmKeyHandler,
+		CronHandler:          cronHandler,
+		AdminWebhookHandler:  adminWebhookHandler,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewRateLimiter(10, 30) // 10 req/s sustained, 30 burst
@@ -301,4 +327,20 @@ func newLLMProvider(cfg *config.Config) (llm.Provider, error) {
 	default:
 		return nil, fmt.Errorf("unsupported LLM provider: %s", cfg.LLM.Provider)
 	}
+}
+
+// newSecondaryProvider returns a secondary LLM provider for fallback, or nil
+// if only one provider key is configured. Ollama primary never gets a fallback.
+func newSecondaryProvider(cfg *config.Config) llm.Provider {
+	switch cfg.LLM.Provider {
+	case "anthropic":
+		if cfg.LLM.OpenAIKey != "" {
+			return llm.NewOpenAIProvider(cfg.LLM.OpenAIKey, cfg.LLM.OpenAIModel)
+		}
+	case "openai":
+		if cfg.LLM.AnthropicKey != "" {
+			return llm.NewAnthropicProvider(cfg.LLM.AnthropicKey, cfg.LLM.AnthropicModel)
+		}
+	}
+	return nil
 }

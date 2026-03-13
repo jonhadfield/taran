@@ -11,17 +11,20 @@ import (
 )
 
 type DashboardHandler struct {
-	Emails  database.EmailRepository
-	Digests database.DigestRepository
+	Emails      database.EmailRepository
+	Digests     database.DigestRepository
+	Extractions database.ExtractionRepository
 }
 
 type DashboardResponse struct {
-	Emails     []domain.Email          `json:"emails"`
-	EmailTotal int                     `json:"emailTotal"`
-	Digests    []domain.Digest         `json:"digests"`
-	UnreadCount int                    `json:"unreadCount"`
-	Stats      domain.UserStats        `json:"stats"`
-	Processing domain.ProcessingStats  `json:"processing"`
+	Emails        []domain.Email          `json:"emails"`
+	EmailTotal    int                     `json:"emailTotal"`
+	Digests       []domain.Digest         `json:"digests"`
+	UnreadCount   int                     `json:"unreadCount"`
+	Stats         domain.UserStats        `json:"stats"`
+	Processing    domain.ProcessingStats  `json:"processing"`
+	WeeklyHistory []domain.WeekCount      `json:"weeklyHistory"`
+	TopTopics     []string                `json:"topTopics"`
 }
 
 func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -143,6 +146,36 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 		mu.Unlock()
 	}()
 
+	// Fetch weekly email history (8 weeks)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		counts, err := h.Emails.CountByWeek(ctx, userID, 8)
+		if err != nil {
+			setErr(err)
+			return
+		}
+		mu.Lock()
+		resp.WeeklyHistory = counts
+		mu.Unlock()
+	}()
+
+	// Fetch top topics
+	if h.Extractions != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			topics, err := h.Extractions.ListTopicsByUser(ctx, userID, 10)
+			if err != nil {
+				// Non-fatal — topics are optional
+				return
+			}
+			mu.Lock()
+			resp.TopTopics = topics
+			mu.Unlock()
+		}()
+	}
+
 	wg.Wait()
 
 	if firstErr != nil {
@@ -155,6 +188,12 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 	if resp.Digests == nil {
 		resp.Digests = []domain.Digest{}
+	}
+	if resp.WeeklyHistory == nil {
+		resp.WeeklyHistory = []domain.WeekCount{}
+	}
+	if resp.TopTopics == nil {
+		resp.TopTopics = []string{}
 	}
 
 	WriteJSON(w, http.StatusOK, resp)

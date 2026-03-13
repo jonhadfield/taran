@@ -197,7 +197,7 @@ export function InboxList({
 
         {/* Expanded filters */}
         {showFilters && (
-          <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/30 p-3">
+          <div className="flex flex-wrap items-end gap-2 sm:gap-3 rounded-lg border bg-muted/30 p-3">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <Calendar className="size-3" />
@@ -414,7 +414,7 @@ export function InboxList({
                           {senderName}
                         </span>
                         <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {new Date(email.ReceivedAt).toLocaleDateString()}
+                          {new Date(email.ReceivedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">

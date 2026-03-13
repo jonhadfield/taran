@@ -284,4 +284,6 @@ export interface DashboardData {
   unreadCount: number;
   stats: UserStats;
   processing: ProcessingStats;
+  weeklyHistory: WeekCount[];
+  topTopics: string[];
 }

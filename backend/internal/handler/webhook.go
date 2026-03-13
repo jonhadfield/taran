@@ -18,14 +18,15 @@ import (
 const maxEmailSize = 25 * 1024 * 1024 // 25MB
 
 type WebhookHandler struct {
-	Accounts    database.AccountRepository
-	Emails      database.EmailRepository
-	Extractions database.ExtractionRepository
-	Attachments database.AttachmentRepository
-	Resolver    *llm.ProviderResolver
-	SenderPrefs database.SenderPreferenceRepository
-	TokenUsage  database.TokenUsageRepository
-	Preferences database.PreferenceRepository
+	Accounts        database.AccountRepository
+	Emails          database.EmailRepository
+	Extractions     database.ExtractionRepository
+	Attachments     database.AttachmentRepository
+	WebhookPayloads database.WebhookPayloadRepository
+	Resolver        *llm.ProviderResolver
+	SenderPrefs     database.SenderPreferenceRepository
+	TokenUsage      database.TokenUsageRepository
+	Preferences     database.PreferenceRepository
 }
 
 func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
@@ -93,6 +94,21 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 		slog.Error("failed to store email", "error", err)
 		WriteError(w, http.StatusInternalServerError, "failed to store email")
 		return
+	}
+
+	// Store raw webhook payload for replay (best-effort)
+	if h.WebhookPayloads != nil {
+		payload := &domain.WebhookPayload{
+			ID:         uuid.New().String(),
+			EmailID:    &emailRecord.ID,
+			RawBody:    body,
+			Headers:    map[string]string{"X-Original-To": r.Header.Get("X-Original-To")},
+			ReceivedAt: now,
+			SizeBytes:  len(body),
+		}
+		if err := h.WebhookPayloads.Create(r.Context(), payload); err != nil {
+			slog.Error("failed to store webhook payload", "emailID", emailRecord.ID, "error", err)
+		}
 	}
 
 	// Store attachment metadata

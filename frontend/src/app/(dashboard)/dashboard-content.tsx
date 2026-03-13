@@ -3,14 +3,68 @@
 import { usePolling } from "@/hooks/use-polling";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { DashboardData } from "@/types/api";
-import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, Loader2, AlertCircle } from "lucide-react";
+import type { DashboardData, WeekCount } from "@/types/api";
+import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, Loader2, AlertCircle, BarChart3, Tag } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import Link from "next/link";
 
 interface DashboardContentProps {
   initialData: DashboardData;
   emailAddress: string;
+}
+
+function WeeklyChart({ data }: { data: WeekCount[] }) {
+  if (data.length < 2) return null;
+
+  const max = Math.max(...data.map((d) => d.Count), 1);
+
+  return (
+    <div className="flex items-end gap-1.5 h-24">
+      {data.map((week, i) => {
+        const height = Math.max(4, (week.Count / max) * 100);
+        const label = new Date(week.Week).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        return (
+          <div
+            key={i}
+            className="flex-1 flex flex-col items-center gap-1 min-w-0"
+          >
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              {week.Count > 0 ? week.Count : ""}
+            </span>
+            <div
+              className="w-full rounded-sm bg-primary/80 transition-all hover:bg-primary"
+              style={{ height: `${height}%` }}
+              title={`${label}: ${week.Count} emails`}
+            />
+            <span className="text-[10px] text-muted-foreground truncate w-full text-center hidden @sm:block">
+              {label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TopicCloud({ topics }: { topics: string[] }) {
+  if (topics.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {topics.map((topic) => (
+        <Link
+          key={topic}
+          href={`/inbox?topic=${encodeURIComponent(topic)}`}
+          className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          {topic}
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 export function DashboardContent({ initialData, emailAddress }: DashboardContentProps) {
@@ -20,6 +74,8 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
   const digests = data.digests || [];
   const unreadCount = data.unreadCount;
   const stats = data.stats;
+  const weeklyHistory = data.weeklyHistory || [];
+  const topTopics = data.topTopics || [];
 
   const processing = data.processing;
   const weekDiff = stats.EmailsThisWeek - stats.EmailsLastWeek;
@@ -99,6 +155,36 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
         </div>
       )}
 
+      {/* Analytics row: Trend chart + Topic cloud */}
+      {(weeklyHistory.length >= 2 || topTopics.length > 0) && (
+        <div className="grid gap-4 @lg:grid-cols-2">
+          {weeklyHistory.length >= 2 && (
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart3 className="size-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">Email Volume</h3>
+                  <span className="text-xs text-muted-foreground ml-auto">Last 8 weeks</span>
+                </div>
+                <WeeklyChart data={weeklyHistory} />
+              </CardContent>
+            </Card>
+          )}
+
+          {topTopics.length > 0 && (
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Tag className="size-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">Top Topics</h3>
+                </div>
+                <TopicCloud topics={topTopics} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Top Senders */}
       {stats.TopSenders && stats.TopSenders.length > 0 && (
         <div className="space-y-3">
@@ -148,13 +234,13 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
                 className="block rounded-lg border p-4 transition-all hover:shadow-md hover:bg-accent/50"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1">
-                    <p className="font-medium">{digest.Title}</p>
+                  <div className="space-y-1 min-w-0">
+                    <p className="font-medium truncate">{digest.Title}</p>
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {digest.Summary}
                     </p>
                   </div>
-                  <Badge variant="secondary">{digest.EmailCount} emails</Badge>
+                  <Badge variant="secondary" className="shrink-0">{digest.EmailCount} emails</Badge>
                 </div>
               </Link>
             ))}

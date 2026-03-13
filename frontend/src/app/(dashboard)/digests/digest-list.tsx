@@ -43,22 +43,22 @@ export function DigestList({ initialDigests, initialTotal }: DigestListProps) {
           {digests.map((digest) => (
             <Link key={digest.ID} href={`/digests/${digest.ID}`}>
               <Card className="border-l-4 border-l-indigo-500 hover:shadow-md transition-shadow">
-                <CardContent className="p-6 space-y-3">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <CardContent className="p-4 sm:p-6 space-y-3">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                     <span>
-                      {new Date(digest.PeriodStart).toLocaleDateString()} &ndash;{" "}
-                      {new Date(digest.PeriodEnd).toLocaleDateString()}
+                      {new Date(digest.PeriodStart).toLocaleDateString("en-US", { month: "short", day: "numeric" })} &ndash;{" "}
+                      {new Date(digest.PeriodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </span>
                     <span>&middot;</span>
                     <span>{digest.EmailCount} emails</span>
-                    <span>&middot;</span>
+                    <span className="hidden sm:inline">&middot;</span>
                     {digest.SentAt ? (
-                      <span className="inline-flex items-center gap-1">
+                      <span className="hidden sm:inline-flex items-center gap-1">
                         <Mail className="size-3" />
-                        Emailed {new Date(digest.SentAt).toLocaleString()}
+                        Emailed
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-muted-foreground">
+                      <span className="hidden sm:inline-flex items-center gap-1 text-muted-foreground">
                         <MailX className="size-3" />
                         Not emailed
                       </span>

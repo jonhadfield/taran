@@ -33,8 +33,9 @@ type RouterDeps struct {
 	InviteHandler      *handler.InviteHandler
 	WaitlistHandler    *handler.WaitlistHandler
 	SessionAuth        *auth.SessionAuth
-	LLMKeyHandler      *handler.LLMKeyHandler
-	CronHandler        *handler.CronHandler
+	LLMKeyHandler        *handler.LLMKeyHandler
+	CronHandler          *handler.CronHandler
+	AdminWebhookHandler  *handler.AdminWebhookHandler
 }
 
 func NewRouter(deps RouterDeps) *http.ServeMux {
@@ -113,6 +114,13 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	admin.HandleFunc("POST /api/admin/waitlist/{id}/approve", deps.WaitlistHandler.Approve)
 	admin.HandleFunc("PATCH /api/admin/users/{id}/token-limit", deps.AdminStatsHandler.SetUserTokenLimit)
 	admin.HandleFunc("PATCH /api/admin/settings/token-limit", deps.AdminStatsHandler.SetDefaultTokenLimit)
+	if deps.AdminWebhookHandler != nil {
+		admin.HandleFunc("GET /api/admin/emails/failed", deps.AdminWebhookHandler.ListFailed)
+		admin.HandleFunc("POST /api/admin/emails/{id}/retry", deps.AdminWebhookHandler.RetryOne)
+		admin.HandleFunc("POST /api/admin/emails/batch-retry", deps.AdminWebhookHandler.BatchRetry)
+		admin.HandleFunc("POST /api/admin/webhooks/{id}/replay", deps.AdminWebhookHandler.Replay)
+		admin.HandleFunc("GET /api/admin/pipeline", deps.AdminWebhookHandler.PipelineHealth)
+	}
 	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(admin))
 
 	authedAPI := publicPathSkip(auth.APIKeyAuth(deps.APIKey, deps.SessionAuth.Middleware(api)), api)

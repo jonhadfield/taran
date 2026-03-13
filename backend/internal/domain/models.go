@@ -144,6 +144,7 @@ type UserPreference struct {
 	ColorTheme        string
 	MonthlyTokenLimit    int
 	ExcludedCategories   []string // categories excluded from digests (default: notification, transactional, marketing)
+	TokenWarningSentAt   *time.Time
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 }
@@ -326,6 +327,20 @@ type UserLLMKey struct {
 	IsActive     bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+type WebhookPayload struct {
+	ID         string
+	EmailID    *string
+	RawBody    []byte
+	Headers    map[string]string
+	ReceivedAt time.Time
+	SizeBytes  int
+}
+
+type FailedEmail struct {
+	Email
+	UserEmail string `json:"UserEmail"`
 }
 
 type ListOptions struct {

@@ -32,6 +32,9 @@ type EmailRepository interface {
 	ListRetryable(ctx context.Context, maxRetries, limit int) ([]domain.Email, error)
 	IncrementRetryCount(ctx context.Context, id string) error
 	ResetRetryCount(ctx context.Context, id string) error
+	ListFailedAll(ctx context.Context, limit, offset int) ([]domain.FailedEmail, int, error)
+	BatchResetForRetry(ctx context.Context, ids []string) (int, error)
+	DeleteInternal(ctx context.Context, id string) error
 }
 
 type ExtractionRepository interface {
@@ -77,6 +80,7 @@ type AccountRepository interface {
 type PreferenceRepository interface {
 	Get(ctx context.Context, userID string) (*domain.UserPreference, error)
 	Upsert(ctx context.Context, pref *domain.UserPreference) error
+	SetTokenWarningSent(ctx context.Context, userID string) error
 }
 
 type SessionRepository interface {
@@ -122,6 +126,14 @@ type UserLLMKeyRepository interface {
 	ListByUser(ctx context.Context, userID string) ([]domain.UserLLMKey, error)
 	Update(ctx context.Context, userID, provider string, isActive *bool, model *string) error
 	Delete(ctx context.Context, userID, provider string) error
+}
+
+type WebhookPayloadRepository interface {
+	Create(ctx context.Context, payload *domain.WebhookPayload) error
+	GetByID(ctx context.Context, id string) (*domain.WebhookPayload, error)
+	GetByEmailID(ctx context.Context, emailID string) (*domain.WebhookPayload, error)
+	DeleteOlderThan(ctx context.Context, before time.Time) (int64, error)
+	Count(ctx context.Context) (int, error)
 }
 
 type SenderPreferenceRepository interface {

@@ -582,6 +582,70 @@ func (r *EmailRepo) CountBySenderWeek(ctx context.Context, userID, fromAddress s
 	return result, nil
 }
 
+func (r *EmailRepo) ListFailedAll(ctx context.Context, limit, offset int) ([]domain.FailedEmail, int, error) {
+	var total int
+	err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM email WHERE status IN ('failed', 'processing')`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count failed emails: %w", err)
+	}
+
+	rows, err := r.pool.Query(ctx,
+		`SELECT e.id, e.user_id, e.email_account_id, e.message_id, e.from_address, e.from_name,
+		    e.to_address, e.subject, e.text_body, e.html_body, e.received_at, e.date_header,
+		    e.status, e.status_reason, e.is_read, e.is_starred, e.is_archived,
+		    e.unsubscribe_url, e.unsubscribe_mailto, e.retry_count, e.created_at, e.updated_at,
+		    COALESCE(u.email, '') as user_email
+		 FROM email e
+		 LEFT JOIN "user" u ON u.id = e.user_id
+		 WHERE e.status IN ('failed', 'processing')
+		 ORDER BY e.updated_at DESC
+		 LIMIT $1 OFFSET $2`, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list failed emails: %w", err)
+	}
+	defer rows.Close()
+
+	var emails []domain.FailedEmail
+	for rows.Next() {
+		var fe domain.FailedEmail
+		err := rows.Scan(
+			&fe.ID, &fe.UserID, &fe.AccountID, &fe.MessageID,
+			&fe.FromAddress, &fe.FromName, &fe.ToAddress, &fe.Subject,
+			&fe.TextBody, &fe.HTMLBody, &fe.ReceivedAt, &fe.DateHeader,
+			&fe.Status, &fe.StatusReason, &fe.IsRead, &fe.IsStarred, &fe.IsArchived,
+			&fe.UnsubscribeURL, &fe.UnsubscribeMailto, &fe.RetryCount,
+			&fe.CreatedAt, &fe.UpdatedAt, &fe.UserEmail,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("scan failed email: %w", err)
+		}
+		emails = append(emails, fe)
+	}
+	return emails, total, nil
+}
+
+func (r *EmailRepo) BatchResetForRetry(ctx context.Context, ids []string) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE email SET status = 'pending', retry_count = 0, status_reason = '', updated_at = NOW()
+		 WHERE id = ANY($1)`, ids)
+	if err != nil {
+		return 0, fmt.Errorf("batch reset for retry: %w", err)
+	}
+	return int(tag.RowsAffected()), nil
+}
+
+func (r *EmailRepo) DeleteInternal(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, "DELETE FROM email WHERE id = $1", id)
+	if err != nil {
+		return fmt.Errorf("delete email (internal): %w", err)
+	}
+	return nil
+}
+
 type scannable interface {
 	Scan(dest ...any) error
 }
