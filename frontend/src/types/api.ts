@@ -122,6 +122,9 @@ export interface UserPreference {
   ExclusionKeywords: string[];
   ColorTheme: string;
   ExcludedCategories: string[];
+  QuietHoursEnabled: boolean;
+  QuietHoursStart: number;
+  QuietHoursEnd: number;
   CreatedAt: string;
   UpdatedAt: string;
 }
@@ -275,6 +278,16 @@ export interface DigestPreview {
   PeriodType: string;
   EmailCount: number;
   Items: DigestPreviewItem[];
+}
+
+export interface AutoArchiveRule {
+  ID: string;
+  RuleType: "category" | "sender";
+  RuleValue: string;
+  ArchiveAfterDays: number;
+  IsActive: boolean;
+  CreatedAt: string;
+  UpdatedAt: string;
 }
 
 export interface DashboardData {

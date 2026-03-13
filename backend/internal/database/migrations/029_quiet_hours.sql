@@ -1,0 +1,3 @@
+ALTER TABLE user_preference ADD COLUMN IF NOT EXISTS quiet_hours_enabled BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE user_preference ADD COLUMN IF NOT EXISTS quiet_hours_start INTEGER NOT NULL DEFAULT 22;
+ALTER TABLE user_preference ADD COLUMN IF NOT EXISTS quiet_hours_end INTEGER NOT NULL DEFAULT 7;

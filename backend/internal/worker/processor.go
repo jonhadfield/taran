@@ -36,9 +36,10 @@ type Processor struct {
 	wg          sync.WaitGroup
 	concurrency int
 
-	// Optional deps for token warning emails (set after construction)
-	Mailer   mailer.Mailer
-	Sessions database.SessionRepository
+	// Optional deps (set after construction)
+	Mailer           mailer.Mailer
+	Sessions         database.SessionRepository
+	AutoArchiveRules database.AutoArchiveRuleRepository
 }
 
 func NewProcessor(
@@ -124,6 +125,7 @@ func (p *Processor) sweeper(ctx context.Context) {
 		case <-ticker.C:
 			p.sweepPending(ctx)
 			p.sweepRetryable(ctx)
+			p.sweepAutoArchive(ctx)
 		}
 	}
 }
@@ -215,6 +217,16 @@ func ProcessEmail(
 		logger.Error("failed to fetch email", "error", err)
 		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "failed to fetch email")
 		return
+	}
+
+	// Check quiet hours — defer processing if user is in quiet hours
+	if preferences != nil {
+		pref, prefErr := preferences.Get(ctx, em.UserID)
+		if prefErr == nil && pref.QuietHoursEnabled && isInQuietHours(pref) {
+			logger.Info("user in quiet hours, deferring processing")
+			emails.SetStatus(ctx, emailID, domain.EmailStatusPending, "")
+			return
+		}
 	}
 
 	// Resolve LLM provider for this user (BYOK or platform fallback)
@@ -410,4 +422,51 @@ func (p *Processor) checkTokenWarning(ctx context.Context, userID string) {
 	}
 
 	slog.Info("sent token warning email", "user_id", userID, "usage_percent", usagePercent)
+}
+
+func isInQuietHours(pref *domain.UserPreference) bool {
+	loc, err := time.LoadLocation(pref.DigestTimezone)
+	if err != nil {
+		loc = time.UTC
+	}
+	hour := time.Now().In(loc).Hour()
+	start := pref.QuietHoursStart
+	end := pref.QuietHoursEnd
+	if start <= end {
+		// e.g., start=1, end=6 → quiet from 1am to 6am
+		return hour >= start && hour < end
+	}
+	// Wraps midnight: e.g., start=22, end=7 → quiet from 10pm to 7am
+	return hour >= start || hour < end
+}
+
+func (p *Processor) sweepAutoArchive(ctx context.Context) {
+	if p.AutoArchiveRules == nil {
+		return
+	}
+	candidates, err := p.AutoArchiveRules.ListEmailsToArchive(ctx, 200)
+	if err != nil {
+		slog.Error("auto-archive sweep failed", "error", err)
+		return
+	}
+	if len(candidates) == 0 {
+		return
+	}
+	// Group by user
+	byUser := map[string][]string{}
+	for _, c := range candidates {
+		byUser[c.UserID] = append(byUser[c.UserID], c.EmailID)
+	}
+	archived := 0
+	isArchived := true
+	for userID, ids := range byUser {
+		if err := p.emails.BatchUpdateState(ctx, userID, ids, domain.EmailState{IsArchived: &isArchived}); err != nil {
+			slog.Error("auto-archive batch update failed", "userID", userID, "error", err)
+			continue
+		}
+		archived += len(ids)
+	}
+	if archived > 0 {
+		slog.Info("auto-archive sweep complete", "archived", archived)
+	}
 }

@@ -145,6 +145,9 @@ type UserPreference struct {
 	MonthlyTokenLimit    int
 	ExcludedCategories   []string // categories excluded from digests (default: notification, transactional, marketing)
 	TokenWarningSentAt   *time.Time
+	QuietHoursEnabled    bool
+	QuietHoursStart      int // 0-23, hour in DigestTimezone
+	QuietHoursEnd        int // 0-23, hour in DigestTimezone
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 }
@@ -341,6 +344,22 @@ type WebhookPayload struct {
 type FailedEmail struct {
 	Email
 	UserEmail string `json:"UserEmail"`
+}
+
+type AutoArchiveRule struct {
+	ID               string
+	UserID           string
+	RuleType         string // "category" or "sender"
+	RuleValue        string
+	ArchiveAfterDays int
+	IsActive         bool
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type ArchiveCandidate struct {
+	EmailID string
+	UserID  string
 }
 
 type ListOptions struct {

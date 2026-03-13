@@ -36,6 +36,7 @@ type RouterDeps struct {
 	LLMKeyHandler        *handler.LLMKeyHandler
 	CronHandler          *handler.CronHandler
 	AdminWebhookHandler  *handler.AdminWebhookHandler
+	AutoArchiveHandler   *handler.AutoArchiveHandler
 }
 
 func NewRouter(deps RouterDeps) *http.ServeMux {
@@ -93,6 +94,9 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("PATCH /api/llm-keys/{provider}", deps.LLMKeyHandler.Patch)
 	api.HandleFunc("DELETE /api/llm-keys/{provider}", deps.LLMKeyHandler.Delete)
 	api.HandleFunc("GET /api/export", deps.ExportHandler.Export)
+	api.HandleFunc("GET /api/auto-archive-rules", deps.AutoArchiveHandler.List)
+	api.HandleFunc("PUT /api/auto-archive-rules", deps.AutoArchiveHandler.Upsert)
+	api.HandleFunc("DELETE /api/auto-archive-rules/{id}", deps.AutoArchiveHandler.Delete)
 	api.HandleFunc("POST /api/emails/{id}/feedback", deps.FeedbackHandler.Upsert)
 	api.HandleFunc("GET /api/emails/{id}/feedback", deps.FeedbackHandler.Get)
 	api.HandleFunc("DELETE /api/emails/{id}/feedback", deps.FeedbackHandler.Delete)

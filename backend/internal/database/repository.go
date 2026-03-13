@@ -136,6 +136,13 @@ type WebhookPayloadRepository interface {
 	Count(ctx context.Context) (int, error)
 }
 
+type AutoArchiveRuleRepository interface {
+	ListByUser(ctx context.Context, userID string) ([]domain.AutoArchiveRule, error)
+	Upsert(ctx context.Context, rule *domain.AutoArchiveRule) error
+	Delete(ctx context.Context, userID, id string) error
+	ListEmailsToArchive(ctx context.Context, limit int) ([]domain.ArchiveCandidate, error)
+}
+
 type SenderPreferenceRepository interface {
 	Upsert(ctx context.Context, pref *domain.SenderPreference) error
 	GetByAddress(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error)

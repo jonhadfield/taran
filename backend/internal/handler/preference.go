@@ -42,6 +42,9 @@ type updatePreferenceRequest struct {
 	ExclusionKeywords  *[]string `json:"ExclusionKeywords"`
 	ColorTheme         *string   `json:"ColorTheme"`
 	ExcludedCategories *[]string `json:"ExcludedCategories"`
+	QuietHoursEnabled  *bool     `json:"QuietHoursEnabled"`
+	QuietHoursStart    *int      `json:"QuietHoursStart"`
+	QuietHoursEnd      *int      `json:"QuietHoursEnd"`
 }
 
 func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -141,6 +144,20 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate quiet hours
+	if req.QuietHoursStart != nil {
+		if *req.QuietHoursStart < 0 || *req.QuietHoursStart > 23 {
+			WriteError(w, http.StatusBadRequest, "quiet hours start must be between 0 and 23")
+			return
+		}
+	}
+	if req.QuietHoursEnd != nil {
+		if *req.QuietHoursEnd < 0 || *req.QuietHoursEnd > 23 {
+			WriteError(w, http.StatusBadRequest, "quiet hours end must be between 0 and 23")
+			return
+		}
+	}
+
 	// Load existing preference and merge
 	existing, err := h.Preferences.Get(r.Context(), userID)
 	if err != nil {
@@ -180,6 +197,15 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.ExcludedCategories != nil {
 		existing.ExcludedCategories = *req.ExcludedCategories
+	}
+	if req.QuietHoursEnabled != nil {
+		existing.QuietHoursEnabled = *req.QuietHoursEnabled
+	}
+	if req.QuietHoursStart != nil {
+		existing.QuietHoursStart = *req.QuietHoursStart
+	}
+	if req.QuietHoursEnd != nil {
+		existing.QuietHoursEnd = *req.QuietHoursEnd
 	}
 
 	if err := h.Preferences.Upsert(r.Context(), existing); err != nil {

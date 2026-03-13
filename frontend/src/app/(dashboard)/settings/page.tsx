@@ -24,6 +24,8 @@ import { KeywordPreferencesSettings } from "./keyword-preferences-settings";
 import { DigestCategoriesSettings } from "./digest-categories-settings";
 import { UsageStatsCard } from "./usage-stats";
 import { ApiKeysSettings } from "./api-keys-settings";
+import { QuietHoursSettings } from "./quiet-hours-settings";
+import { AutoArchiveSettings } from "./auto-archive-settings";
 import { useColorTheme } from "@/components/color-theme-provider";
 
 const COMMON_TIMEZONES = [
@@ -69,6 +71,9 @@ export default function SettingsPage() {
   const [interestKeywords, setInterestKeywords] = useState<string[]>([]);
   const [exclusionKeywords, setExclusionKeywords] = useState<string[]>([]);
   const [excludedCategories, setExcludedCategories] = useState<string[]>(["notification", "transactional", "marketing"]);
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
+  const [quietHoursStart, setQuietHoursStart] = useState(22);
+  const [quietHoursEnd, setQuietHoursEnd] = useState(7);
   const [prefLoading, setPrefLoading] = useState(true);
   const [prefSaving, setPrefSaving] = useState(false);
 
@@ -101,6 +106,9 @@ export default function SettingsPage() {
       setInterestKeywords(pref.InterestKeywords || []);
       setExclusionKeywords(pref.ExclusionKeywords || []);
       setExcludedCategories(pref.ExcludedCategories || ["notification", "transactional", "marketing"]);
+      setQuietHoursEnabled(pref.QuietHoursEnabled ?? false);
+      setQuietHoursStart(pref.QuietHoursStart ?? 22);
+      setQuietHoursEnd(pref.QuietHoursEnd ?? 7);
       // Sync color theme from server (in case cookie was stale)
       if (pref.ColorTheme && pref.ColorTheme !== colorTheme) {
         setColorTheme(pref.ColorTheme as Parameters<typeof setColorTheme>[0]);
@@ -117,7 +125,7 @@ export default function SettingsPage() {
     fetchPreferences();
   }, []);
 
-  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme" | "ExcludedCategories">>) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme" | "ExcludedCategories" | "QuietHoursEnabled" | "QuietHoursStart" | "QuietHoursEnd">>) => {
     setPrefSaving(true);
     try {
       const updated = await apiPatch<UserPreference>("preferences", updates);
@@ -131,6 +139,9 @@ export default function SettingsPage() {
       setInterestKeywords(updated.InterestKeywords || []);
       setExclusionKeywords(updated.ExclusionKeywords || []);
       setExcludedCategories(updated.ExcludedCategories || ["notification", "transactional", "marketing"]);
+      setQuietHoursEnabled(updated.QuietHoursEnabled ?? false);
+      setQuietHoursStart(updated.QuietHoursStart ?? 22);
+      setQuietHoursEnd(updated.QuietHoursEnd ?? 7);
       toast.success("Preferences saved");
     } catch {
       toast.error("Failed to save preferences");
@@ -214,6 +225,26 @@ export default function SettingsPage() {
         }}
       />
 
+      <QuietHoursSettings
+        enabled={quietHoursEnabled}
+        start={quietHoursStart}
+        end={quietHoursEnd}
+        prefLoading={prefLoading}
+        prefSaving={prefSaving}
+        onEnabledChange={(checked) => {
+          setQuietHoursEnabled(checked);
+          updatePreference({ QuietHoursEnabled: checked });
+        }}
+        onStartChange={(value) => {
+          setQuietHoursStart(value);
+          updatePreference({ QuietHoursStart: value });
+        }}
+        onEndChange={(value) => {
+          setQuietHoursEnd(value);
+          updatePreference({ QuietHoursEnd: value });
+        }}
+      />
+
       <InboxDisplaySettings
         topicLimit={topicLimit}
         prefLoading={prefLoading}
@@ -243,6 +274,8 @@ export default function SettingsPage() {
           updatePreference({ ExcludedCategories: categories });
         }}
       />
+
+      <AutoArchiveSettings />
 
       <KeywordPreferencesSettings
         interestKeywords={interestKeywords}
