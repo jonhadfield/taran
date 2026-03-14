@@ -97,6 +97,13 @@
 - **Description**: Raw webhook payload storage for replay capability, admin endpoints for failed email management (list, retry, batch retry, replay from stored payload), pipeline health monitoring. Admin UI with failed email list, retry/batch-retry buttons, expandable details, and pipeline status overview.
 - **Scope**: Backend webhook_payload table, admin webhook handler (5 endpoints), frontend admin failed emails panel with pipeline health grid
 
+### 3.7 Multi-Provider LLM Fallback
+- **Status**: Done
+- **Effort**: Medium
+- **Impact**: High
+- **Description**: When both Anthropic and OpenAI API keys are configured, the system wraps them in a FallbackProvider. On transient error from the primary provider, it automatically retries with the secondary. Non-transient errors (parse failures, empty responses) fail immediately. BYOK users get their own provider without fallback. Config auto-detects available keys and logs fallback status.
+- **Scope**: Already implemented in llm/fallback.go, cmd/taran/main.go (newSecondaryProvider), and config auto-detection
+
 ## Future Considerations
 
 These are not prioritized but worth tracking for later evaluation:
