@@ -596,7 +596,7 @@ export function InboxList({
               </Button>
             </div>
           )}
-          <div className="flex justify-center pt-1">
+          <div className="hidden sm:flex justify-center pt-1">
             <p className="text-xs text-muted-foreground">
               <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">j</kbd>/<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">k</kbd> navigate
               {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">x</kbd> select

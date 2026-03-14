@@ -17,7 +17,7 @@ export function EmailContentCard({ htmlBody, textBody }: EmailContentCardProps) 
       <CardContent>
         {htmlBody ? (
           <div
-            className="prose prose-sm max-w-none rounded-md bg-background p-4 text-foreground"
+            className="prose prose-sm max-w-none rounded-md bg-background p-4 text-foreground overflow-x-auto [&_img]:max-w-full [&_img]:h-auto [&_table]:max-w-full [&_table]:overflow-x-auto [&_pre]:overflow-x-auto"
             dangerouslySetInnerHTML={{
               __html: sanitizeHtml(htmlBody, {
                 allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
@@ -29,7 +29,7 @@ export function EmailContentCard({ htmlBody, textBody }: EmailContentCardProps) 
             }}
           />
         ) : (
-          <pre className="whitespace-pre-wrap text-sm font-mono">
+          <pre className="whitespace-pre-wrap text-sm font-mono overflow-x-auto">
             {textBody}
           </pre>
         )}

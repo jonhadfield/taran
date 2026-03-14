@@ -37,7 +37,7 @@ export function InboxRowActions({ emailId, isStarred, isArchived }: Props) {
   };
 
   return (
-    <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
+    <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/row:opacity-100 sm:focus-within:opacity-100 transition-opacity">
       <Button
         variant="ghost"
         size="icon"

@@ -47,11 +47,11 @@
 - **Scope**: Backend analytics queries in admin stats endpoint, frontend mini bar charts, processing pipeline card, feedback card
 
 ### 2.3 Improved Search (Full-Text)
-- **Status**: Not started
+- **Status**: Done
 - **Effort**: Medium
 - **Impact**: Medium
-- **Description**: Replace basic substring matching with PostgreSQL full-text search using `tsvector`/`tsquery`. Support quoted phrases, boolean operators, and search across email subject, body, and extraction summaries.
-- **Scope**: Database migration for tsvector columns/indexes, updated search query logic, frontend search syntax hints
+- **Description**: PostgreSQL full-text search with `tsvector`/`tsquery` on email subject, body, sender name/address, and AI-extracted summaries/key points/action items. Sort options (newest/oldest/relevance), search result count display, and search-aware empty states.
+- **Scope**: Extended search query to include extraction content, from_name ILIKE fallback, sort parameter, frontend sort dropdown and UX improvements
 
 ## Priority 3: Growth / Retention
 
@@ -75,6 +75,20 @@
 - **Impact**: Medium
 - **Description**: Expanded forwarding guide from 4 to 9 providers: Gmail, Outlook, Yahoo Mail, Apple Mail (iCloud), ProtonMail, Fastmail, Zoho Mail, Hey.com, and direct subscription. Each provider includes pro tips for selective forwarding.
 - **Scope**: Frontend forwarding guide component expansion with per-provider tips
+
+### 3.4 Mobile Responsive Polish
+- **Status**: Done
+- **Effort**: Low
+- **Impact**: Medium
+- **Description**: Mobile-first fixes across all pages: inbox row actions always visible on touch devices, bulk action bar icons-only on mobile, keyboard shortcuts hidden on mobile, HTML email content overflow prevention, senders page two-row layout on mobile with visible dropdowns and category badges, email detail responsive header and subject sizing, better touch targets.
+- **Scope**: Frontend CSS/layout changes across inbox, senders, email detail, and bulk action components
+
+### 3.5 Token Limit Warning Email
+- **Status**: Done
+- **Effort**: Low
+- **Impact**: Medium
+- **Description**: Automated email notification at 80% monthly token usage with HTML progress bar, formatted usage stats, and link to settings. Sends once per month via Resend, triggered after each email extraction in the worker pipeline.
+- **Scope**: Already implemented in mailer (SendTokenWarning), worker (checkTokenWarning), and database (SetTokenWarningSent)
 
 ## Future Considerations
 

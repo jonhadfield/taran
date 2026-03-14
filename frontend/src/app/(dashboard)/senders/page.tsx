@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderInfo, SenderSuggestion } from "@/types/api";
-import { Badge } from "@/components/ui/badge";
 import { Users, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { SenderSparkline } from "./sender-sparkline";
@@ -266,75 +265,75 @@ export default function SendersPage() {
             return (
               <div
                 key={sender.FromAddress}
-                className="flex items-center gap-3 p-3.5"
+                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3.5"
               >
-                <div
-                  className={`hidden sm:flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white ${getAvatarColor(name)}`}
-                >
-                  {initial}
-                </div>
-
-                <Link
-                  href={`/senders/${encodeURIComponent(sender.FromAddress)}`}
-                  className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
-                >
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium truncate">{name}</p>
-                    {sender.Category && (
-                      <span className={`hidden sm:inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[sender.Category] || CATEGORY_COLORS.other}`}>
-                        {sender.Category}
-                        {isOverridden && " *"}
-                      </span>
-                    )}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`hidden sm:flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white ${getAvatarColor(name)}`}
+                  >
+                    {initial}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {sender.FromAddress}
-                  </p>
-                </Link>
 
-                <Badge variant="secondary" className="shrink-0 text-xs sm:hidden">
-                  {sender.EmailCount}
-                </Badge>
+                  <Link
+                    href={`/senders/${encodeURIComponent(sender.FromAddress)}`}
+                    className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
+                  >
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium truncate">{name}</p>
+                      {sender.Category && (
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[sender.Category] || CATEGORY_COLORS.other}`}>
+                          {sender.Category}
+                          {isOverridden && " *"}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {sender.FromAddress}
+                    </p>
+                  </Link>
 
-                <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
-                  {sender.EmailCount} email{sender.EmailCount !== 1 ? "s" : ""}
-                </span>
-
-                <div className="hidden sm:block">
-                  <SenderSparkline fromAddress={sender.FromAddress} />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                    {sender.EmailCount} email{sender.EmailCount !== 1 ? "s" : ""}
+                  </span>
                 </div>
 
-                <select
-                  value={sender.Category === sender.AutoCategory ? "" : sender.Category}
-                  onChange={(e) =>
-                    handleUpdate(sender.FromAddress, { Category: e.target.value })
-                  }
-                  disabled={updating === sender.FromAddress}
-                  className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-[100px] hidden sm:block"
-                >
-                  {CATEGORY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.value === "" && sender.AutoCategory
-                        ? `Auto (${sender.AutoCategory})`
-                        : opt.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-2 sm:shrink-0">
+                  <div className="hidden sm:block">
+                    <SenderSparkline fromAddress={sender.FromAddress} />
+                  </div>
 
-                <select
-                  value={sender.Status}
-                  onChange={(e) =>
-                    handleUpdate(sender.FromAddress, { Status: e.target.value })
-                  }
-                  disabled={updating === sender.FromAddress}
-                  className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-[90px] sm:w-[120px]"
-                >
-                  {STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  <select
+                    value={sender.Category === sender.AutoCategory ? "" : sender.Category}
+                    onChange={(e) =>
+                      handleUpdate(sender.FromAddress, { Category: e.target.value })
+                    }
+                    disabled={updating === sender.FromAddress}
+                    className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring flex-1 sm:flex-none sm:w-[100px]"
+                  >
+                    {CATEGORY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.value === "" && sender.AutoCategory
+                          ? `Auto (${sender.AutoCategory})`
+                          : opt.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={sender.Status}
+                    onChange={(e) =>
+                      handleUpdate(sender.FromAddress, { Status: e.target.value })
+                    }
+                    disabled={updating === sender.FromAddress}
+                    className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring flex-1 sm:flex-none sm:w-[120px]"
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             );
           })}

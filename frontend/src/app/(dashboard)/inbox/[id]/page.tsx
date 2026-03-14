@@ -60,7 +60,7 @@ export default async function EmailDetailPage({
       <div className="flex items-center gap-4">
         <Link
           href="/inbox"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground py-1"
         >
           <ArrowLeft className="size-4" />
           Back to Inbox
@@ -68,9 +68,9 @@ export default async function EmailDetailPage({
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-balance">{email.Subject}</h1>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+          <div className="space-y-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-balance break-words">{email.Subject}</h1>
             <p className="text-sm text-muted-foreground">
               From: <span className="text-foreground">{email.FromName || email.FromAddress}</span>
               {email.FromName && (
@@ -219,14 +219,14 @@ export default async function EmailDetailPage({
                 {email.attachments.map((att) => (
                   <div
                     key={att.ID}
-                    className="flex items-center justify-between rounded-lg border px-3 py-2"
+                    className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <Paperclip className="size-4 shrink-0 text-muted-foreground" />
                       <span className="text-sm truncate">{att.Filename}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs hidden sm:inline-flex">
                         {att.ContentType.split("/").pop()}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
