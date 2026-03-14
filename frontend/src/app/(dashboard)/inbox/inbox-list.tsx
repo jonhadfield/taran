@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { apiPatch } from "@/lib/api";
 import { usePolling } from "@/hooks/use-polling";
 import type { Email, ListResponse } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
@@ -95,6 +98,9 @@ export function InboxList({
     since: "",
     before: "",
   });
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   const topics = initialTopics;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeFilterCount = [
@@ -146,6 +152,99 @@ export function InboxList({
     });
   }, [emails]);
 
+  // Reset focused index when email list changes
+  useEffect(() => {
+    setFocusedIndex((prev) => (prev >= emails.length ? emails.length - 1 : prev));
+  }, [emails.length]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const tag = target.tagName;
+      // Don't intercept when typing in inputs (except for Escape)
+      if ((tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") && e.key !== "Escape") {
+        return;
+      }
+
+      switch (e.key) {
+        case "j": {
+          e.preventDefault();
+          setFocusedIndex((prev) => Math.min(prev + 1, emails.length - 1));
+          break;
+        }
+        case "k": {
+          e.preventDefault();
+          setFocusedIndex((prev) => Math.max(prev - 1, 0));
+          break;
+        }
+        case "x": {
+          e.preventDefault();
+          if (focusedIndex >= 0 && focusedIndex < emails.length) {
+            toggleSelect(emails[focusedIndex].ID);
+          }
+          break;
+        }
+        case "s": {
+          e.preventDefault();
+          if (focusedIndex >= 0 && focusedIndex < emails.length) {
+            const email = emails[focusedIndex];
+            apiPatch(`emails/${email.ID}`, { IsStarred: !email.IsStarred })
+              .then(() => router.refresh())
+              .catch(() => toast.error("Failed to update email"));
+          }
+          break;
+        }
+        case "e": {
+          e.preventDefault();
+          if (focusedIndex >= 0 && focusedIndex < emails.length) {
+            const email = emails[focusedIndex];
+            apiPatch(`emails/${email.ID}`, { IsArchived: !email.IsArchived })
+              .then(() => {
+                toast.success(email.IsArchived ? "Unarchived" : "Archived");
+                router.refresh();
+              })
+              .catch(() => toast.error("Failed to update email"));
+          }
+          break;
+        }
+        case "/": {
+          e.preventDefault();
+          searchInputRef.current?.focus();
+          break;
+        }
+        case "Escape": {
+          e.preventDefault();
+          if (tag === "INPUT" || tag === "TEXTAREA") {
+            (target as HTMLInputElement).blur();
+          }
+          setFocusedIndex(-1);
+          setSelectedIds(new Set());
+          break;
+        }
+        case "Enter":
+        case "o": {
+          e.preventDefault();
+          if (focusedIndex >= 0 && focusedIndex < emails.length) {
+            router.push(`/inbox/${emails[focusedIndex].ID}`);
+          }
+          break;
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [emails, focusedIndex, toggleSelect, router]);
+
+  // Scroll focused row into view
+  useEffect(() => {
+    if (focusedIndex >= 0) {
+      const row = document.querySelector(`[data-inbox-row="${focusedIndex}"]`);
+      row?.scrollIntoView({ block: "nearest" });
+    }
+  }, [focusedIndex]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -159,8 +258,9 @@ export function InboxList({
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
+              ref={searchInputRef}
               type="text"
-              placeholder="Search emails..."
+              placeholder="Search emails... (press /)"
               aria-label="Search emails"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -367,15 +467,17 @@ export function InboxList({
                 </span>
               </div>
             )}
-            {emails.map((email) => {
+            {emails.map((email, index) => {
               const senderName = email.FromName || email.FromAddress;
               const initial = senderName.charAt(0).toUpperCase();
               const isSelected = selectedIds.has(email.ID);
+              const isFocused = focusedIndex === index;
 
               return (
                 <div
                   key={email.ID}
-                  className={`group/row flex items-center gap-3 p-3.5 transition-colors hover:bg-accent/50 ${isSelected ? "bg-accent/30" : ""}`}
+                  data-inbox-row={index}
+                  className={`group/row flex items-center gap-3 p-3.5 transition-colors hover:bg-accent/50 ${isSelected ? "bg-accent/30" : ""} ${isFocused ? "ring-2 ring-inset ring-primary/50 bg-accent/40" : ""}`}
                 >
                   {/* Checkbox */}
                   <input
@@ -455,6 +557,17 @@ export function InboxList({
               </Button>
             </div>
           )}
+          <div className="flex justify-center pt-1">
+            <p className="text-xs text-muted-foreground">
+              <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">j</kbd>/<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">k</kbd> navigate
+              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">x</kbd> select
+              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">e</kbd> archive
+              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">s</kbd> star
+              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">/</kbd> search
+              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Enter</kbd> open
+              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Esc</kbd> clear
+            </p>
+          </div>
         </>
       )}
     </div>
