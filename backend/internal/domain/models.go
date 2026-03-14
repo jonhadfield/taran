@@ -242,6 +242,16 @@ type AdminStats struct {
 	LLMModel            string        `json:"LLMModel"`
 	MonthlyTokensUsed        int           `json:"MonthlyTokensUsed"`
 	DefaultMonthlyTokenLimit int           `json:"DefaultMonthlyTokenLimit"`
+	// Analytics
+	ProcessedCount    int              `json:"ProcessedCount"`
+	FailedCount       int              `json:"FailedCount"`
+	SkippedCount      int              `json:"SkippedCount"`
+	PendingCount      int              `json:"PendingCount"`
+	FeedbackUseful    int              `json:"FeedbackUseful"`
+	FeedbackNotUseful int              `json:"FeedbackNotUseful"`
+	WeeklyEmails      []WeekCount      `json:"WeeklyEmails"`
+	WeeklyDigests     []WeekCount      `json:"WeeklyDigests"`
+	WeeklyTokens      []WeekCount      `json:"WeeklyTokens"`
 }
 
 type AdminUser struct {

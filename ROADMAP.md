@@ -40,11 +40,11 @@
 - **Scope**: Token usage tracking, monthly + daily rate limiting, admin cost dashboard, user usage display with history
 
 ### 2.2 Usage Analytics Dashboard
-- **Status**: Not started
+- **Status**: Done
 - **Effort**: Medium
 - **Impact**: Medium
-- **Description**: Beyond basic admin stats, track digest open rates, feedback trends over time, per-user engagement metrics, and email processing success rates. Helps understand product-market fit and identify issues.
-- **Scope**: Backend analytics aggregation endpoints, admin analytics UI with charts/trends
+- **Description**: Admin dashboard with processing pipeline health (processed/failed/skipped/pending counts with success rate), user feedback summary (useful/not-useful ratio), 8-week trend charts for emails, digests, and token usage.
+- **Scope**: Backend analytics queries in admin stats endpoint, frontend mini bar charts, processing pipeline card, feedback card
 
 ### 2.3 Improved Search (Full-Text)
 - **Status**: Not started
@@ -70,11 +70,11 @@
 - **Scope**: Backend labels table, label CRUD endpoints, inbox filter by label, frontend label management UI
 
 ### 3.3 Onboarding Email Provider Guides
-- **Status**: Not started
+- **Status**: Done
 - **Effort**: Low
 - **Impact**: Medium
-- **Description**: The forwarding guide is hardcoded for a few email providers. Expand to dynamic, per-provider instructions (Gmail, Outlook, Yahoo, Apple Mail, ProtonMail, etc.) with screenshots or step-by-step walkthroughs. Reduces onboarding friction significantly.
-- **Scope**: Frontend guide content expansion, possibly a guided wizard component
+- **Description**: Expanded forwarding guide from 4 to 9 providers: Gmail, Outlook, Yahoo Mail, Apple Mail (iCloud), ProtonMail, Fastmail, Zoho Mail, Hey.com, and direct subscription. Each provider includes pro tips for selective forwarding.
+- **Scope**: Frontend forwarding guide component expansion with per-provider tips
 
 ## Future Considerations
 

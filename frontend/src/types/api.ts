@@ -183,6 +183,15 @@ export interface AdminStats {
   LLMModel: string;
   MonthlyTokensUsed: number;
   DefaultMonthlyTokenLimit: number;
+  ProcessedCount: number;
+  FailedCount: number;
+  SkippedCount: number;
+  PendingCount: number;
+  FeedbackUseful: number;
+  FeedbackNotUseful: number;
+  WeeklyEmails: WeekCount[];
+  WeeklyDigests: WeekCount[];
+  WeeklyTokens: WeekCount[];
 }
 
 export interface AdminUser {

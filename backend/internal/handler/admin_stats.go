@@ -69,6 +69,90 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		stats.TopGlobalSenders = []domain.SenderCount{}
 	}
 
+	// Processing status breakdown (all time)
+	statusRows, err := h.Pool.Query(ctx,
+		`SELECT status, COUNT(*) FROM email GROUP BY status`)
+	if err == nil {
+		defer statusRows.Close()
+		for statusRows.Next() {
+			var status string
+			var count int64
+			if err := statusRows.Scan(&status, &count); err == nil {
+				switch status {
+				case "processed":
+					stats.ProcessedCount = int(count)
+				case "failed":
+					stats.FailedCount = int(count)
+				case "skipped":
+					stats.SkippedCount = int(count)
+				case "pending", "processing":
+					stats.PendingCount += int(count)
+				}
+			}
+		}
+	}
+
+	// Feedback summary (all time)
+	h.Pool.QueryRow(ctx,
+		`SELECT COUNT(*) FILTER (WHERE rating = 'useful'), COUNT(*) FILTER (WHERE rating = 'not_useful') FROM email_feedback`,
+	).Scan(&stats.FeedbackUseful, &stats.FeedbackNotUseful)
+
+	// Weekly email trend (last 8 weeks)
+	weeklyEmailRows, err := h.Pool.Query(ctx,
+		`SELECT DATE_TRUNC('week', received_at) AS week, COUNT(*)
+		 FROM email WHERE received_at >= NOW() - INTERVAL '8 weeks'
+		 GROUP BY week ORDER BY week`)
+	if err == nil {
+		defer weeklyEmailRows.Close()
+		for weeklyEmailRows.Next() {
+			var wc domain.WeekCount
+			if err := weeklyEmailRows.Scan(&wc.Week, &wc.Count); err == nil {
+				stats.WeeklyEmails = append(stats.WeeklyEmails, wc)
+			}
+		}
+	}
+	if stats.WeeklyEmails == nil {
+		stats.WeeklyEmails = []domain.WeekCount{}
+	}
+
+	// Weekly digest trend (last 8 weeks)
+	weeklyDigestRows, err := h.Pool.Query(ctx,
+		`SELECT DATE_TRUNC('week', generated_at) AS week, COUNT(*)
+		 FROM digest WHERE generated_at >= NOW() - INTERVAL '8 weeks'
+		 GROUP BY week ORDER BY week`)
+	if err == nil {
+		defer weeklyDigestRows.Close()
+		for weeklyDigestRows.Next() {
+			var wc domain.WeekCount
+			if err := weeklyDigestRows.Scan(&wc.Week, &wc.Count); err == nil {
+				stats.WeeklyDigests = append(stats.WeeklyDigests, wc)
+			}
+		}
+	}
+	if stats.WeeklyDigests == nil {
+		stats.WeeklyDigests = []domain.WeekCount{}
+	}
+
+	// Weekly token usage trend (last 8 weeks)
+	weeklyTokenRows, err := h.Pool.Query(ctx,
+		`SELECT DATE_TRUNC('week', created_at) AS week, COALESCE(SUM(total_tokens), 0)
+		 FROM token_usage WHERE created_at >= NOW() - INTERVAL '8 weeks'
+		 GROUP BY week ORDER BY week`)
+	if err == nil {
+		defer weeklyTokenRows.Close()
+		for weeklyTokenRows.Next() {
+			var wc domain.WeekCount
+			var tokens int64
+			if err := weeklyTokenRows.Scan(&wc.Week, &tokens); err == nil {
+				wc.Count = int(tokens)
+				stats.WeeklyTokens = append(stats.WeeklyTokens, wc)
+			}
+		}
+	}
+	if stats.WeeklyTokens == nil {
+		stats.WeeklyTokens = []domain.WeekCount{}
+	}
+
 	stats.LLMProvider = h.LLMProvider
 	stats.LLMModel = h.LLMModel
 

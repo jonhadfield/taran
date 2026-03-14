@@ -8,12 +8,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { AdminStats } from "@/types/api";
-import { Users, Mail, BookOpen, TrendingUp, Cpu, Gauge } from "lucide-react";
+import { Users, Mail, BookOpen, TrendingUp, Cpu, Gauge, CheckCircle, XCircle, AlertTriangle, Clock } from "lucide-react";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return String(n);
+}
+
+function formatWeek(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function MiniBarChart({ data, formatValue }: { data: { label: string; value: number }[]; formatValue?: (n: number) => string }) {
+  const max = Math.max(...data.map((d) => d.value), 1);
+  const fmt = formatValue || ((n: number) => String(n));
+  return (
+    <div className="flex items-end gap-1 h-20">
+      {data.map((d, i) => {
+        const height = Math.max(4, (d.value / max) * 100);
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+            <div
+              className="w-full rounded-sm bg-primary/70 hover:bg-primary transition-colors"
+              style={{ height: `${height}%` }}
+              title={`${d.label}: ${fmt(d.value)}`}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 const emptyStats: AdminStats = {
@@ -28,6 +54,15 @@ const emptyStats: AdminStats = {
   LLMModel: "",
   MonthlyTokensUsed: 0,
   DefaultMonthlyTokenLimit: 0,
+  ProcessedCount: 0,
+  FailedCount: 0,
+  SkippedCount: 0,
+  PendingCount: 0,
+  FeedbackUseful: 0,
+  FeedbackNotUseful: 0,
+  WeeklyEmails: [],
+  WeeklyDigests: [],
+  WeeklyTokens: [],
 };
 
 export function AdminDashboard() {
@@ -63,6 +98,16 @@ export function AdminDashboard() {
     },
   ];
 
+  const totalProcessingEmails = stats.ProcessedCount + stats.FailedCount + stats.SkippedCount + stats.PendingCount;
+  const successRate = totalProcessingEmails > 0
+    ? ((stats.ProcessedCount / totalProcessingEmails) * 100).toFixed(1)
+    : "0";
+
+  const totalFeedback = stats.FeedbackUseful + stats.FeedbackNotUseful;
+  const usefulRate = totalFeedback > 0
+    ? ((stats.FeedbackUseful / totalFeedback) * 100).toFixed(0)
+    : "—";
+
   const handleSaveLimit = async () => {
     const parsed = parseInt(limitValue, 10);
     if (isNaN(parsed) || parsed < 0) {
@@ -84,6 +129,7 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
           <Card key={card.title}>
@@ -101,6 +147,154 @@ export function AdminDashboard() {
         ))}
       </div>
 
+      {/* Processing pipeline & feedback */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Processing Pipeline
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-2xl font-bold">{successRate}%</div>
+            <p className="text-xs text-muted-foreground -mt-2">success rate</p>
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="size-4 text-green-500" />
+                <div>
+                  <div className="text-sm font-medium">{stats.ProcessedCount.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">Processed</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <XCircle className="size-4 text-red-500" />
+                <div>
+                  <div className="text-sm font-medium">{stats.FailedCount.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">Failed</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="size-4 text-yellow-500" />
+                <div>
+                  <div className="text-sm font-medium">{stats.SkippedCount.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">Skipped</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="size-4 text-blue-500" />
+                <div>
+                  <div className="text-sm font-medium">{stats.PendingCount.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">Pending</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              User Feedback
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-2xl font-bold">{usefulRate}{usefulRate !== "—" && "%"}</div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              {totalFeedback > 0 ? `useful rate (${totalFeedback} ratings)` : "no feedback yet"}
+            </p>
+            {totalFeedback > 0 && (
+              <div className="pt-2 border-t space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Useful</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">{stats.FeedbackUseful}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Not useful</span>
+                  <span className="font-medium text-red-600 dark:text-red-400">{stats.FeedbackNotUseful}</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-green-500"
+                    style={{ width: `${(stats.FeedbackUseful / totalFeedback) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Weekly trends */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {stats.WeeklyEmails.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Emails / Week
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MiniBarChart
+                data={stats.WeeklyEmails.map((w) => ({
+                  label: formatWeek(w.Week),
+                  value: w.Count,
+                }))}
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>{formatWeek(stats.WeeklyEmails[0].Week)}</span>
+                <span>{formatWeek(stats.WeeklyEmails[stats.WeeklyEmails.length - 1].Week)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {stats.WeeklyDigests.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Digests / Week
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MiniBarChart
+                data={stats.WeeklyDigests.map((w) => ({
+                  label: formatWeek(w.Week),
+                  value: w.Count,
+                }))}
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>{formatWeek(stats.WeeklyDigests[0].Week)}</span>
+                <span>{formatWeek(stats.WeeklyDigests[stats.WeeklyDigests.length - 1].Week)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {stats.WeeklyTokens.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Tokens / Week
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MiniBarChart
+                data={stats.WeeklyTokens.map((w) => ({
+                  label: formatWeek(w.Week),
+                  value: w.Count,
+                }))}
+                formatValue={formatTokens}
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>{formatWeek(stats.WeeklyTokens[0].Week)}</span>
+                <span>{formatWeek(stats.WeeklyTokens[stats.WeeklyTokens.length - 1].Week)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* LLM & Token config */}
       <div className="grid gap-4 sm:grid-cols-2">
         {stats.LLMProvider && (
           <Card>
@@ -172,6 +366,7 @@ export function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Top senders */}
       {stats.TopGlobalSenders.length > 0 && (
         <Card>
           <CardHeader>
