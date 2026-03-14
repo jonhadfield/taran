@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { usePolling } from "@/hooks/use-polling";
-import { apiGet, apiPatch } from "@/lib/api";
+import { apiPatch } from "@/lib/api";
 import {
   Card,
   CardContent,

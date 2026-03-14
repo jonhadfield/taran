@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { apiPatch } from "@/lib/api";
@@ -125,7 +125,7 @@ export function InboxList({
     { data: initialEmails, total: initialTotal }
   );
 
-  const emails = res.data || [];
+  const emails = useMemo(() => res.data || [], [res.data]);
   const total = res.total;
 
   const handleFilterChange = useCallback((value: string) => {
@@ -152,10 +152,8 @@ export function InboxList({
     });
   }, [emails]);
 
-  // Reset focused index when email list changes
-  useEffect(() => {
-    setFocusedIndex((prev) => (prev >= emails.length ? emails.length - 1 : prev));
-  }, [emails.length]);
+  // Derive a clamped focused index without storing it separately
+  const activeFocusIndex = emails.length === 0 ? -1 : Math.min(focusedIndex, emails.length - 1);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -239,11 +237,11 @@ export function InboxList({
 
   // Scroll focused row into view
   useEffect(() => {
-    if (focusedIndex >= 0) {
-      const row = document.querySelector(`[data-inbox-row="${focusedIndex}"]`);
+    if (activeFocusIndex >= 0) {
+      const row = document.querySelector(`[data-inbox-row="${activeFocusIndex}"]`);
       row?.scrollIntoView({ block: "nearest" });
     }
-  }, [focusedIndex]);
+  }, [activeFocusIndex]);
 
   return (
     <div className="space-y-4">
@@ -471,7 +469,7 @@ export function InboxList({
               const senderName = email.FromName || email.FromAddress;
               const initial = senderName.charAt(0).toUpperCase();
               const isSelected = selectedIds.has(email.ID);
-              const isFocused = focusedIndex === index;
+              const isFocused = activeFocusIndex === index;
 
               return (
                 <div
