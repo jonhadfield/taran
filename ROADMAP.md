@@ -90,6 +90,13 @@
 - **Description**: Automated email notification at 80% monthly token usage with HTML progress bar, formatted usage stats, and link to settings. Sends once per month via Resend, triggered after each email extraction in the worker pipeline.
 - **Scope**: Already implemented in mailer (SendTokenWarning), worker (checkTokenWarning), and database (SetTokenWarningSent)
 
+### 3.6 Webhook Reliability (Dead Letter Queue & Admin Replay)
+- **Status**: Done
+- **Effort**: Medium
+- **Impact**: High
+- **Description**: Raw webhook payload storage for replay capability, admin endpoints for failed email management (list, retry, batch retry, replay from stored payload), pipeline health monitoring. Admin UI with failed email list, retry/batch-retry buttons, expandable details, and pipeline status overview.
+- **Scope**: Backend webhook_payload table, admin webhook handler (5 endpoints), frontend admin failed emails panel with pipeline health grid
+
 ## Future Considerations
 
 These are not prioritized but worth tracking for later evaluation:

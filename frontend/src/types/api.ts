@@ -307,6 +307,19 @@ export interface AutoArchiveRule {
   UpdatedAt: string;
 }
 
+export interface FailedEmail extends Email {
+  UserEmail: string;
+}
+
+export interface PipelineHealth {
+  pending: number;
+  processing: number;
+  processed: number;
+  failed: number;
+  skipped: number;
+  payloads: number;
+}
+
 export interface DashboardData {
   emails: Email[];
   emailTotal: number;
