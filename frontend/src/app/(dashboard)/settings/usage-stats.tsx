@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "@/lib/api";
 import {
   Card,
@@ -74,13 +74,16 @@ export function UsageStatsCard() {
   const daysInMonth = stats.PeriodEnd && stats.PeriodStart
     ? Math.round((new Date(stats.PeriodEnd).getTime() - new Date(stats.PeriodStart).getTime()) / (1000 * 60 * 60 * 24))
     : 30;
-  const daysSoFar = stats.PeriodStart
-    ? Math.max(1, Math.round((Date.now() - new Date(stats.PeriodStart).getTime()) / (1000 * 60 * 60 * 24)))
-    : 1;
+  const daysSoFar = useMemo(() => {
+    if (!stats.PeriodStart) return 1;
+    return Math.max(1, Math.round((Date.now() - new Date(stats.PeriodStart).getTime()) / (1000 * 60 * 60 * 24)));
+  }, [stats.PeriodStart]);
   const projectedMonthly = Math.round((stats.MonthlyTokensUsed / daysSoFar) * daysInMonth);
   const projectedPercent = hasMonthlyLimit
     ? Math.min(100, (projectedMonthly / stats.MonthlyTokenLimit) * 100)
     : 0;
+
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   // Find max for history chart scaling
   const maxHistoryTokens = history.length > 0
@@ -183,7 +186,7 @@ export function UsageStatsCard() {
             <div className="flex items-end gap-px h-16">
               {history.map((day) => {
                 const height = Math.max(2, (day.Tokens / maxHistoryTokens) * 100);
-                const isToday = day.Date === new Date().toISOString().slice(0, 10);
+                const isToday = day.Date === todayStr;
                 return (
                   <div
                     key={day.Date}
