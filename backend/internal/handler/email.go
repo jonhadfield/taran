@@ -65,6 +65,9 @@ func (h *EmailHandler) List(w http.ResponseWriter, r *http.Request) {
 		b := true
 		opts.HasAttachment = &b
 	}
+	if v := r.URL.Query().Get("sort"); v == "oldest" || v == "relevance" {
+		opts.Sort = v
+	}
 	if v := r.URL.Query().Get("since"); v != "" {
 		if t, err := time.Parse(time.RFC3339, v); err == nil {
 			opts.Since = &t

@@ -394,4 +394,5 @@ type ListOptions struct {
 	Category      *string
 	FromAddress   *string
 	HasAttachment *bool
+	Sort          string // "newest" (default), "oldest", "relevance"
 }

@@ -131,10 +131,17 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 		argIdx++
 	}
 	if opts.Search != nil && *opts.Search != "" {
-		// Full-text search on tsvector column, plus ILIKE fallback on from_address for exact email matches
+		// Full-text search on tsvector column, ILIKE fallback on from_address/from_name,
+		// and search extraction summary/key_points/action_items for AI-extracted content
 		where = append(where, fmt.Sprintf(
-			"(search_tsv @@ plainto_tsquery('english', $%d) OR from_address ILIKE $%d)",
-			argIdx, argIdx+1))
+			`(search_tsv @@ plainto_tsquery('english', $%d)
+			 OR from_address ILIKE $%d
+			 OR from_name ILIKE $%d
+			 OR EXISTS (SELECT 1 FROM extraction ex WHERE ex.email_id = email.id
+			   AND (ex.summary ILIKE $%d
+			     OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(ex.key_points) kp WHERE kp ILIKE $%d)
+			     OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(ex.action_items) ai WHERE ai ILIKE $%d))))`,
+			argIdx, argIdx+1, argIdx+1, argIdx+1, argIdx+1, argIdx+1))
 		args = append(args, *opts.Search, "%"+*opts.Search+"%")
 		argIdx += 2
 	}
@@ -177,11 +184,22 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 	offset := opts.Offset
 
 	orderBy := "received_at DESC"
-	if opts.Search != nil && *opts.Search != "" {
-		// Rank by full-text relevance when searching, with date as tiebreaker
-		orderBy = fmt.Sprintf("ts_rank(search_tsv, plainto_tsquery('english', $%d)) DESC, received_at DESC", argIdx)
-		args = append(args, *opts.Search)
-		argIdx++
+	switch opts.Sort {
+	case "oldest":
+		orderBy = "received_at ASC"
+	case "relevance":
+		if opts.Search != nil && *opts.Search != "" {
+			orderBy = fmt.Sprintf("ts_rank(search_tsv, plainto_tsquery('english', $%d)) DESC, received_at DESC", argIdx)
+			args = append(args, *opts.Search)
+			argIdx++
+		}
+	default: // "newest" or empty
+		if opts.Search != nil && *opts.Search != "" {
+			// Default to relevance when searching
+			orderBy = fmt.Sprintf("ts_rank(search_tsv, plainto_tsquery('english', $%d)) DESC, received_at DESC", argIdx)
+			args = append(args, *opts.Search)
+			argIdx++
+		}
 	}
 
 	query := fmt.Sprintf(

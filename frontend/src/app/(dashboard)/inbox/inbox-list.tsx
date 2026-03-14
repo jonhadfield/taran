@@ -8,7 +8,7 @@ import { usePolling } from "@/hooks/use-polling";
 import type { Email, ListResponse } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Inbox, Search, X, SlidersHorizontal, Paperclip, Calendar } from "lucide-react";
+import { Inbox, Search, X, SlidersHorizontal, Paperclip, Calendar, ArrowUpDown } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import Link from "next/link";
 import { InboxFilters } from "./inbox-filters";
@@ -46,6 +46,7 @@ export function buildQueryString(
   limit: number,
   category?: string,
   searchFilters?: SearchFilters,
+  sort?: string,
 ) {
   const params = [`limit=${limit}`];
   if (filter === "unread") params.push("is_read=false");
@@ -57,6 +58,7 @@ export function buildQueryString(
   if (searchFilters?.hasAttachment) params.push("has_attachment=true");
   if (searchFilters?.since) params.push(`since=${searchFilters.since}`);
   if (searchFilters?.before) params.push(`before=${searchFilters.before}`);
+  if (sort && sort !== "newest") params.push(`sort=${sort}`);
   return params.join("&");
 }
 
@@ -99,6 +101,7 @@ export function InboxList({
     before: "",
   });
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [sort, setSort] = useState("newest");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const topics = initialTopics;
@@ -108,7 +111,7 @@ export function InboxList({
     searchFilters.since,
     searchFilters.before,
   ].filter(Boolean).length;
-  const queryString = buildQueryString(filter, debouncedSearch, activeTopic, limit, activeCategory, searchFilters);
+  const queryString = buildQueryString(filter, debouncedSearch, activeTopic, limit, activeCategory, searchFilters, sort);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -247,7 +250,11 @@ export function InboxList({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-balance">Inbox</h1>
-        <span className="text-sm text-muted-foreground">{total} emails</span>
+        <span className="text-sm text-muted-foreground">
+          {debouncedSearch
+            ? `${total} result${total !== 1 ? "s" : ""} for "${debouncedSearch}"`
+            : `${total} emails`}
+        </span>
       </div>
 
       {/* Search */}
@@ -258,7 +265,7 @@ export function InboxList({
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="Search emails... (press /)"
+              placeholder="Search subjects, senders, summaries... (/)"
               aria-label="Search emails"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -273,6 +280,19 @@ export function InboxList({
                 <X className="size-4" />
               </button>
             )}
+          </div>
+          <div className="relative">
+            <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+            <select
+              value={sort}
+              onChange={(e) => { setSort(e.target.value); setLimit(PAGE_SIZE); }}
+              className="h-9 rounded-md border border-input bg-transparent pl-8 pr-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring appearance-none cursor-pointer"
+              aria-label="Sort order"
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              {debouncedSearch && <option value="relevance">Relevance</option>}
+            </select>
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -427,19 +447,40 @@ export function InboxList({
 
       {emails.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Inbox className="size-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium">
-            {filter === "all" ? "No emails yet" : `No ${filter} emails`}
-          </h3>
-          <p className="text-sm text-muted-foreground mt-2">
-            {filter === "all"
-              ? "Forward your newsletters to your inbox to get started:"
-              : "Nothing to show for this filter."}
-          </p>
-          {filter === "all" && emailAddress && (
-            <div className="mt-3">
-              <CopyEmailAddress emailAddress={emailAddress} />
-            </div>
+          {debouncedSearch ? (
+            <>
+              <Search className="size-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">
+                No results for &ldquo;{debouncedSearch}&rdquo;
+              </h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                Try a different search term or adjust your filters.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => { setSearchInput(""); setSearchFilters({ hasAttachment: false, since: "", before: "" }); setActiveCategory(""); setActiveTopic(""); }}
+              >
+                Clear search
+              </Button>
+            </>
+          ) : (
+            <>
+              <Inbox className="size-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">
+                {filter === "all" ? "No emails yet" : `No ${filter} emails`}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                {filter === "all"
+                  ? "Forward your newsletters to your inbox to get started:"
+                  : "Nothing to show for this filter."}
+              </p>
+              {filter === "all" && emailAddress && (
+                <div className="mt-3">
+                  <CopyEmailAddress emailAddress={emailAddress} />
+                </div>
+              )}
+            </>
           )}
         </div>
       ) : (
