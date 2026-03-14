@@ -26,6 +26,7 @@ import { UsageStatsCard } from "./usage-stats";
 import { ApiKeysSettings } from "./api-keys-settings";
 import { QuietHoursSettings } from "./quiet-hours-settings";
 import { AutoArchiveSettings } from "./auto-archive-settings";
+import { DailyLimitSettings } from "./daily-limit-settings";
 import { useColorTheme } from "@/components/color-theme-provider";
 
 const COMMON_TIMEZONES = [
@@ -71,6 +72,7 @@ export default function SettingsPage() {
   const [interestKeywords, setInterestKeywords] = useState<string[]>([]);
   const [exclusionKeywords, setExclusionKeywords] = useState<string[]>([]);
   const [excludedCategories, setExcludedCategories] = useState<string[]>(["notification", "transactional", "marketing"]);
+  const [dailyTokenLimit, setDailyTokenLimit] = useState(0);
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
   const [quietHoursStart, setQuietHoursStart] = useState(22);
   const [quietHoursEnd, setQuietHoursEnd] = useState(7);
@@ -106,6 +108,7 @@ export default function SettingsPage() {
       setInterestKeywords(pref.InterestKeywords || []);
       setExclusionKeywords(pref.ExclusionKeywords || []);
       setExcludedCategories(pref.ExcludedCategories || ["notification", "transactional", "marketing"]);
+      setDailyTokenLimit(pref.DailyTokenLimit ?? 0);
       setQuietHoursEnabled(pref.QuietHoursEnabled ?? false);
       setQuietHoursStart(pref.QuietHoursStart ?? 22);
       setQuietHoursEnd(pref.QuietHoursEnd ?? 7);
@@ -125,7 +128,7 @@ export default function SettingsPage() {
     fetchPreferences();
   }, []);
 
-  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme" | "ExcludedCategories" | "QuietHoursEnabled" | "QuietHoursStart" | "QuietHoursEnd">>) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme" | "ExcludedCategories" | "DailyTokenLimit" | "QuietHoursEnabled" | "QuietHoursStart" | "QuietHoursEnd">>) => {
     setPrefSaving(true);
     try {
       const updated = await apiPatch<UserPreference>("preferences", updates);
@@ -139,6 +142,7 @@ export default function SettingsPage() {
       setInterestKeywords(updated.InterestKeywords || []);
       setExclusionKeywords(updated.ExclusionKeywords || []);
       setExcludedCategories(updated.ExcludedCategories || ["notification", "transactional", "marketing"]);
+      setDailyTokenLimit(updated.DailyTokenLimit ?? 0);
       setQuietHoursEnabled(updated.QuietHoursEnabled ?? false);
       setQuietHoursStart(updated.QuietHoursStart ?? 22);
       setQuietHoursEnd(updated.QuietHoursEnd ?? 7);
@@ -307,6 +311,16 @@ export default function SettingsPage() {
       )}
 
       <ApiKeysSettings />
+
+      <DailyLimitSettings
+        dailyTokenLimit={dailyTokenLimit}
+        prefLoading={prefLoading}
+        prefSaving={prefSaving}
+        onDailyTokenLimitChange={(value) => {
+          setDailyTokenLimit(value);
+          updatePreference({ DailyTokenLimit: value });
+        }}
+      />
 
       <UsageStatsCard />
 

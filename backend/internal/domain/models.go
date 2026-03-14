@@ -145,6 +145,7 @@ type UserPreference struct {
 	MonthlyTokenLimit    int
 	ExcludedCategories   []string // categories excluded from digests (default: notification, transactional, marketing)
 	TokenWarningSentAt   *time.Time
+	DailyTokenLimit      int // 0 = no daily limit
 	QuietHoursEnabled    bool
 	QuietHoursStart      int // 0-23, hour in DigestTimezone
 	QuietHoursEnd        int // 0-23, hour in DigestTimezone
@@ -312,11 +313,18 @@ type UsageStats struct {
 	MonthlyTokensUsed  int `json:"MonthlyTokensUsed"`
 	MonthlyTokenLimit  int `json:"MonthlyTokenLimit"` // 0 = unlimited
 	DailyTokensUsed    int `json:"DailyTokensUsed"`
+	DailyTokenLimit    int `json:"DailyTokenLimit"` // 0 = no daily limit
 	TriageTokens       int `json:"TriageTokens"`
 	ExtractTokens      int `json:"ExtractTokens"`
 	DigestTokens       int `json:"DigestTokens"`
+	DailyHistory       []DailyTokenCount `json:"DailyHistory"`
 	PeriodStart        time.Time `json:"PeriodStart"`
 	PeriodEnd          time.Time `json:"PeriodEnd"`
+}
+
+type DailyTokenCount struct {
+	Date   string `json:"Date"`   // "2006-01-02"
+	Tokens int    `json:"Tokens"`
 }
 
 type UserLLMKey struct {

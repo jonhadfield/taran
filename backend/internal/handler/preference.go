@@ -42,6 +42,7 @@ type updatePreferenceRequest struct {
 	ExclusionKeywords  *[]string `json:"ExclusionKeywords"`
 	ColorTheme         *string   `json:"ColorTheme"`
 	ExcludedCategories *[]string `json:"ExcludedCategories"`
+	DailyTokenLimit    *int      `json:"DailyTokenLimit"`
 	QuietHoursEnabled  *bool     `json:"QuietHoursEnabled"`
 	QuietHoursStart    *int      `json:"QuietHoursStart"`
 	QuietHoursEnd      *int      `json:"QuietHoursEnd"`
@@ -144,6 +145,14 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate daily token limit
+	if req.DailyTokenLimit != nil {
+		if *req.DailyTokenLimit < 0 {
+			WriteError(w, http.StatusBadRequest, "daily token limit cannot be negative")
+			return
+		}
+	}
+
 	// Validate quiet hours
 	if req.QuietHoursStart != nil {
 		if *req.QuietHoursStart < 0 || *req.QuietHoursStart > 23 {
@@ -197,6 +206,9 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.ExcludedCategories != nil {
 		existing.ExcludedCategories = *req.ExcludedCategories
+	}
+	if req.DailyTokenLimit != nil {
+		existing.DailyTokenLimit = *req.DailyTokenLimit
 	}
 	if req.QuietHoursEnabled != nil {
 		existing.QuietHoursEnabled = *req.QuietHoursEnabled

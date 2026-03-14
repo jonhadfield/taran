@@ -33,11 +33,11 @@
 ## Priority 2: Operational / Business
 
 ### 2.1 LLM Cost Controls
-- **Status**: Not started
+- **Status**: Done
 - **Effort**: Medium
 - **Impact**: High
-- **Description**: Token usage is tracked but not enforced. Add per-user usage limits, a usage dashboard in settings, and admin-level cost monitoring. Critical for sustainable scaling.
-- **Scope**: Backend usage tracking table, rate limiting by token budget, admin cost dashboard, user usage display in settings
+- **Description**: Per-user monthly and daily token limits with enforcement (skip/defer on exceed), 80% warning emails, usage dashboard with 30-day history chart, projected usage, operation breakdown, admin cost monitoring with per-user limit editing.
+- **Scope**: Token usage tracking, monthly + daily rate limiting, admin cost dashboard, user usage display with history
 
 ### 2.2 Usage Analytics Dashboard
 - **Status**: Not started

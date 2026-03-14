@@ -247,15 +247,25 @@ func ProcessEmail(
 		}
 	}
 
-	// Check monthly token limit
+	// Check token limits (monthly and daily)
 	if preferences != nil && tokenUsage != nil {
 		pref, err := preferences.Get(ctx, em.UserID)
-		if err == nil && pref.MonthlyTokenLimit > 0 {
-			used, err := tokenUsage.GetMonthlyTotal(ctx, em.UserID)
-			if err == nil && used >= pref.MonthlyTokenLimit {
-				logger.Warn("monthly token limit exceeded", "used", used, "limit", pref.MonthlyTokenLimit)
-				emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped, "monthly token limit exceeded")
-				return
+		if err == nil {
+			if pref.MonthlyTokenLimit > 0 {
+				used, err := tokenUsage.GetMonthlyTotal(ctx, em.UserID)
+				if err == nil && used >= pref.MonthlyTokenLimit {
+					logger.Warn("monthly token limit exceeded", "used", used, "limit", pref.MonthlyTokenLimit)
+					emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped, "monthly token limit exceeded")
+					return
+				}
+			}
+			if pref.DailyTokenLimit > 0 {
+				dailyUsed, err := tokenUsage.GetDailyTotal(ctx, em.UserID)
+				if err == nil && dailyUsed >= pref.DailyTokenLimit {
+					logger.Warn("daily token limit exceeded", "used", dailyUsed, "limit", pref.DailyTokenLimit)
+					emails.SetStatus(ctx, emailID, domain.EmailStatusPending, "daily token limit exceeded, will retry tomorrow")
+					return
+				}
 			}
 		}
 	}

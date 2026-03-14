@@ -100,6 +100,51 @@ func (r *TokenUsageRepo) GetUsageStats(ctx context.Context, userID string) (*dom
 	return stats, nil
 }
 
+func (r *TokenUsageRepo) GetDailyTotal(ctx context.Context, userID string) (int, error) {
+	now := time.Now().UTC()
+	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+
+	var total int
+	err := r.pool.QueryRow(ctx,
+		`SELECT COALESCE(SUM(total_tokens), 0) FROM token_usage
+		 WHERE user_id = $1 AND created_at >= $2`,
+		userID, dayStart,
+	).Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("get daily total: %w", err)
+	}
+	return total, nil
+}
+
+func (r *TokenUsageRepo) GetDailyBreakdown(ctx context.Context, userID string, days int) ([]domain.DailyTokenCount, error) {
+	since := time.Now().UTC().AddDate(0, 0, -days)
+
+	rows, err := r.pool.Query(ctx,
+		`SELECT DATE(created_at AT TIME ZONE 'UTC') AS day, COALESCE(SUM(total_tokens), 0)
+		 FROM token_usage
+		 WHERE user_id = $1 AND created_at >= $2
+		 GROUP BY day
+		 ORDER BY day`,
+		userID, since,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get daily breakdown: %w", err)
+	}
+	defer rows.Close()
+
+	var result []domain.DailyTokenCount
+	for rows.Next() {
+		var dt domain.DailyTokenCount
+		var d time.Time
+		if err := rows.Scan(&d, &dt.Tokens); err != nil {
+			return nil, fmt.Errorf("scan daily breakdown: %w", err)
+		}
+		dt.Date = d.Format("2006-01-02")
+		result = append(result, dt)
+	}
+	return result, nil
+}
+
 func (r *TokenUsageRepo) GetGlobalMonthlyTotal(ctx context.Context) (int, error) {
 	now := time.Now().UTC()
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)

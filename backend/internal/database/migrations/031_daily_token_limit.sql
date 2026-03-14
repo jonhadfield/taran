@@ -1,0 +1,1 @@
+ALTER TABLE user_preference ADD COLUMN IF NOT EXISTS daily_token_limit INTEGER NOT NULL DEFAULT 0;

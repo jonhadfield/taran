@@ -122,6 +122,7 @@ export interface UserPreference {
   ExclusionKeywords: string[];
   ColorTheme: string;
   ExcludedCategories: string[];
+  DailyTokenLimit: number;
   QuietHoursEnabled: boolean;
   QuietHoursStart: number;
   QuietHoursEnd: number;
@@ -193,13 +194,20 @@ export interface AdminUser {
   MonthlyTokenLimit: number;
 }
 
+export interface DailyTokenCount {
+  Date: string;
+  Tokens: number;
+}
+
 export interface UsageStats {
   MonthlyTokensUsed: number;
   MonthlyTokenLimit: number;
   DailyTokensUsed: number;
+  DailyTokenLimit: number;
   TriageTokens: number;
   ExtractTokens: number;
   DigestTokens: number;
+  DailyHistory: DailyTokenCount[] | null;
   PeriodStart: string;
   PeriodEnd: string;
 }

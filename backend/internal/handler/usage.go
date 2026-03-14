@@ -21,10 +21,17 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fill in the monthly limit from preferences
+	// Fill in limits from preferences
 	pref, err := h.Preferences.Get(r.Context(), userID)
 	if err == nil {
 		stats.MonthlyTokenLimit = pref.MonthlyTokenLimit
+		stats.DailyTokenLimit = pref.DailyTokenLimit
+	}
+
+	// Include 30-day daily breakdown
+	history, err := h.TokenUsage.GetDailyBreakdown(r.Context(), userID, 30)
+	if err == nil {
+		stats.DailyHistory = history
 	}
 
 	WriteJSON(w, http.StatusOK, stats)

@@ -116,6 +116,8 @@ type AttachmentRepository interface {
 type TokenUsageRepository interface {
 	Create(ctx context.Context, tu *domain.TokenUsage) error
 	GetMonthlyTotal(ctx context.Context, userID string) (int, error)
+	GetDailyTotal(ctx context.Context, userID string) (int, error)
+	GetDailyBreakdown(ctx context.Context, userID string, days int) ([]domain.DailyTokenCount, error)
 	GetUsageStats(ctx context.Context, userID string) (*domain.UsageStats, error)
 	GetGlobalMonthlyTotal(ctx context.Context) (int, error)
 }
