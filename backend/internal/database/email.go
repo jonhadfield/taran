@@ -168,6 +168,13 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 	if opts.HasAttachment != nil && *opts.HasAttachment {
 		where = append(where, "EXISTS (SELECT 1 FROM email_attachment ea WHERE ea.email_id = email.id)")
 	}
+	if opts.LabelID != nil && *opts.LabelID != "" {
+		where = append(where, fmt.Sprintf(
+			"EXISTS (SELECT 1 FROM email_label el WHERE el.email_id = email.id AND el.label_id = $%d)",
+			argIdx))
+		args = append(args, *opts.LabelID)
+		argIdx++
+	}
 
 	whereClause := strings.Join(where, " AND ")
 
@@ -341,9 +348,11 @@ func (r *EmailRepo) CountByWeek(ctx context.Context, userID string, weeks int) (
 	var result []domain.WeekCount
 	for rows.Next() {
 		var wc domain.WeekCount
-		if err := rows.Scan(&wc.Week, &wc.Count); err != nil {
+		var count int64
+		if err := rows.Scan(&wc.Week, &count); err != nil {
 			return nil, fmt.Errorf("scan week count: %w", err)
 		}
+		wc.Count = int(count)
 		result = append(result, wc)
 	}
 	return result, nil
@@ -486,9 +495,11 @@ func (r *EmailRepo) TopSenders(ctx context.Context, userID string, from, to time
 	var senders []domain.SenderCount
 	for rows.Next() {
 		var s domain.SenderCount
-		if err := rows.Scan(&s.FromAddress, &s.FromName, &s.Count); err != nil {
+		var cnt int64
+		if err := rows.Scan(&s.FromAddress, &s.FromName, &cnt); err != nil {
 			return nil, fmt.Errorf("scan sender count: %w", err)
 		}
+		s.Count = int(cnt)
 		senders = append(senders, s)
 	}
 	return senders, nil
@@ -548,6 +559,33 @@ func (r *EmailRepo) CountByStatus(ctx context.Context, userID string) (map[domai
 	return counts, nil
 }
 
+func (r *EmailRepo) CountByHourAndDay(ctx context.Context, userID string) ([]domain.HeatmapCell, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT EXTRACT(HOUR FROM received_at)::int AS hour,
+		        EXTRACT(DOW FROM received_at)::int AS day,
+		        COUNT(*)::int AS cnt
+		 FROM email WHERE user_id = $1
+		 GROUP BY hour, day ORDER BY day, hour`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("count by hour and day: %w", err)
+	}
+	defer rows.Close()
+
+	var cells []domain.HeatmapCell
+	for rows.Next() {
+		var c domain.HeatmapCell
+		var hour, day, cnt int64
+		if err := rows.Scan(&hour, &day, &cnt); err != nil {
+			return nil, fmt.Errorf("scan heatmap cell: %w", err)
+		}
+		c.Hour = int(hour)
+		c.Day = int(day)
+		c.Count = int(cnt)
+		cells = append(cells, c)
+	}
+	return cells, nil
+}
+
 func (r *EmailRepo) GetSenderDetail(ctx context.Context, userID, fromAddress string) (*domain.SenderDetail, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT e.from_address,
@@ -592,9 +630,11 @@ func (r *EmailRepo) CountBySenderWeek(ctx context.Context, userID, fromAddress s
 	var result []domain.WeekCount
 	for rows.Next() {
 		var wc domain.WeekCount
-		if err := rows.Scan(&wc.Week, &wc.Count); err != nil {
+		var count int64
+		if err := rows.Scan(&wc.Week, &count); err != nil {
 			return nil, fmt.Errorf("scan week count: %w", err)
 		}
+		wc.Count = int(count)
 		result = append(result, wc)
 	}
 	return result, nil

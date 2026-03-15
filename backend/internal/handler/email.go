@@ -61,6 +61,9 @@ func (h *EmailHandler) List(w http.ResponseWriter, r *http.Request) {
 	if v := r.URL.Query().Get("from_address"); v != "" {
 		opts.FromAddress = &v
 	}
+	if v := r.URL.Query().Get("label"); v != "" {
+		opts.LabelID = &v
+	}
 	if v := r.URL.Query().Get("has_attachment"); v == "true" {
 		b := true
 		opts.HasAttachment = &b

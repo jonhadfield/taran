@@ -35,6 +35,7 @@ type EmailRepository interface {
 	ListFailedAll(ctx context.Context, limit, offset int) ([]domain.FailedEmail, int, error)
 	BatchResetForRetry(ctx context.Context, ids []string) (int, error)
 	DeleteInternal(ctx context.Context, id string) error
+	CountByHourAndDay(ctx context.Context, userID string) ([]domain.HeatmapCell, error)
 }
 
 type ExtractionRepository interface {
@@ -45,6 +46,9 @@ type ExtractionRepository interface {
 	DeleteByEmailIDScoped(ctx context.Context, userID, emailID string) error
 	ListByUserAndPeriod(ctx context.Context, userID string, from, to time.Time, excludedCategories ...string) ([]domain.Extraction, error)
 	ListTopicsByUser(ctx context.Context, userID string, limit int) ([]string, error)
+	ListTopicsWithCount(ctx context.Context, userID string, limit int) ([]domain.TopicCount, error)
+	CountByCategory(ctx context.Context, userID string) ([]domain.CategoryCount, error)
+	CountActionItems(ctx context.Context, userID string, from, to time.Time) (int, error)
 }
 
 type FeedbackRepository interface {
@@ -138,11 +142,31 @@ type WebhookPayloadRepository interface {
 	Count(ctx context.Context) (int, error)
 }
 
+type LabelRepository interface {
+	Create(ctx context.Context, label *domain.Label) error
+	GetByID(ctx context.Context, userID, id string) (*domain.Label, error)
+	ListByUser(ctx context.Context, userID string) ([]domain.Label, error)
+	Update(ctx context.Context, userID string, label *domain.Label) error
+	Delete(ctx context.Context, userID, id string) error
+	AddToEmail(ctx context.Context, userID, emailID, labelID string) error
+	RemoveFromEmail(ctx context.Context, userID, emailID, labelID string) error
+	ListByEmail(ctx context.Context, userID, emailID string) ([]domain.Label, error)
+	BatchAddToEmails(ctx context.Context, userID string, emailIDs []string, labelID string) error
+	BatchRemoveFromEmails(ctx context.Context, userID string, emailIDs []string, labelID string) error
+}
+
 type AutoArchiveRuleRepository interface {
 	ListByUser(ctx context.Context, userID string) ([]domain.AutoArchiveRule, error)
 	Upsert(ctx context.Context, rule *domain.AutoArchiveRule) error
 	Delete(ctx context.Context, userID, id string) error
 	ListEmailsToArchive(ctx context.Context, limit int) ([]domain.ArchiveCandidate, error)
+}
+
+type SavedSearchRepository interface {
+	Create(ctx context.Context, s *domain.SavedSearch) error
+	ListByUser(ctx context.Context, userID string) ([]domain.SavedSearch, error)
+	Delete(ctx context.Context, userID, id string) error
+	CountByUser(ctx context.Context, userID string) (int, error)
 }
 
 type SenderPreferenceRepository interface {

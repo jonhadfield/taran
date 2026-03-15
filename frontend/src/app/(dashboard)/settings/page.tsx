@@ -26,6 +26,7 @@ import { UsageStatsCard } from "./usage-stats";
 import { ApiKeysSettings } from "./api-keys-settings";
 import { QuietHoursSettings } from "./quiet-hours-settings";
 import { AutoArchiveSettings } from "./auto-archive-settings";
+import { LabelSettings } from "./label-settings";
 import { DailyLimitSettings } from "./daily-limit-settings";
 import { useColorTheme } from "@/components/color-theme-provider";
 
@@ -278,6 +279,8 @@ export default function SettingsPage() {
           updatePreference({ ExcludedCategories: categories });
         }}
       />
+
+      <LabelSettings />
 
       <AutoArchiveSettings />
 

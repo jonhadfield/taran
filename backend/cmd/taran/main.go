@@ -139,6 +139,12 @@ func main() {
 	// Webhook payload repo (for dead letter queue / replay)
 	webhookPayloadRepo := database.NewWebhookPayloadRepo(pool)
 
+	// Label repo
+	labelRepo := database.NewLabelRepo(pool)
+
+	// Saved search repo
+	savedSearchRepo := database.NewSavedSearchRepo(pool)
+
 	// Auto-archive rule repo
 	autoArchiveRepo := database.NewAutoArchiveRuleRepo(pool)
 	proc.AutoArchiveRules = autoArchiveRepo
@@ -243,8 +249,14 @@ func main() {
 		Preferences:     preferenceRepo,
 		Processor:       proc,
 	}
+	labelHandler := &handler.LabelHandler{
+		Labels: labelRepo,
+	}
 	autoArchiveHandler := &handler.AutoArchiveHandler{
 		Rules: autoArchiveRepo,
+	}
+	savedSearchHandler := &handler.SavedSearchHandler{
+		SavedSearches: savedSearchRepo,
 	}
 	cronHandler := &handler.CronHandler{
 		Scheduler: sched,
@@ -280,6 +292,8 @@ func main() {
 		CronHandler:          cronHandler,
 		AdminWebhookHandler:  adminWebhookHandler,
 		AutoArchiveHandler:   autoArchiveHandler,
+		LabelHandler:         labelHandler,
+		SavedSearchHandler:   savedSearchHandler,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewRateLimiter(10, 30) // 10 req/s sustained, 30 burst

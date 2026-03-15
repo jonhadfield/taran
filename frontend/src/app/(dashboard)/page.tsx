@@ -32,6 +32,10 @@ export default async function DashboardPage() {
     processing: { PendingCount: 0, ProcessingCount: 0, FailedCount: 0 },
     weeklyHistory: [],
     topTopics: [],
+    topicsWithCount: [],
+    categories: [],
+    actionItems: 0,
+    heatmap: [],
   };
 
   let initialData = emptyData;

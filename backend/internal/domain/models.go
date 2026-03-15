@@ -230,6 +230,22 @@ type ProcessingStats struct {
 	FailedCount     int `json:"FailedCount"`
 }
 
+type CategoryCount struct {
+	Category string `json:"Category"`
+	Count    int    `json:"Count"`
+}
+
+type TopicCount struct {
+	Topic string `json:"Topic"`
+	Count int    `json:"Count"`
+}
+
+type HeatmapCell struct {
+	Hour int `json:"Hour"` // 0-23
+	Day  int `json:"Day"`  // 0=Sunday..6=Saturday
+	Count int `json:"Count"`
+}
+
 type AdminStats struct {
 	TotalUsers          int           `json:"TotalUsers"`
 	ActiveUsersWeek     int           `json:"ActiveUsersWeek"`
@@ -380,6 +396,25 @@ type ArchiveCandidate struct {
 	UserID  string
 }
 
+type Label struct {
+	ID         string    `json:"ID"`
+	UserID     string    `json:"UserID"`
+	Name       string    `json:"Name"`
+	Color      string    `json:"Color"`
+	EmailCount int       `json:"EmailCount"`
+	CreatedAt  time.Time `json:"CreatedAt"`
+	UpdatedAt  time.Time `json:"UpdatedAt"`
+}
+
+type SavedSearch struct {
+	ID        string                 `json:"ID"`
+	UserID    string                 `json:"UserID"`
+	Name      string                 `json:"Name"`
+	Filters   map[string]interface{} `json:"Filters"`
+	CreatedAt time.Time              `json:"CreatedAt"`
+	UpdatedAt time.Time              `json:"UpdatedAt"`
+}
+
 type ListOptions struct {
 	Limit         int
 	Offset        int
@@ -394,5 +429,6 @@ type ListOptions struct {
 	Category      *string
 	FromAddress   *string
 	HasAttachment *bool
+	LabelID       *string
 	Sort          string // "newest" (default), "oldest", "relevance"
 }

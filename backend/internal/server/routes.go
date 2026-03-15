@@ -37,6 +37,8 @@ type RouterDeps struct {
 	CronHandler          *handler.CronHandler
 	AdminWebhookHandler  *handler.AdminWebhookHandler
 	AutoArchiveHandler   *handler.AutoArchiveHandler
+	LabelHandler         *handler.LabelHandler
+	SavedSearchHandler   *handler.SavedSearchHandler
 }
 
 func NewRouter(deps RouterDeps) *http.ServeMux {
@@ -94,6 +96,18 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("PATCH /api/llm-keys/{provider}", deps.LLMKeyHandler.Patch)
 	api.HandleFunc("DELETE /api/llm-keys/{provider}", deps.LLMKeyHandler.Delete)
 	api.HandleFunc("GET /api/export", deps.ExportHandler.Export)
+	api.HandleFunc("GET /api/labels", deps.LabelHandler.List)
+	api.HandleFunc("POST /api/labels", deps.LabelHandler.Create)
+	api.HandleFunc("PATCH /api/labels/{id}", deps.LabelHandler.Update)
+	api.HandleFunc("DELETE /api/labels/{id}", deps.LabelHandler.Delete)
+	api.HandleFunc("GET /api/emails/{id}/labels", deps.LabelHandler.ListByEmail)
+	api.HandleFunc("PUT /api/emails/{id}/labels/{labelId}", deps.LabelHandler.AddToEmail)
+	api.HandleFunc("DELETE /api/emails/{id}/labels/{labelId}", deps.LabelHandler.RemoveFromEmail)
+	api.HandleFunc("POST /api/emails/labels/batch-add", deps.LabelHandler.BatchAdd)
+	api.HandleFunc("POST /api/emails/labels/batch-remove", deps.LabelHandler.BatchRemove)
+	api.HandleFunc("GET /api/saved-searches", deps.SavedSearchHandler.List)
+	api.HandleFunc("POST /api/saved-searches", deps.SavedSearchHandler.Create)
+	api.HandleFunc("DELETE /api/saved-searches/{id}", deps.SavedSearchHandler.Delete)
 	api.HandleFunc("GET /api/auto-archive-rules", deps.AutoArchiveHandler.List)
 	api.HandleFunc("PUT /api/auto-archive-rules", deps.AutoArchiveHandler.Upsert)
 	api.HandleFunc("DELETE /api/auto-archive-rules/{id}", deps.AutoArchiveHandler.Delete)

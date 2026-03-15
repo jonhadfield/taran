@@ -63,7 +63,7 @@
 - **Scope**: Backend template schema and LLM prompt customization, frontend template builder UI
 
 ### 3.2 Email Labels / Folders
-- **Status**: Not started
+- **Status**: Done
 - **Effort**: Medium
 - **Impact**: Medium
 - **Description**: The inbox is flat (star/archive only). Add user-defined labels or folders so users can organize emails by project, priority, or custom categories. Labels could also feed into digest filtering.

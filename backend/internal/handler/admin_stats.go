@@ -28,28 +28,40 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	var stats domain.AdminStats
 
 	// Total users
-	h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&stats.TotalUsers)
+	var totalUsers int64
+	h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&totalUsers)
+	stats.TotalUsers = int(totalUsers)
 
 	// Active users this week (users who received emails)
+	var activeUsersWeek int64
 	h.Pool.QueryRow(ctx,
 		`SELECT COUNT(DISTINCT user_id) FROM email WHERE received_at >= $1`, weekAgo,
-	).Scan(&stats.ActiveUsersWeek)
+	).Scan(&activeUsersWeek)
+	stats.ActiveUsersWeek = int(activeUsersWeek)
 
 	// Total emails
-	h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM email`).Scan(&stats.TotalEmails)
+	var totalEmails int64
+	h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM email`).Scan(&totalEmails)
+	stats.TotalEmails = int(totalEmails)
 
 	// Emails this week
+	var emailsThisWeek int64
 	h.Pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM email WHERE received_at >= $1`, weekAgo,
-	).Scan(&stats.EmailsThisWeek)
+	).Scan(&emailsThisWeek)
+	stats.EmailsThisWeek = int(emailsThisWeek)
 
 	// Total digests
-	h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM digest`).Scan(&stats.TotalDigests)
+	var totalDigests int64
+	h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM digest`).Scan(&totalDigests)
+	stats.TotalDigests = int(totalDigests)
 
 	// Digests this week
+	var digestsThisWeek int64
 	h.Pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM digest WHERE generated_at >= $1`, weekAgo,
-	).Scan(&stats.DigestsThisWeek)
+	).Scan(&digestsThisWeek)
+	stats.DigestsThisWeek = int(digestsThisWeek)
 
 	// Top 5 global senders this week
 	rows, err := h.Pool.Query(ctx,
@@ -60,7 +72,9 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		defer rows.Close()
 		for rows.Next() {
 			var s domain.SenderCount
-			if err := rows.Scan(&s.FromAddress, &s.FromName, &s.Count); err == nil {
+			var cnt int64
+			if err := rows.Scan(&s.FromAddress, &s.FromName, &cnt); err == nil {
+				s.Count = int(cnt)
 				stats.TopGlobalSenders = append(stats.TopGlobalSenders, s)
 			}
 		}
@@ -93,9 +107,12 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Feedback summary (all time)
+	var feedbackUseful, feedbackNotUseful int64
 	h.Pool.QueryRow(ctx,
 		`SELECT COUNT(*) FILTER (WHERE rating = 'useful'), COUNT(*) FILTER (WHERE rating = 'not_useful') FROM email_feedback`,
-	).Scan(&stats.FeedbackUseful, &stats.FeedbackNotUseful)
+	).Scan(&feedbackUseful, &feedbackNotUseful)
+	stats.FeedbackUseful = int(feedbackUseful)
+	stats.FeedbackNotUseful = int(feedbackNotUseful)
 
 	// Weekly email trend (last 8 weeks)
 	weeklyEmailRows, err := h.Pool.Query(ctx,
@@ -106,7 +123,9 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		defer weeklyEmailRows.Close()
 		for weeklyEmailRows.Next() {
 			var wc domain.WeekCount
-			if err := weeklyEmailRows.Scan(&wc.Week, &wc.Count); err == nil {
+			var count int64
+			if err := weeklyEmailRows.Scan(&wc.Week, &count); err == nil {
+				wc.Count = int(count)
 				stats.WeeklyEmails = append(stats.WeeklyEmails, wc)
 			}
 		}
@@ -124,7 +143,9 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		defer weeklyDigestRows.Close()
 		for weeklyDigestRows.Next() {
 			var wc domain.WeekCount
-			if err := weeklyDigestRows.Scan(&wc.Week, &wc.Count); err == nil {
+			var count int64
+			if err := weeklyDigestRows.Scan(&wc.Week, &count); err == nil {
+				wc.Count = int(count)
 				stats.WeeklyDigests = append(stats.WeeklyDigests, wc)
 			}
 		}

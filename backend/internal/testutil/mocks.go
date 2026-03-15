@@ -229,6 +229,10 @@ func (m *MockEmailRepo) DeleteInternal(ctx context.Context, id string) error {
 	return nil
 }
 
+func (m *MockEmailRepo) CountByHourAndDay(ctx context.Context, userID string) ([]domain.HeatmapCell, error) {
+	return nil, nil
+}
+
 // MockExtractionRepo implements database.ExtractionRepository for testing.
 type MockExtractionRepo struct {
 	CreateFn                func(ctx context.Context, extraction *domain.Extraction) error
@@ -293,6 +297,18 @@ func (m *MockExtractionRepo) ListTopicsByUser(ctx context.Context, userID string
 		return m.ListTopicsByUserFn(ctx, userID, limit)
 	}
 	return nil, nil
+}
+
+func (m *MockExtractionRepo) ListTopicsWithCount(ctx context.Context, userID string, limit int) ([]domain.TopicCount, error) {
+	return nil, nil
+}
+
+func (m *MockExtractionRepo) CountByCategory(ctx context.Context, userID string) ([]domain.CategoryCount, error) {
+	return nil, nil
+}
+
+func (m *MockExtractionRepo) CountActionItems(ctx context.Context, userID string, from, to time.Time) (int, error) {
+	return 0, nil
 }
 
 // MockFeedbackRepo implements database.FeedbackRepository for testing.

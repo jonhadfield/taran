@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { apiPatch, apiDeleteJSON } from "@/lib/api";
+import { apiGet, apiPost, apiPatch, apiDeleteJSON } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Archive, ArchiveRestore, Eye, EyeOff, Trash2, X } from "lucide-react";
+import type { Label } from "@/types/api";
+import { Archive, ArchiveRestore, Eye, EyeOff, Trash2, X, Tag } from "lucide-react";
 
 interface BulkActionBarProps {
   selectedIds: Set<string>;
@@ -15,7 +16,28 @@ interface BulkActionBarProps {
 export function BulkActionBar({ selectedIds, onClear }: BulkActionBarProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [labels, setLabels] = useState<Label[]>([]);
+  const [showLabelMenu, setShowLabelMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const count = selectedIds.size;
+
+  useEffect(() => {
+    if (count > 0 && labels.length === 0) {
+      apiGet<Label[]>("labels").then((data) => setLabels(data || [])).catch(() => {});
+    }
+  }, [count, labels.length]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowLabelMenu(false);
+      }
+    };
+    if (showLabelMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showLabelMenu]);
 
   if (count === 0) return null;
 
@@ -44,6 +66,19 @@ export function BulkActionBar({ selectedIds, onClear }: BulkActionBarProps) {
       router.refresh();
     } catch {
       toast.error("Failed to delete");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const batchAddLabel = async (labelId: string, labelName: string) => {
+    setLoading(true);
+    try {
+      await apiPost("emails/labels/batch-add", { EmailIDs: ids, LabelID: labelId });
+      toast.success(`Added "${labelName}" to ${count} email${count > 1 ? "s" : ""}`);
+      setShowLabelMenu(false);
+    } catch {
+      toast.error("Failed to add label");
     } finally {
       setLoading(false);
     }
@@ -94,6 +129,36 @@ export function BulkActionBar({ selectedIds, onClear }: BulkActionBarProps) {
         <ArchiveRestore className="size-4 sm:mr-1.5" />
         <span className="hidden sm:inline">Unarchive</span>
       </Button>
+      {labels.length > 0 && (
+        <div className="relative" ref={menuRef}>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={loading}
+            onClick={() => setShowLabelMenu(!showLabelMenu)}
+            className="shrink-0 px-2 sm:px-3"
+          >
+            <Tag className="size-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">Label</span>
+          </Button>
+          {showLabelMenu && (
+            <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] rounded-md border bg-popover p-1 shadow-md">
+              {labels.map((label) => (
+                <button
+                  key={label.ID}
+                  onClick={() => batchAddLabel(label.ID, label.Name)}
+                  className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent transition-colors text-left"
+                >
+                  {label.Color && (
+                    <span className={`size-2 rounded-full shrink-0 ${labelColorClass(label.Color)}`} />
+                  )}
+                  {label.Name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <Button
         variant="ghost"
         size="sm"
@@ -110,4 +175,19 @@ export function BulkActionBar({ selectedIds, onClear }: BulkActionBarProps) {
       </Button>
     </div>
   );
+}
+
+const LABEL_COLORS: Record<string, string> = {
+  blue: "bg-blue-500",
+  green: "bg-green-500",
+  red: "bg-red-500",
+  purple: "bg-purple-500",
+  orange: "bg-orange-500",
+  yellow: "bg-yellow-500",
+  pink: "bg-pink-500",
+  cyan: "bg-cyan-500",
+};
+
+function labelColorClass(color: string) {
+  return LABEL_COLORS[color] || "bg-gray-400";
 }

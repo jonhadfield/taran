@@ -297,6 +297,34 @@ export interface DigestPreview {
   Items: DigestPreviewItem[];
 }
 
+export interface Label {
+  ID: string;
+  UserID: string;
+  Name: string;
+  Color: string;
+  EmailCount: number;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
+export interface SavedSearch {
+  ID: string;
+  Name: string;
+  Filters: {
+    filter?: string;
+    search?: string;
+    topic?: string;
+    category?: string;
+    sort?: string;
+    labelId?: string;
+    hasAttachment?: boolean;
+    since?: string;
+    before?: string;
+  };
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
 export interface AutoArchiveRule {
   ID: string;
   RuleType: "category" | "sender";
@@ -320,6 +348,22 @@ export interface PipelineHealth {
   payloads: number;
 }
 
+export interface TopicCount {
+  Topic: string;
+  Count: number;
+}
+
+export interface CategoryCount {
+  Category: string;
+  Count: number;
+}
+
+export interface HeatmapCell {
+  Hour: number;
+  Day: number;
+  Count: number;
+}
+
 export interface DashboardData {
   emails: Email[];
   emailTotal: number;
@@ -329,4 +373,8 @@ export interface DashboardData {
   processing: ProcessingStats;
   weeklyHistory: WeekCount[];
   topTopics: string[];
+  topicsWithCount: TopicCount[];
+  categories: CategoryCount[];
+  actionItems: number;
+  heatmap: HeatmapCell[];
 }

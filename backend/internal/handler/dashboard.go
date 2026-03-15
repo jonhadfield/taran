@@ -25,6 +25,10 @@ type DashboardResponse struct {
 	Processing    domain.ProcessingStats  `json:"processing"`
 	WeeklyHistory []domain.WeekCount      `json:"weeklyHistory"`
 	TopTopics     []string                `json:"topTopics"`
+	TopicsWithCount []domain.TopicCount   `json:"topicsWithCount"`
+	Categories    []domain.CategoryCount  `json:"categories"`
+	ActionItems   int                     `json:"actionItems"`
+	Heatmap       []domain.HeatmapCell   `json:"heatmap"`
 }
 
 func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -160,6 +164,19 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 		mu.Unlock()
 	}()
 
+	// Fetch arrival time heatmap
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cells, err := h.Emails.CountByHourAndDay(ctx, userID)
+		if err != nil {
+			return
+		}
+		mu.Lock()
+		resp.Heatmap = cells
+		mu.Unlock()
+	}()
+
 	// Fetch top topics
 	if h.Extractions != nil {
 		wg.Add(1)
@@ -167,11 +184,47 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 			defer wg.Done()
 			topics, err := h.Extractions.ListTopicsByUser(ctx, userID, 10)
 			if err != nil {
-				// Non-fatal — topics are optional
 				return
 			}
 			mu.Lock()
 			resp.TopTopics = topics
+			mu.Unlock()
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			tc, err := h.Extractions.ListTopicsWithCount(ctx, userID, 10)
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			resp.TopicsWithCount = tc
+			mu.Unlock()
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cats, err := h.Extractions.CountByCategory(ctx, userID)
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			resp.Categories = cats
+			mu.Unlock()
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			weekStart := startOfWeek(now)
+			count, err := h.Extractions.CountActionItems(ctx, userID, weekStart, now)
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			resp.ActionItems = count
 			mu.Unlock()
 		}()
 	}
@@ -194,6 +247,15 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 	if resp.TopTopics == nil {
 		resp.TopTopics = []string{}
+	}
+	if resp.TopicsWithCount == nil {
+		resp.TopicsWithCount = []domain.TopicCount{}
+	}
+	if resp.Categories == nil {
+		resp.Categories = []domain.CategoryCount{}
+	}
+	if resp.Heatmap == nil {
+		resp.Heatmap = []domain.HeatmapCell{}
 	}
 
 	WriteJSON(w, http.StatusOK, resp)

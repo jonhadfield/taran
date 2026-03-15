@@ -140,6 +140,70 @@ func (r *ExtractionRepo) ListTopicsByUser(ctx context.Context, userID string, li
 	return topics, nil
 }
 
+func (r *ExtractionRepo) ListTopicsWithCount(ctx context.Context, userID string, limit int) ([]domain.TopicCount, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT topic, COUNT(*) AS cnt FROM extraction e
+		 JOIN email em ON em.id = e.email_id
+		 CROSS JOIN LATERAL jsonb_array_elements_text(e.topics) AS topic
+		 WHERE em.user_id = $1
+		 GROUP BY topic ORDER BY cnt DESC LIMIT $2`, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list topics with count: %w", err)
+	}
+	defer rows.Close()
+
+	var topics []domain.TopicCount
+	for rows.Next() {
+		var tc domain.TopicCount
+		var cnt int64
+		if err := rows.Scan(&tc.Topic, &cnt); err != nil {
+			return nil, fmt.Errorf("scan topic count: %w", err)
+		}
+		tc.Count = int(cnt)
+		topics = append(topics, tc)
+	}
+	return topics, nil
+}
+
+func (r *ExtractionRepo) CountByCategory(ctx context.Context, userID string) ([]domain.CategoryCount, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT COALESCE(e.source_category, 'other') AS cat, COUNT(*) AS cnt
+		 FROM extraction e
+		 JOIN email em ON em.id = e.email_id
+		 WHERE em.user_id = $1
+		 GROUP BY cat ORDER BY cnt DESC`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("count by category: %w", err)
+	}
+	defer rows.Close()
+
+	var counts []domain.CategoryCount
+	for rows.Next() {
+		var cc domain.CategoryCount
+		var cnt int64
+		if err := rows.Scan(&cc.Category, &cnt); err != nil {
+			return nil, fmt.Errorf("scan category count: %w", err)
+		}
+		cc.Count = int(cnt)
+		counts = append(counts, cc)
+	}
+	return counts, nil
+}
+
+func (r *ExtractionRepo) CountActionItems(ctx context.Context, userID string, from, to time.Time) (int, error) {
+	var count int64
+	err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM extraction e
+		 JOIN email em ON em.id = e.email_id
+		 CROSS JOIN LATERAL jsonb_array_elements_text(e.action_items) AS ai
+		 WHERE em.user_id = $1 AND em.received_at >= $2 AND em.received_at < $3`,
+		userID, from, to).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count action items: %w", err)
+	}
+	return int(count), nil
+}
+
 func scanExtraction(row scannable) (*domain.Extraction, error) {
 	var e domain.Extraction
 	var keyPoints, topics, links, actionItems []byte

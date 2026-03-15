@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { EmailResponse } from "@/types/api";
-import { ArrowLeft, Sparkles, CheckCircle2, Info, Paperclip } from "lucide-react";
+import { ArrowLeft, Sparkles, CheckCircle2, Info, Paperclip, Clock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
+import { EmailLabels } from "./email-labels";
 import { FeedbackButtons } from "./feedback-buttons";
 import { ReprocessButton } from "./reprocess-button";
 import { UnsubscribeButton } from "./unsubscribe-button";
@@ -31,6 +32,13 @@ const EmailContentCard = dynamic(
     ),
   }
 );
+
+function estimateReadingTime(text: string): string {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const minutes = Math.ceil(words / 200);
+  if (minutes < 1) return "< 1 min read";
+  return `${minutes} min read`;
+}
 
 function isSafeURL(url: string): boolean {
   try {
@@ -80,12 +88,20 @@ export default async function EmailDetailPage({
             <p className="text-sm text-muted-foreground">
               To: {email.ToAddress}
             </p>
-            <p className="text-sm text-muted-foreground">
-              {new Date(email.ReceivedAt).toLocaleString()}
+            <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+              <span>{new Date(email.ReceivedAt).toLocaleString()}</span>
+              {email.TextBody && (
+                <span className="inline-flex items-center gap-1 text-xs">
+                  <Clock className="size-3" />
+                  {estimateReadingTime(email.TextBody)}
+                </span>
+              )}
             </p>
           </div>
           <EmailActions email={email} />
         </div>
+
+        <EmailLabels emailId={id} />
 
         {(email.UnsubscribeURL || email.UnsubscribeMailto) && (
           <UnsubscribeButton emailId={id} />
