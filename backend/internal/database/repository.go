@@ -36,6 +36,7 @@ type EmailRepository interface {
 	BatchResetForRetry(ctx context.Context, ids []string) (int, error)
 	DeleteInternal(ctx context.Context, id string) error
 	CountByHourAndDay(ctx context.Context, userID string) ([]domain.HeatmapCell, error)
+	ListSubscriptions(ctx context.Context, userID string) ([]domain.SubscriptionInfo, error)
 }
 
 type ExtractionRepository interface {
@@ -174,4 +175,5 @@ type SenderPreferenceRepository interface {
 	GetByAddress(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error)
 	ListByUser(ctx context.Context, userID string) ([]domain.SenderPreference, error)
 	ListBlockedAddresses(ctx context.Context, userID string) ([]string, error)
+	MarkUnsubscribed(ctx context.Context, userID, fromAddress string) error
 }

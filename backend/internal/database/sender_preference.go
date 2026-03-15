@@ -32,12 +32,12 @@ func (r *SenderPreferenceRepo) Upsert(ctx context.Context, pref *domain.SenderPr
 
 func (r *SenderPreferenceRepo) GetByAddress(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT id, user_id, from_address, status, category, created_at, updated_at
+		`SELECT id, user_id, from_address, status, category, unsubscribed_at, created_at, updated_at
 		 FROM sender_preference WHERE user_id = $1 AND from_address = $2`,
 		userID, fromAddress)
 
 	var p domain.SenderPreference
-	err := row.Scan(&p.ID, &p.UserID, &p.FromAddress, &p.Status, &p.Category, &p.CreatedAt, &p.UpdatedAt)
+	err := row.Scan(&p.ID, &p.UserID, &p.FromAddress, &p.Status, &p.Category, &p.UnsubscribedAt, &p.CreatedAt, &p.UpdatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
@@ -49,7 +49,7 @@ func (r *SenderPreferenceRepo) GetByAddress(ctx context.Context, userID, fromAdd
 
 func (r *SenderPreferenceRepo) ListByUser(ctx context.Context, userID string) ([]domain.SenderPreference, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, user_id, from_address, status, category, created_at, updated_at
+		`SELECT id, user_id, from_address, status, category, unsubscribed_at, created_at, updated_at
 		 FROM sender_preference WHERE user_id = $1 ORDER BY updated_at DESC`,
 		userID)
 	if err != nil {
@@ -60,7 +60,7 @@ func (r *SenderPreferenceRepo) ListByUser(ctx context.Context, userID string) ([
 	var prefs []domain.SenderPreference
 	for rows.Next() {
 		var p domain.SenderPreference
-		if err := rows.Scan(&p.ID, &p.UserID, &p.FromAddress, &p.Status, &p.Category, &p.CreatedAt, &p.UpdatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.UserID, &p.FromAddress, &p.Status, &p.Category, &p.UnsubscribedAt, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan sender preference: %w", err)
 		}
 		prefs = append(prefs, p)
@@ -86,4 +86,16 @@ func (r *SenderPreferenceRepo) ListBlockedAddresses(ctx context.Context, userID 
 		addresses = append(addresses, addr)
 	}
 	return addresses, nil
+}
+
+func (r *SenderPreferenceRepo) MarkUnsubscribed(ctx context.Context, userID, fromAddress string) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO sender_preference (id, user_id, from_address, status, category, unsubscribed_at, created_at, updated_at)
+		 VALUES (gen_random_uuid(), $1, $2, 'normal', '', NOW(), NOW(), NOW())
+		 ON CONFLICT (user_id, from_address) DO UPDATE SET unsubscribed_at = NOW(), updated_at = NOW()`,
+		userID, fromAddress)
+	if err != nil {
+		return fmt.Errorf("mark unsubscribed: %w", err)
+	}
+	return nil
 }

@@ -586,6 +586,37 @@ func (r *EmailRepo) CountByHourAndDay(ctx context.Context, userID string) ([]dom
 	return cells, nil
 }
 
+func (r *EmailRepo) ListSubscriptions(ctx context.Context, userID string) ([]domain.SubscriptionInfo, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT e.from_address,
+		        COALESCE(MAX(e.from_name), '') AS from_name,
+		        COUNT(*) AS cnt,
+		        MAX(e.received_at) AS last_seen,
+		        COALESCE(MAX(e.unsubscribe_url), '') AS unsub_url,
+		        COALESCE(MAX(e.unsubscribe_mailto), '') AS unsub_mailto
+		 FROM email e
+		 WHERE e.user_id = $1
+		   AND (e.unsubscribe_url != '' OR e.unsubscribe_mailto != '')
+		 GROUP BY e.from_address
+		 ORDER BY last_seen DESC`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list subscriptions: %w", err)
+	}
+	defer rows.Close()
+
+	var subs []domain.SubscriptionInfo
+	for rows.Next() {
+		var s domain.SubscriptionInfo
+		var cnt int64
+		if err := rows.Scan(&s.FromAddress, &s.FromName, &cnt, &s.LastSeen, &s.UnsubscribeURL, &s.UnsubscribeMailto); err != nil {
+			return nil, fmt.Errorf("scan subscription: %w", err)
+		}
+		s.EmailCount = int(cnt)
+		subs = append(subs, s)
+	}
+	return subs, nil
+}
+
 func (r *EmailRepo) GetSenderDetail(ctx context.Context, userID, fromAddress string) (*domain.SenderDetail, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT e.from_address,

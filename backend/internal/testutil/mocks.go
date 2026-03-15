@@ -233,6 +233,10 @@ func (m *MockEmailRepo) CountByHourAndDay(ctx context.Context, userID string) ([
 	return nil, nil
 }
 
+func (m *MockEmailRepo) ListSubscriptions(ctx context.Context, userID string) ([]domain.SubscriptionInfo, error) {
+	return nil, nil
+}
+
 // MockExtractionRepo implements database.ExtractionRepository for testing.
 type MockExtractionRepo struct {
 	CreateFn                func(ctx context.Context, extraction *domain.Extraction) error
@@ -597,6 +601,10 @@ func (m *MockSenderPreferenceRepo) ListBlockedAddresses(ctx context.Context, use
 		return m.ListBlockedAddressesFn(ctx, userID)
 	}
 	return nil, nil
+}
+
+func (m *MockSenderPreferenceRepo) MarkUnsubscribed(ctx context.Context, userID, fromAddress string) error {
+	return nil
 }
 
 // MockInviteRepo implements database.InviteRepository for testing.

@@ -307,6 +307,16 @@ export interface Label {
   UpdatedAt: string;
 }
 
+export interface SubscriptionInfo {
+  FromAddress: string;
+  FromName: string;
+  EmailCount: number;
+  LastSeen: string;
+  UnsubscribeURL: string;
+  UnsubscribeMailto: string;
+  UnsubscribedAt: string | null;
+}
+
 export interface SavedSearch {
   ID: string;
   Name: string;

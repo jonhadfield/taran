@@ -166,6 +166,7 @@ func main() {
 		Extractions: extractionRepo,
 		Attachments: attachmentRepo,
 		Processor:   proc,
+		SenderPrefs: senderPrefRepo,
 	}
 	digestHandler := &handler.DigestHandler{
 		Digests:           digestRepo,

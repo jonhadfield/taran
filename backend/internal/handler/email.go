@@ -21,6 +21,7 @@ type EmailHandler struct {
 	Extractions database.ExtractionRepository
 	Attachments database.AttachmentRepository
 	Processor   EmailProcessor
+	SenderPrefs database.SenderPreferenceRepository
 }
 
 type EmailResponse struct {
@@ -311,6 +312,9 @@ func (h *EmailHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
 
 		if resp.StatusCode >= 200 && resp.StatusCode < 400 {
 			slog.Info("one-click unsubscribe succeeded", "emailID", id, "url", email.UnsubscribeURL)
+			if h.SenderPrefs != nil {
+				_ = h.SenderPrefs.MarkUnsubscribed(r.Context(), userID, email.FromAddress)
+			}
 			WriteJSON(w, http.StatusOK, map[string]string{"status": "unsubscribed", "method": "one-click"})
 			return
 		}
@@ -321,6 +325,118 @@ func (h *EmailHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Mailto fallback
+	// Mailto fallback — also track it since user initiated the action
+	if h.SenderPrefs != nil {
+		_ = h.SenderPrefs.MarkUnsubscribed(r.Context(), userID, email.FromAddress)
+	}
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "mailto", "address": email.UnsubscribeMailto})
+}
+
+func (h *EmailHandler) ListSubscriptions(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+
+	subs, err := h.Emails.ListSubscriptions(r.Context(), userID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to list subscriptions")
+		return
+	}
+	if subs == nil {
+		subs = []domain.SubscriptionInfo{}
+	}
+
+	// Merge unsubscribed_at from sender preferences
+	if h.SenderPrefs != nil {
+		prefs, err := h.SenderPrefs.ListByUser(r.Context(), userID)
+		if err == nil {
+			prefMap := make(map[string]*time.Time, len(prefs))
+			for _, p := range prefs {
+				if p.UnsubscribedAt != nil {
+					t := *p.UnsubscribedAt
+					prefMap[p.FromAddress] = &t
+				}
+			}
+			for i := range subs {
+				if t, ok := prefMap[subs[i].FromAddress]; ok {
+					subs[i].UnsubscribedAt = t
+				}
+			}
+		}
+	}
+
+	WriteJSON(w, http.StatusOK, subs)
+}
+
+func (h *EmailHandler) BatchUnsubscribe(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+
+	var req struct {
+		FromAddresses []string `json:"FromAddresses"`
+	}
+	if err := LimitedJSONDecoder(r).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if len(req.FromAddresses) == 0 {
+		WriteError(w, http.StatusBadRequest, "no addresses provided")
+		return
+	}
+	if len(req.FromAddresses) > 50 {
+		WriteError(w, http.StatusBadRequest, "maximum 50 addresses per batch")
+		return
+	}
+
+	results := make([]map[string]string, 0, len(req.FromAddresses))
+	for _, addr := range req.FromAddresses {
+		// Find most recent email with unsubscribe link from this sender
+		subs, err := h.Emails.ListSubscriptions(r.Context(), userID)
+		if err != nil {
+			results = append(results, map[string]string{"address": addr, "status": "error", "reason": "lookup failed"})
+			continue
+		}
+		var sub *domain.SubscriptionInfo
+		for i := range subs {
+			if subs[i].FromAddress == addr {
+				sub = &subs[i]
+				break
+			}
+		}
+		if sub == nil || (sub.UnsubscribeURL == "" && sub.UnsubscribeMailto == "") {
+			results = append(results, map[string]string{"address": addr, "status": "skipped", "reason": "no unsubscribe link"})
+			continue
+		}
+
+		// Try one-click unsubscribe
+		if sub.UnsubscribeURL != "" {
+			httpReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, sub.UnsubscribeURL,
+				strings.NewReader("List-Unsubscribe=One-Click"))
+			if err == nil {
+				httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				resp, err := unsubscribeClient.Do(httpReq)
+				if err == nil {
+					resp.Body.Close()
+					if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+						if h.SenderPrefs != nil {
+							_ = h.SenderPrefs.MarkUnsubscribed(r.Context(), userID, addr)
+						}
+						results = append(results, map[string]string{"address": addr, "status": "unsubscribed"})
+						continue
+					}
+				}
+			}
+			// One-click failed — mark as redirect
+			if h.SenderPrefs != nil {
+				_ = h.SenderPrefs.MarkUnsubscribed(r.Context(), userID, addr)
+			}
+			results = append(results, map[string]string{"address": addr, "status": "redirect", "url": sub.UnsubscribeURL})
+			continue
+		}
+
+		// Mailto only — mark as unsubscribed since user requested it
+		if h.SenderPrefs != nil {
+			_ = h.SenderPrefs.MarkUnsubscribed(r.Context(), userID, addr)
+		}
+		results = append(results, map[string]string{"address": addr, "status": "mailto", "address_mailto": sub.UnsubscribeMailto})
+	}
+
+	WriteJSON(w, http.StatusOK, results)
 }

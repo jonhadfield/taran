@@ -162,13 +162,24 @@ type Session struct {
 }
 
 type SenderPreference struct {
-	ID          string
-	UserID      string
-	FromAddress string
-	Status      string // "normal", "muted", "blocked", "favorite"
-	Category    string // user override: "newsletter", "personal", "transactional", "marketing", "notification", "other", or "" (auto)
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID             string
+	UserID         string
+	FromAddress    string
+	Status         string // "normal", "muted", "blocked", "favorite"
+	Category       string // user override: "newsletter", "personal", "transactional", "marketing", "notification", "other", or "" (auto)
+	UnsubscribedAt *time.Time
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+type SubscriptionInfo struct {
+	FromAddress       string     `json:"FromAddress"`
+	FromName          string     `json:"FromName"`
+	EmailCount        int        `json:"EmailCount"`
+	LastSeen          time.Time  `json:"LastSeen"`
+	UnsubscribeURL    string     `json:"UnsubscribeURL"`
+	UnsubscribeMailto string     `json:"UnsubscribeMailto"`
+	UnsubscribedAt    *time.Time `json:"UnsubscribedAt"`
 }
 
 type SenderInfo struct {

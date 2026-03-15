@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderInfo, SenderSuggestion } from "@/types/api";
-import { Users, Loader2, X } from "lucide-react";
+import { Users, Loader2, X, MailX } from "lucide-react";
 import Link from "next/link";
 import { SenderSparkline } from "./sender-sparkline";
 
@@ -159,9 +159,18 @@ export default function SendersPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-balance">Senders</h1>
-        <span className="text-sm text-muted-foreground">
-          {filteredSenders.length} of {senders.length} senders
-        </span>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/senders/subscriptions"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <MailX className="size-4" />
+            Manage Subscriptions
+          </Link>
+          <span className="text-sm text-muted-foreground">
+            {filteredSenders.length} of {senders.length} senders
+          </span>
+        </div>
       </div>
 
       {/* Category filter tabs */}
