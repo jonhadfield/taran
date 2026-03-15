@@ -119,17 +119,22 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		`SELECT DATE_TRUNC('week', received_at) AS week, COUNT(*)
 		 FROM email WHERE received_at >= NOW() - INTERVAL '8 weeks'
 		 GROUP BY week ORDER BY week`)
-	if err == nil {
+	if err != nil {
+		slog.Error("admin stats: weekly emails query failed", "error", err)
+	} else {
 		defer weeklyEmailRows.Close()
 		for weeklyEmailRows.Next() {
 			var wc domain.WeekCount
 			var count int64
-			if err := weeklyEmailRows.Scan(&wc.Week, &count); err == nil {
+			if err := weeklyEmailRows.Scan(&wc.Week, &count); err != nil {
+				slog.Error("admin stats: weekly emails scan failed", "error", err)
+			} else {
 				wc.Count = int(count)
 				stats.WeeklyEmails = append(stats.WeeklyEmails, wc)
 			}
 		}
 	}
+	slog.Info("admin stats: weekly emails", "count", len(stats.WeeklyEmails))
 	if stats.WeeklyEmails == nil {
 		stats.WeeklyEmails = []domain.WeekCount{}
 	}
@@ -139,12 +144,16 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		`SELECT DATE_TRUNC('week', generated_at) AS week, COUNT(*)
 		 FROM digest WHERE generated_at >= NOW() - INTERVAL '8 weeks'
 		 GROUP BY week ORDER BY week`)
-	if err == nil {
+	if err != nil {
+		slog.Error("admin stats: weekly digests query failed", "error", err)
+	} else {
 		defer weeklyDigestRows.Close()
 		for weeklyDigestRows.Next() {
 			var wc domain.WeekCount
 			var count int64
-			if err := weeklyDigestRows.Scan(&wc.Week, &count); err == nil {
+			if err := weeklyDigestRows.Scan(&wc.Week, &count); err != nil {
+				slog.Error("admin stats: weekly digests scan failed", "error", err)
+			} else {
 				wc.Count = int(count)
 				stats.WeeklyDigests = append(stats.WeeklyDigests, wc)
 			}
@@ -159,6 +168,9 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		`SELECT DATE_TRUNC('week', created_at) AS week, COALESCE(SUM(total_tokens), 0)
 		 FROM token_usage WHERE created_at >= NOW() - INTERVAL '8 weeks'
 		 GROUP BY week ORDER BY week`)
+	if err != nil {
+		slog.Error("admin stats: weekly tokens query failed", "error", err)
+	}
 	if err == nil {
 		defer weeklyTokenRows.Close()
 		for weeklyTokenRows.Next() {
