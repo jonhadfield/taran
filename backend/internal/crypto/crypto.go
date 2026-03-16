@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -55,4 +56,31 @@ func (e *Encryptor) Decrypt(ciphertext, nonce []byte) (string, error) {
 		return "", fmt.Errorf("decrypt: %w", err)
 	}
 	return string(plaintext), nil
+}
+
+// EncryptToString encrypts plaintext and returns a base64-encoded string
+// containing the nonce prepended to the ciphertext: base64(nonce + ciphertext).
+func (e *Encryptor) EncryptToString(plaintext string) (string, error) {
+	ciphertext, nonce, err := e.Encrypt(plaintext)
+	if err != nil {
+		return "", err
+	}
+	combined := append(nonce, ciphertext...)
+	return base64.StdEncoding.EncodeToString(combined), nil
+}
+
+// DecryptFromString decodes a base64-encoded string containing nonce + ciphertext
+// and returns the decrypted plaintext.
+func (e *Encryptor) DecryptFromString(encoded string) (string, error) {
+	combined, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return "", fmt.Errorf("base64 decode: %w", err)
+	}
+	nonceSize := e.aead.NonceSize()
+	if len(combined) < nonceSize {
+		return "", fmt.Errorf("ciphertext too short")
+	}
+	nonce := combined[:nonceSize]
+	ciphertext := combined[nonceSize:]
+	return e.Decrypt(ciphertext, nonce)
 }

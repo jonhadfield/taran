@@ -3,32 +3,57 @@ package database
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
+	"github.com/hadfielj/taran/backend/internal/crypto"
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type EmailRepo struct {
-	pool *pgxpool.Pool
+	pool      *pgxpool.Pool
+	encryptor *crypto.Encryptor
 }
 
-func NewEmailRepo(pool *pgxpool.Pool) *EmailRepo {
-	return &EmailRepo{pool: pool}
+func NewEmailRepo(pool *pgxpool.Pool, encryptor *crypto.Encryptor) *EmailRepo {
+	return &EmailRepo{pool: pool, encryptor: encryptor}
 }
 
 func (r *EmailRepo) Create(ctx context.Context, email *domain.Email) error {
+	textBody := email.TextBody
+	htmlBody := email.HTMLBody
+	encrypted := false
+
+	if r.encryptor != nil {
+		if textBody != "" {
+			enc, err := r.encryptor.EncryptToString(textBody)
+			if err != nil {
+				return fmt.Errorf("encrypt text_body: %w", err)
+			}
+			textBody = enc
+		}
+		if htmlBody != "" {
+			enc, err := r.encryptor.EncryptToString(htmlBody)
+			if err != nil {
+				return fmt.Errorf("encrypt html_body: %w", err)
+			}
+			htmlBody = enc
+		}
+		encrypted = true
+	}
+
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO email (id, user_id, email_account_id, message_id, in_reply_to, thread_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, encrypted, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)`,
 		email.ID, email.UserID, email.AccountID, email.MessageID, email.InReplyTo, email.ThreadID,
 		email.FromAddress, email.FromName, email.ToAddress, email.Subject,
-		email.TextBody, email.HTMLBody, email.ReceivedAt, email.DateHeader,
+		textBody, htmlBody, email.ReceivedAt, email.DateHeader,
 		email.Status, email.StatusReason, email.IsRead, email.IsStarred, email.IsArchived,
-		email.UnsubscribeURL, email.UnsubscribeMailto, email.RetryCount,
+		email.UnsubscribeURL, email.UnsubscribeMailto, email.RetryCount, encrypted,
 		email.CreatedAt, email.UpdatedAt,
 	)
 	if err != nil {
@@ -42,7 +67,7 @@ func (r *EmailRepo) GetByID(ctx context.Context, userID, id string) (*domain.Ema
 		`SELECT ` + emailColumns + `
 		 FROM email WHERE id = $1 AND user_id = $2`, id, userID)
 
-	return scanEmail(row)
+	return r.scanEmail(row)
 }
 
 func (r *EmailRepo) GetByIDInternal(ctx context.Context, id string) (*domain.Email, error) {
@@ -50,7 +75,7 @@ func (r *EmailRepo) GetByIDInternal(ctx context.Context, id string) (*domain.Ema
 		`SELECT ` + emailColumns + `
 		 FROM email WHERE id = $1`, id)
 
-	return scanEmail(row)
+	return r.scanEmail(row)
 }
 
 func (r *EmailRepo) GetByIDsInternal(ctx context.Context, ids []string) ([]domain.Email, error) {
@@ -67,7 +92,7 @@ func (r *EmailRepo) GetByIDsInternal(ctx context.Context, ids []string) ([]domai
 
 	var emails []domain.Email
 	for rows.Next() {
-		e, err := scanEmailRows(rows)
+		e, err := r.scanEmailRows(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +109,7 @@ func (r *EmailRepo) GetByMessageID(ctx context.Context, messageID string) (*doma
 		`SELECT ` + emailColumns + `
 		 FROM email WHERE message_id = $1`, messageID)
 
-	return scanEmail(row)
+	return r.scanEmail(row)
 }
 
 func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Email, int, error) {
@@ -215,7 +240,7 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 
 	var emails []domain.Email
 	for rows.Next() {
-		e, err := scanEmailRows(rows)
+		e, err := r.scanEmailRows(rows)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -359,7 +384,7 @@ func (r *EmailRepo) ListPending(ctx context.Context, limit int) ([]domain.Email,
 
 	var emails []domain.Email
 	for rows.Next() {
-		e, err := scanEmailRows(rows)
+		e, err := r.scanEmailRows(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -389,7 +414,7 @@ func (r *EmailRepo) ListRetryable(ctx context.Context, maxRetries, limit int) ([
 
 	var emails []domain.Email
 	for rows.Next() {
-		e, err := scanEmailRows(rows)
+		e, err := r.scanEmailRows(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -669,7 +694,7 @@ func (r *EmailRepo) ListFailedAll(ctx context.Context, limit, offset int) ([]dom
 		`SELECT e.id, e.user_id, e.email_account_id, e.message_id, e.from_address, e.from_name,
 		    e.to_address, e.subject, e.text_body, e.html_body, e.received_at, e.date_header,
 		    e.status, e.status_reason, e.is_read, e.is_starred, e.is_archived,
-		    e.unsubscribe_url, e.unsubscribe_mailto, e.retry_count, e.created_at, e.updated_at,
+		    e.unsubscribe_url, e.unsubscribe_mailto, e.retry_count, e.encrypted, e.created_at, e.updated_at,
 		    COALESCE(u.email, '') as user_email
 		 FROM email e
 		 LEFT JOIN "user" u ON u.id = e.user_id
@@ -684,16 +709,24 @@ func (r *EmailRepo) ListFailedAll(ctx context.Context, limit, offset int) ([]dom
 	var emails []domain.FailedEmail
 	for rows.Next() {
 		var fe domain.FailedEmail
+		var encrypted bool
 		err := rows.Scan(
 			&fe.ID, &fe.UserID, &fe.AccountID, &fe.MessageID,
 			&fe.FromAddress, &fe.FromName, &fe.ToAddress, &fe.Subject,
 			&fe.TextBody, &fe.HTMLBody, &fe.ReceivedAt, &fe.DateHeader,
 			&fe.Status, &fe.StatusReason, &fe.IsRead, &fe.IsStarred, &fe.IsArchived,
-			&fe.UnsubscribeURL, &fe.UnsubscribeMailto, &fe.RetryCount,
+			&fe.UnsubscribeURL, &fe.UnsubscribeMailto, &fe.RetryCount, &encrypted,
 			&fe.CreatedAt, &fe.UpdatedAt, &fe.UserEmail,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("scan failed email: %w", err)
+		}
+		if encrypted {
+			// Decrypt in-place for admin view
+			e := &domain.Email{ID: fe.ID, TextBody: fe.TextBody, HTMLBody: fe.HTMLBody}
+			r.decryptEmailBody(e)
+			fe.TextBody = e.TextBody
+			fe.HTMLBody = e.HTMLBody
 		}
 		emails = append(emails, fe)
 	}
@@ -727,26 +760,57 @@ type scannable interface {
 
 const emailColumns = `id, user_id, email_account_id, message_id, in_reply_to, thread_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, created_at, updated_at`
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, encrypted, created_at, updated_at`
 
-func scanEmail(row scannable) (*domain.Email, error) {
+func (r *EmailRepo) scanEmail(row scannable) (*domain.Email, error) {
 	var e domain.Email
+	var encrypted bool
 	err := row.Scan(
 		&e.ID, &e.UserID, &e.AccountID, &e.MessageID, &e.InReplyTo, &e.ThreadID,
 		&e.FromAddress, &e.FromName, &e.ToAddress, &e.Subject,
 		&e.TextBody, &e.HTMLBody, &e.ReceivedAt, &e.DateHeader,
 		&e.Status, &e.StatusReason, &e.IsRead, &e.IsStarred, &e.IsArchived,
-		&e.UnsubscribeURL, &e.UnsubscribeMailto, &e.RetryCount,
+		&e.UnsubscribeURL, &e.UnsubscribeMailto, &e.RetryCount, &encrypted,
 		&e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("scan email: %w", err)
 	}
+	if encrypted {
+		r.decryptEmailBody(&e)
+	}
 	return &e, nil
 }
 
-func scanEmailRows(rows interface{ Scan(dest ...any) error }) (*domain.Email, error) {
-	return scanEmail(rows)
+func (r *EmailRepo) decryptEmailBody(e *domain.Email) {
+	if r.encryptor == nil {
+		slog.Error("encrypted email but no encryptor configured", "email_id", e.ID)
+		e.TextBody = ""
+		e.HTMLBody = ""
+		return
+	}
+	if e.TextBody != "" {
+		plain, err := r.encryptor.DecryptFromString(e.TextBody)
+		if err != nil {
+			slog.Error("failed to decrypt text_body", "email_id", e.ID, "error", err)
+			e.TextBody = ""
+		} else {
+			e.TextBody = plain
+		}
+	}
+	if e.HTMLBody != "" {
+		plain, err := r.encryptor.DecryptFromString(e.HTMLBody)
+		if err != nil {
+			slog.Error("failed to decrypt html_body", "email_id", e.ID, "error", err)
+			e.HTMLBody = ""
+		} else {
+			e.HTMLBody = plain
+		}
+	}
+}
+
+func (r *EmailRepo) scanEmailRows(rows interface{ Scan(dest ...any) error }) (*domain.Email, error) {
+	return r.scanEmail(rows)
 }
 
 func (r *EmailRepo) GetThreadEmails(ctx context.Context, userID, threadID string) ([]domain.Email, error) {
@@ -764,7 +828,7 @@ func (r *EmailRepo) GetThreadEmails(ctx context.Context, userID, threadID string
 
 	var emails []domain.Email
 	for rows.Next() {
-		e, err := scanEmailRows(rows)
+		e, err := r.scanEmailRows(rows)
 		if err != nil {
 			return nil, err
 		}

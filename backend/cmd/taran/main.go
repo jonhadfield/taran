@@ -59,9 +59,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	// BYOK encryption (optional)
+	var encryptor *crypto.Encryptor
+	if cfg.LLM.EncryptionKey != "" {
+		encryptor, err = crypto.NewEncryptor(cfg.LLM.EncryptionKey)
+		if err != nil {
+			slog.Error("failed to create encryptor", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("encryption enabled for BYOK keys and email bodies")
+	}
+
 	// Repositories
 	accountRepo := database.NewAccountRepo(pool)
-	emailRepo := database.NewEmailRepo(pool)
+	emailRepo := database.NewEmailRepo(pool, encryptor)
 	extractionRepo := database.NewExtractionRepo(pool)
 	digestRepo := database.NewDigestRepo(pool)
 	sessionRepo := database.NewSessionRepo(pool)
@@ -92,17 +103,7 @@ func main() {
 		slog.Warn("both Anthropic and OpenAI API keys set, using OpenAI", "model", provider.Model())
 	}
 
-	// BYOK encryption (optional)
 	userLLMKeyRepo := database.NewUserLLMKeyRepo(pool)
-	var encryptor *crypto.Encryptor
-	if cfg.LLM.EncryptionKey != "" {
-		encryptor, err = crypto.NewEncryptor(cfg.LLM.EncryptionKey)
-		if err != nil {
-			slog.Error("failed to create encryptor", "error", err)
-			os.Exit(1)
-		}
-		slog.Info("BYOK encryption enabled")
-	}
 
 	// Provider resolver (BYOK → platform fallback)
 	resolver := llm.NewProviderResolver(provider, userLLMKeyRepo, encryptor, &cfg.LLM)
