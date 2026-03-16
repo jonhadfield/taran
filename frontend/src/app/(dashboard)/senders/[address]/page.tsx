@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderDetail, WeekCount, Email, ListResponse } from "@/types/api";
-import { ArrowLeft, Loader2, Mail, Calendar, BarChart3 } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Calendar, BarChart3, Clock, TrendingUp, ExternalLink } from "lucide-react";
 
 const STATUS_OPTIONS = [
   { value: "normal", label: "Normal" },
@@ -163,6 +163,16 @@ export default function SenderDetailPage() {
   const name = detail.FromName || detail.FromAddress;
   const isOverridden = detail.Category !== detail.AutoCategory && detail.AutoCategory !== "";
 
+  // Calculate average frequency from history data
+  const weeksWithData = history.filter((w) => w.Count > 0).length;
+  const totalFromHistory = history.reduce((sum, w) => sum + w.Count, 0);
+  const avgPerWeek = weeksWithData > 0 ? totalFromHistory / history.length : 0;
+
+  // Days since last email
+  const daysSinceLast = detail.LastSeen
+    ? Math.floor((Date.now() - new Date(detail.LastSeen).getTime()) / 86400000)
+    : null;
+
   return (
     <div className="space-y-6">
       <Link
@@ -180,26 +190,50 @@ export default function SenderDetailPage() {
           {detail.FromName && (
             <p className="text-sm text-muted-foreground">{detail.FromAddress}</p>
           )}
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Mail className="size-3.5" />
               {detail.EmailCount} email{detail.EmailCount !== 1 ? "s" : ""}
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="size-3.5" />
-              Since {new Date(detail.FirstSeen).toLocaleDateString()}
+              First seen {new Date(detail.FirstSeen).toLocaleDateString()}
             </span>
+            <span className="flex items-center gap-1">
+              <Clock className="size-3.5" />
+              Last seen{" "}
+              {daysSinceLast === 0
+                ? "today"
+                : daysSinceLast === 1
+                  ? "yesterday"
+                  : `${new Date(detail.LastSeen).toLocaleDateString()}`}
+            </span>
+            {avgPerWeek > 0 && (
+              <span className="flex items-center gap-1">
+                <TrendingUp className="size-3.5" />
+                ~{avgPerWeek < 1 ? avgPerWeek.toFixed(1) : Math.round(avgPerWeek)}/week
+              </span>
+            )}
           </div>
-          {detail.Category && (
-            <span
-              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                CATEGORY_COLORS[detail.Category] || CATEGORY_COLORS.other
-              }`}
+          <div className="flex items-center gap-2 pt-1">
+            {detail.Category && (
+              <span
+                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  CATEGORY_COLORS[detail.Category] || CATEGORY_COLORS.other
+                }`}
+              >
+                {detail.Category}
+                {isOverridden && " (override)"}
+              </span>
+            )}
+            <Link
+              href={`/inbox?search=${encodeURIComponent(address)}`}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
             >
-              {detail.Category}
-              {isOverridden && " (override)"}
-            </span>
-          )}
+              <ExternalLink className="size-3" />
+              View in inbox
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -280,9 +314,10 @@ export default function SenderDetailPage() {
         {emailTotal > 10 && (
           <Link
             href={`/inbox?search=${encodeURIComponent(address)}`}
-            className="inline-block text-sm text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
           >
-            View all {emailTotal} emails
+            View all {emailTotal} emails in inbox
+            <ExternalLink className="size-3" />
           </Link>
         )}
       </div>
