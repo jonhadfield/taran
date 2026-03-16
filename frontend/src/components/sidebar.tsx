@@ -24,33 +24,21 @@ export function Sidebar({ className, isAdmin }: { className?: string; isAdmin?: 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-  const navLink = (item: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }) => {
-    const active = isActive(item.href);
-    return (
-      <Link
-        key={item.href}
-        href={item.href}
-        className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-          active
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:bg-accent hover:text-foreground"
-        )}
-      >
-        <span
-          className={cn(
-            "flex size-7 items-center justify-center rounded-md",
-            active
-              ? "bg-primary-foreground/15"
-              : "bg-muted"
-          )}
-        >
-          <item.icon className="size-4" />
-        </span>
-        {item.label}
-      </Link>
-    );
-  };
+  const navLink = (item: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }) => (
+    <Link
+      key={item.href}
+      href={item.href}
+      className={cn(
+        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors border-l-2",
+        isActive(item.href)
+          ? "border-primary/60 bg-primary/10 text-foreground"
+          : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
+      )}
+    >
+      <item.icon className="size-4" />
+      {item.label}
+    </Link>
+  );
 
   return (
     <div
