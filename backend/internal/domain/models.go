@@ -17,6 +17,8 @@ type Email struct {
 	UserID         string
 	AccountID      string
 	MessageID      string
+	InReplyTo      string
+	ThreadID       string
 	FromAddress    string
 	FromName       string
 	ToAddress      string

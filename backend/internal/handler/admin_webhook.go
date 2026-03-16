@@ -154,12 +154,16 @@ func (h *AdminWebhookHandler) Replay(w http.ResponseWriter, r *http.Request) {
 		_ = h.Emails.DeleteInternal(r.Context(), *payload.EmailID)
 	}
 
+	threadID := resolveThreadID(r.Context(), h.Emails, parsed)
+
 	now := time.Now()
 	emailRecord := &domain.Email{
 		ID:                uuid.New().String(),
 		UserID:            account.UserID,
 		AccountID:         account.ID,
 		MessageID:         parsed.MessageID,
+		InReplyTo:         parsed.InReplyTo,
+		ThreadID:          threadID,
 		FromAddress:       parsed.From,
 		FromName:          parsed.FromName,
 		ToAddress:         toAddress,

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,55 @@ import (
 	"github.com/hadfielj/taran/backend/internal/llm"
 	"github.com/hadfielj/taran/backend/internal/worker"
 )
+
+// resolveThreadID determines the thread ID for an incoming email by checking
+// In-Reply-To and References headers against existing emails.
+// If a parent email is found, reuses its thread_id. Otherwise, uses the email's
+// own Message-ID as the thread root.
+func resolveThreadID(ctx context.Context, emails database.EmailRepository, parsed *email.ParsedEmail) string {
+	// Check In-Reply-To first (most direct parent reference)
+	if parsed.InReplyTo != "" {
+		if parent, _ := emails.GetByMessageID(ctx, parsed.InReplyTo); parent != nil {
+			if parent.ThreadID != "" {
+				return parent.ThreadID
+			}
+			// Parent exists but has no thread_id yet — use parent's MessageID as thread root
+			threadID := parent.MessageID
+			if threadID == "" {
+				threadID = parent.ID
+			}
+			// Backfill the parent's thread_id
+			_ = emails.UpdateThreadID(ctx, parent.ID, threadID)
+			return threadID
+		}
+	}
+
+	// Walk References in reverse (most recent ancestor first)
+	for i := len(parsed.References) - 1; i >= 0; i-- {
+		ref := parsed.References[i]
+		if ref == parsed.InReplyTo {
+			continue // already checked
+		}
+		if ancestor, _ := emails.GetByMessageID(ctx, ref); ancestor != nil {
+			if ancestor.ThreadID != "" {
+				return ancestor.ThreadID
+			}
+			threadID := ancestor.MessageID
+			if threadID == "" {
+				threadID = ancestor.ID
+			}
+			_ = emails.UpdateThreadID(ctx, ancestor.ID, threadID)
+			return threadID
+		}
+	}
+
+	// No threading relationship found — this email starts its own potential thread
+	// Use its own MessageID so future replies can find it
+	if parsed.MessageID != "" {
+		return parsed.MessageID
+	}
+	return ""
+}
 
 const maxEmailSize = 25 * 1024 * 1024 // 25MB
 
@@ -69,12 +119,17 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Compute thread ID from threading headers
+	threadID := resolveThreadID(r.Context(), h.Emails, parsed)
+
 	now := time.Now()
 	emailRecord := &domain.Email{
 		ID:          uuid.New().String(),
 		UserID:      account.UserID,
 		AccountID:   account.ID,
 		MessageID:   parsed.MessageID,
+		InReplyTo:   parsed.InReplyTo,
+		ThreadID:    threadID,
 		FromAddress: parsed.From,
 		FromName:    parsed.FromName,
 		ToAddress:   toAddress,

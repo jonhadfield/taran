@@ -11,6 +11,7 @@ import { EmailLabels } from "./email-labels";
 import { FeedbackButtons } from "./feedback-buttons";
 import { ReprocessButton } from "./reprocess-button";
 import { UnsubscribeButton } from "./unsubscribe-button";
+import { EmailThread } from "./email-thread";
 import dynamic from "next/dynamic";
 
 const EmailContentCard = dynamic(
@@ -105,6 +106,10 @@ export default async function EmailDetailPage({
 
         {(email.UnsubscribeURL || email.UnsubscribeMailto) && (
           <UnsubscribeButton emailId={id} />
+        )}
+
+        {email.ThreadCount && email.ThreadCount > 1 && (
+          <EmailThread emailId={id} threadCount={email.ThreadCount} />
         )}
 
         <Separator />

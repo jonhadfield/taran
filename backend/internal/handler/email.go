@@ -28,6 +28,7 @@ type EmailResponse struct {
 	domain.Email
 	Extraction  *domain.Extraction      `json:"extraction,omitempty"`
 	Attachments []domain.EmailAttachment `json:"attachments,omitempty"`
+	ThreadCount int                      `json:"ThreadCount,omitempty"`
 }
 
 func (h *EmailHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -117,8 +118,66 @@ func (h *EmailHandler) Get(w http.ResponseWriter, r *http.Request) {
 			resp.Attachments = attachments
 		}
 	}
+	// Include thread count if this email is part of a thread
+	if email.ThreadID != "" {
+		thread, err := h.Emails.GetThreadEmails(r.Context(), userID, email.ThreadID)
+		if err == nil {
+			resp.ThreadCount = len(thread)
+		}
+	}
 
 	WriteJSON(w, http.StatusOK, resp)
+}
+
+type ThreadEmail struct {
+	ID          string `json:"ID"`
+	Subject     string `json:"Subject"`
+	FromName    string `json:"FromName"`
+	FromAddress string `json:"FromAddress"`
+	ReceivedAt  string `json:"ReceivedAt"`
+	IsRead      bool   `json:"IsRead"`
+	Summary     string `json:"Summary,omitempty"`
+}
+
+func (h *EmailHandler) GetThread(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	id := r.PathValue("id")
+
+	email, err := h.Emails.GetByID(r.Context(), userID, id)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "email not found")
+		return
+	}
+
+	if email.ThreadID == "" {
+		WriteJSON(w, http.StatusOK, []ThreadEmail{})
+		return
+	}
+
+	thread, err := h.Emails.GetThreadEmails(r.Context(), userID, email.ThreadID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to get thread")
+		return
+	}
+
+	result := make([]ThreadEmail, 0, len(thread))
+	for _, e := range thread {
+		te := ThreadEmail{
+			ID:          e.ID,
+			Subject:     e.Subject,
+			FromName:    e.FromName,
+			FromAddress: e.FromAddress,
+			ReceivedAt:  e.ReceivedAt.Format("2006-01-02T15:04:05Z07:00"),
+			IsRead:      e.IsRead,
+		}
+		// Include extraction summary if available
+		if ext, err := h.Extractions.GetByEmailIDScoped(r.Context(), userID, e.ID); err == nil && ext != nil {
+			te.Summary = ext.Summary
+		}
+		result = append(result, te)
+	}
+
+	WriteJSON(w, http.StatusOK, result)
 }
 
 func (h *EmailHandler) UpdateState(w http.ResponseWriter, r *http.Request) {

@@ -37,6 +37,8 @@ type EmailRepository interface {
 	DeleteInternal(ctx context.Context, id string) error
 	CountByHourAndDay(ctx context.Context, userID string) ([]domain.HeatmapCell, error)
 	ListSubscriptions(ctx context.Context, userID string) ([]domain.SubscriptionInfo, error)
+	GetThreadEmails(ctx context.Context, userID, threadID string) ([]domain.Email, error)
+	UpdateThreadID(ctx context.Context, id, threadID string) error
 }
 
 type ExtractionRepository interface {

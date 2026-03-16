@@ -17,6 +17,8 @@ type Attachment struct {
 
 type ParsedEmail struct {
 	MessageID        string
+	InReplyTo        string   // Message-ID of the email being replied to
+	References       []string // Chain of Message-IDs in the thread
 	From             string
 	FromName         string
 	To               string
@@ -65,8 +67,22 @@ func Parse(raw []byte) (*ParsedEmail, error) {
 	unsubURL, unsubMailto := parseListUnsubscribe(env.GetHeader("List-Unsubscribe"))
 	unsubPost := strings.Contains(env.GetHeader("List-Unsubscribe-Post"), "List-Unsubscribe=One-Click")
 
+	// Parse threading headers
+	inReplyTo := strings.TrimSpace(env.GetHeader("In-Reply-To"))
+	var references []string
+	if refs := env.GetHeader("References"); refs != "" {
+		for _, ref := range strings.Fields(refs) {
+			ref = strings.TrimSpace(ref)
+			if ref != "" {
+				references = append(references, ref)
+			}
+		}
+	}
+
 	return &ParsedEmail{
 		MessageID:         env.GetHeader("Message-Id"),
+		InReplyTo:         inReplyTo,
+		References:        references,
 		From:              from,
 		FromName:          fromName,
 		To:                to,

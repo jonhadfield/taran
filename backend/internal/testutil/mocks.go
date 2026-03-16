@@ -237,6 +237,14 @@ func (m *MockEmailRepo) ListSubscriptions(ctx context.Context, userID string) ([
 	return nil, nil
 }
 
+func (m *MockEmailRepo) GetThreadEmails(ctx context.Context, userID, threadID string) ([]domain.Email, error) {
+	return nil, nil
+}
+
+func (m *MockEmailRepo) UpdateThreadID(ctx context.Context, id, threadID string) error {
+	return nil
+}
+
 // MockExtractionRepo implements database.ExtractionRepository for testing.
 type MockExtractionRepo struct {
 	CreateFn                func(ctx context.Context, extraction *domain.Extraction) error

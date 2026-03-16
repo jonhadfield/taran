@@ -3,6 +3,8 @@ export interface Email {
   UserID: string;
   AccountID: string;
   MessageID: string;
+  InReplyTo: string;
+  ThreadID: string;
   FromAddress: string;
   FromName: string;
   ToAddress: string;
@@ -65,6 +67,17 @@ export interface EmailAttachment {
 export interface EmailResponse extends Email {
   extraction?: Extraction;
   attachments?: EmailAttachment[];
+  ThreadCount?: number;
+}
+
+export interface ThreadEmail {
+  ID: string;
+  Subject: string;
+  FromName: string;
+  FromAddress: string;
+  ReceivedAt: string;
+  IsRead: boolean;
+  Summary?: string;
 }
 
 export interface Digest {
