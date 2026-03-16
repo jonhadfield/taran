@@ -27,9 +27,4 @@
   <rect x="158" y="272" width="148" height="10" rx="5" fill="#a5b4fc" opacity="0.5"/>
   <rect x="158" y="296" width="172" height="10" rx="5" fill="#a5b4fc" opacity="0.35"/>
 
-  <!-- Sparkle (AI touch) -->
-  <g transform="translate(396, 140)" fill="white">
-    <path d="M0,-20 L4,-4 L20,0 L4,4 L0,20 L-4,4 L-20,0 L-4,-4 Z" opacity="0.95"/>
-    <path d="M26,-10 L28,-4 L34,0 L28,4 L26,10 L24,4 L18,0 L24,-4 Z" opacity="0.6" transform="scale(0.55)"/>
-  </g>
 </svg>
