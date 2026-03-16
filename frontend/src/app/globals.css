@@ -215,19 +215,14 @@
   }
 }
 
-/* View Transitions — subtle cross-fade between pages */
+/* View Transitions — old page stays solid, new page fades in on top */
 ::view-transition-old(*) {
-  animation: vt-fade-out 150ms ease-in both;
+  animation: none;
 }
 ::view-transition-new(*) {
-  animation: vt-fade-in 200ms ease-out 50ms both;
+  animation: vt-fade-in 200ms ease-out both;
 }
 
-@keyframes vt-fade-out {
-  to {
-    opacity: 0;
-  }
-}
 @keyframes vt-fade-in {
   from {
     opacity: 0;
@@ -236,7 +231,6 @@
 
 /* Disable transitions for users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none !important;
   }
