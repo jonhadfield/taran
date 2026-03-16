@@ -203,11 +203,12 @@ export default function SettingsPage() {
     : SECTIONS.filter((s) => s.id !== "forwarding");
 
   return (
-    <div className="flex gap-10">
+    <div className="max-w-2xl">
+      <h1 className="text-2xl font-bold">Settings</h1>
+
       <SettingsNav sections={visibleSections} />
 
-      <div className="space-y-6 max-w-2xl flex-1 min-w-0">
-        <h1 className="text-2xl font-bold">Settings</h1>
+      <div className="space-y-6 mt-6">
 
         <section id="accounts" className="scroll-mt-24">
           <AccountSettings
