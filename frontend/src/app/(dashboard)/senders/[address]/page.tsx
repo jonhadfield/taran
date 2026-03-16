@@ -37,32 +37,29 @@ function VolumeChart({ data }: { data: WeekCount[] }) {
   if (data.length === 0) return null;
   const max = Math.max(...data.map((d) => d.Count), 1);
 
-  const BAR_MAX_HEIGHT = 100;
-
   return (
     <div className="space-y-2">
-      <div className="flex items-end gap-1" style={{ height: 120 }}>
+      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${data.length}, 1fr)`, height: 120 }}>
         {data.map((wc, i) => {
-          const height = Math.max((wc.Count / max) * BAR_MAX_HEIGHT, 2);
+          const pct = Math.max((wc.Count / max) * 100, 2);
           return (
-            <div
-              key={i}
-              className="flex-1 flex flex-col items-center gap-1"
-            >
-              <span className="text-[10px] text-muted-foreground">
-                {wc.Count > 0 ? wc.Count : ""}
-              </span>
+            <div key={i} className="relative flex flex-col justify-end items-center">
+              {wc.Count > 0 && (
+                <span className="text-[10px] text-muted-foreground mb-1">
+                  {wc.Count}
+                </span>
+              )}
               <div
-                className="w-full rounded-t bg-primary/80 transition-all"
-                style={{ height }}
+                className="w-full rounded-t bg-primary/80"
+                style={{ height: `${pct}%` }}
               />
             </div>
           );
         })}
       </div>
-      <div className="flex gap-1">
+      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${data.length}, 1fr)` }}>
         {data.map((wc, i) => (
-          <div key={i} className="flex-1 text-center">
+          <div key={i} className="text-center">
             <span className="text-[9px] text-muted-foreground">
               {new Date(wc.Week).toLocaleDateString(undefined, {
                 month: "short",
