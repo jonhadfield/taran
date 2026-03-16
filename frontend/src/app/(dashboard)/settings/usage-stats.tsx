@@ -182,21 +182,24 @@ export function UsageStatsCard() {
         {history.length > 0 && (
           <div className="space-y-2 pt-2 border-t">
             <div className="text-sm text-muted-foreground">Last 30 days</div>
-            <div className="flex items-end gap-px h-16">
+            <div
+              className="grid gap-px"
+              style={{ gridTemplateColumns: `repeat(${history.length}, 1fr)`, height: 64 }}
+            >
               {history.map((day) => {
-                const height = Math.max(2, (day.Tokens / maxHistoryTokens) * 100);
+                const pct = Math.max(2, (day.Tokens / maxHistoryTokens) * 100);
                 const isToday = day.Date === todayStr;
                 return (
                   <div
                     key={day.Date}
-                    className="flex-1 group/bar relative"
+                    className="flex flex-col justify-end group/bar relative"
                     title={`${day.Date}: ${formatTokens(day.Tokens)} tokens`}
                   >
                     <div
                       className={`w-full rounded-sm transition-colors ${
                         isToday ? "bg-primary" : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
                       }`}
-                      style={{ height: `${height}%` }}
+                      style={{ height: `${pct}%` }}
                     />
                   </div>
                 );

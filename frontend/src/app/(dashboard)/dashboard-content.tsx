@@ -19,32 +19,47 @@ function WeeklyChart({ data }: { data: WeekCount[] }) {
   const max = Math.max(...data.map((d) => d.Count), 1);
 
   return (
-    <div className="flex items-end gap-1.5 h-24">
-      {data.map((week, i) => {
-        const height = Math.max(4, (week.Count / max) * 100);
-        const label = new Date(week.Week).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        });
-        return (
-          <div
-            key={i}
-            className="flex-1 flex flex-col items-center gap-1 min-w-0"
-          >
-            <span className="text-[10px] text-muted-foreground tabular-nums">
-              {week.Count > 0 ? week.Count : ""}
-            </span>
-            <div
-              className="w-full rounded-sm bg-primary/80 transition-all hover:bg-primary"
-              style={{ height: `${height}%` }}
-              title={`${label}: ${week.Count} emails`}
-            />
-            <span className="text-[10px] text-muted-foreground truncate w-full text-center hidden @sm:block">
+    <div className="space-y-1">
+      <div
+        className="grid gap-1.5"
+        style={{ gridTemplateColumns: `repeat(${data.length}, 1fr)`, height: 96 }}
+      >
+        {data.map((week, i) => {
+          const pct = Math.max(4, (week.Count / max) * 100);
+          const label = new Date(week.Week).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+          return (
+            <div key={i} className="flex flex-col items-center justify-end gap-1 min-w-0">
+              <span className="text-[10px] text-muted-foreground tabular-nums">
+                {week.Count > 0 ? week.Count : ""}
+              </span>
+              <div
+                className="w-full rounded-sm bg-primary/80 transition-all hover:bg-primary"
+                style={{ height: `${pct}%` }}
+                title={`${label}: ${week.Count} emails`}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div
+        className="grid gap-1.5"
+        style={{ gridTemplateColumns: `repeat(${data.length}, 1fr)` }}
+      >
+        {data.map((week, i) => {
+          const label = new Date(week.Week).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+          return (
+            <span key={i} className="text-[10px] text-muted-foreground truncate text-center hidden @sm:block">
               {label}
             </span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
