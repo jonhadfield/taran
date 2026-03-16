@@ -10,6 +10,7 @@ import { ShareButton } from "./share-button";
 import { SendEmailButton } from "./send-email-button";
 import { DeleteDigestButton } from "./delete-button";
 import { DigestFeedbackButtons } from "./digest-feedback-buttons";
+import { DigestComparison } from "./digest-comparison";
 import { isAdmin } from "@/lib/admin";
 
 export default async function DigestDetailPage({
@@ -131,6 +132,8 @@ export default async function DigestDetailPage({
           </CardContent>
         </Card>
       )}
+
+      <DigestComparison currentDigest={digest} />
 
       {digest.Items?.length > 0 && (
         <>
