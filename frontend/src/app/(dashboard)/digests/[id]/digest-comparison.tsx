@@ -5,7 +5,7 @@ import { apiGet } from "@/lib/api";
 import type { Digest, ListResponse } from "@/types/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUp, ArrowDown, Plus, Minus, TrendingUp, TrendingDown, Users, Hash } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Minus, TrendingUp, Users, Hash } from "lucide-react";
 
 interface DigestComparisonProps {
   currentDigest: Digest;

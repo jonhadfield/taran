@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { apiGet } from "@/lib/api";
 import type { ThreadEmail } from "@/types/api";
 import Link from "next/link";
@@ -16,23 +16,25 @@ export function EmailThread({ emailId, threadCount }: EmailThreadProps) {
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    if (!expanded) return;
-    if (thread.length > 0) return;
+  const handleExpand = () => {
+    const next = !expanded;
+    setExpanded(next);
 
-    setLoading(true);
-    apiGet<ThreadEmail[]>(`emails/${emailId}/thread`)
-      .then((data) => setThread(data || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [emailId, expanded, thread.length]);
+    if (next && thread.length === 0) {
+      setLoading(true);
+      apiGet<ThreadEmail[]>(`emails/${emailId}/thread`)
+        .then((data) => setThread(data || []))
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  };
 
   if (threadCount < 2) return null;
 
   return (
     <div className="rounded-lg border">
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleExpand}
         className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium hover:bg-accent/50 transition-colors"
       >
         <span className="flex items-center gap-2">

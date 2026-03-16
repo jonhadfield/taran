@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiGet, apiDelete, apiPatch } from "@/lib/api";
 import {
@@ -103,7 +103,7 @@ export default function SettingsPage() {
   const [deleteTarget, setDeleteTarget] = useState<EmailAccount | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     try {
       const res = await apiGet<ListResponse<EmailAccount>>("accounts");
       setAccounts(res.data || []);
@@ -113,9 +113,9 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchPreferences = async () => {
+  const fetchPreferences = useCallback(async () => {
     try {
       const pref = await apiGet<UserPreference>("preferences");
       setDigestEmail(pref.DigestEmail);
@@ -132,8 +132,7 @@ export default function SettingsPage() {
       setQuietHoursEnabled(pref.QuietHoursEnabled ?? false);
       setQuietHoursStart(pref.QuietHoursStart ?? 22);
       setQuietHoursEnd(pref.QuietHoursEnd ?? 7);
-      // Sync color theme from server (in case cookie was stale)
-      if (pref.ColorTheme && pref.ColorTheme !== colorTheme) {
+      if (pref.ColorTheme) {
         setColorTheme(pref.ColorTheme as Parameters<typeof setColorTheme>[0]);
       }
     } catch {
@@ -141,13 +140,12 @@ export default function SettingsPage() {
     } finally {
       setPrefLoading(false);
     }
-  };
+  }, [setColorTheme]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only fetch
   useEffect(() => {
     fetchAccounts();
     fetchPreferences();
-  }, []);
+  }, [fetchAccounts, fetchPreferences]);
 
   const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme" | "ExcludedCategories" | "DailyTokenLimit" | "QuietHoursEnabled" | "QuietHoursStart" | "QuietHoursEnd">>) => {
     setPrefSaving(true);
