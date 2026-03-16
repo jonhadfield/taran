@@ -143,6 +143,7 @@ export default function SettingsPage() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only fetch
   useEffect(() => {
     fetchAccounts();
     fetchPreferences();
