@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import type { EmailAccount, ListResponse, UserPreference } from "@/types/api";
 import { SignOutButton } from "./sign-out-button";
 import { ExportDataButton } from "./export-data-button";
@@ -29,6 +28,7 @@ import { AutoArchiveSettings } from "./auto-archive-settings";
 import { LabelSettings } from "./label-settings";
 import { DailyLimitSettings } from "./daily-limit-settings";
 import { useColorTheme } from "@/components/color-theme-provider";
+import { SettingsNav, type SettingsSection } from "./settings-nav";
 
 const COMMON_TIMEZONES = [
   "America/New_York",
@@ -55,6 +55,25 @@ function detectTimezone(): string {
     return "UTC";
   }
 }
+
+const SECTIONS: SettingsSection[] = [
+  { id: "accounts", label: "Accounts" },
+  { id: "appearance", label: "Appearance" },
+  { id: "delivery", label: "Delivery" },
+  { id: "quiet-hours", label: "Quiet Hours" },
+  { id: "inbox", label: "Inbox" },
+  { id: "digest-style", label: "Digest Style" },
+  { id: "categories", label: "Categories" },
+  { id: "labels", label: "Labels" },
+  { id: "auto-archive", label: "Auto-Archive" },
+  { id: "keywords", label: "Keywords" },
+  { id: "forwarding", label: "Forwarding" },
+  { id: "api-keys", label: "API Keys" },
+  { id: "limits", label: "Limits" },
+  { id: "usage", label: "Usage" },
+  { id: "data", label: "Data" },
+  { id: "account", label: "Account" },
+];
 
 export default function SettingsPage() {
   const { colorTheme, setColorTheme } = useColorTheme();
@@ -179,175 +198,214 @@ export default function SettingsPage() {
     ? COMMON_TIMEZONES
     : [browserTz, ...COMMON_TIMEZONES];
 
+  // Filter sections: hide "Forwarding" if no accounts yet
+  const visibleSections = accounts.length > 0
+    ? SECTIONS
+    : SECTIONS.filter((s) => s.id !== "forwarding");
+
   return (
-    <div className="space-y-6 max-w-2xl">
-      <h1 className="text-2xl font-bold">Settings</h1>
+    <div className="flex gap-10">
+      <SettingsNav sections={visibleSections} />
 
-      <AccountSettings
-        accounts={accounts}
-        loading={loading}
-        error={error}
-        deleteTarget={deleteTarget}
-        deleting={deleting}
-        onFetchAccounts={fetchAccounts}
-        onSetDeleteTarget={setDeleteTarget}
-        onDelete={handleDelete}
-      />
+      <div className="space-y-6 max-w-2xl flex-1 min-w-0">
+        <h1 className="text-2xl font-bold">Settings</h1>
 
-      <ThemeColorSettings
-        colorTheme={colorTheme}
-        onColorThemeChange={setColorTheme}
-      />
+        <section id="accounts" className="scroll-mt-24">
+          <AccountSettings
+            accounts={accounts}
+            loading={loading}
+            error={error}
+            deleteTarget={deleteTarget}
+            deleting={deleting}
+            onFetchAccounts={fetchAccounts}
+            onSetDeleteTarget={setDeleteTarget}
+            onDelete={handleDelete}
+          />
+        </section>
 
-      <DigestDeliverySettings
-        digestEmail={digestEmail}
-        digestFrequency={digestFrequency}
-        digestHour={digestHour}
-        digestDay={digestDay}
-        digestTimezone={digestTimezone}
-        timezoneOptions={timezoneOptions}
-        prefLoading={prefLoading}
-        prefSaving={prefSaving}
-        onToggleDigestEmail={(checked) => {
-          setDigestEmail(checked);
-          updatePreference({ DigestEmail: checked });
-        }}
-        onFrequencyChange={(value) => {
-          setDigestFrequency(value);
-          updatePreference({ DigestFrequency: value });
-        }}
-        onHourChange={(value) => {
-          setDigestHour(value);
-          updatePreference({ DigestHour: value });
-        }}
-        onDayChange={(value) => {
-          setDigestDay(value);
-          updatePreference({ DigestDay: value });
-        }}
-        onTimezoneChange={(value) => {
-          setDigestTimezone(value);
-          updatePreference({ DigestTimezone: value });
-        }}
-      />
+        <section id="appearance" className="scroll-mt-24">
+          <ThemeColorSettings
+            colorTheme={colorTheme}
+            onColorThemeChange={setColorTheme}
+          />
+        </section>
 
-      <QuietHoursSettings
-        enabled={quietHoursEnabled}
-        start={quietHoursStart}
-        end={quietHoursEnd}
-        prefLoading={prefLoading}
-        prefSaving={prefSaving}
-        onEnabledChange={(checked) => {
-          setQuietHoursEnabled(checked);
-          updatePreference({ QuietHoursEnabled: checked });
-        }}
-        onStartChange={(value) => {
-          setQuietHoursStart(value);
-          updatePreference({ QuietHoursStart: value });
-        }}
-        onEndChange={(value) => {
-          setQuietHoursEnd(value);
-          updatePreference({ QuietHoursEnd: value });
-        }}
-      />
+        <section id="delivery" className="scroll-mt-24">
+          <DigestDeliverySettings
+            digestEmail={digestEmail}
+            digestFrequency={digestFrequency}
+            digestHour={digestHour}
+            digestDay={digestDay}
+            digestTimezone={digestTimezone}
+            timezoneOptions={timezoneOptions}
+            prefLoading={prefLoading}
+            prefSaving={prefSaving}
+            onToggleDigestEmail={(checked) => {
+              setDigestEmail(checked);
+              updatePreference({ DigestEmail: checked });
+            }}
+            onFrequencyChange={(value) => {
+              setDigestFrequency(value);
+              updatePreference({ DigestFrequency: value });
+            }}
+            onHourChange={(value) => {
+              setDigestHour(value);
+              updatePreference({ DigestHour: value });
+            }}
+            onDayChange={(value) => {
+              setDigestDay(value);
+              updatePreference({ DigestDay: value });
+            }}
+            onTimezoneChange={(value) => {
+              setDigestTimezone(value);
+              updatePreference({ DigestTimezone: value });
+            }}
+          />
+        </section>
 
-      <InboxDisplaySettings
-        topicLimit={topicLimit}
-        prefLoading={prefLoading}
-        prefSaving={prefSaving}
-        onTopicLimitChange={(value) => {
-          setTopicLimit(value);
-          updatePreference({ TopicLimit: value });
-        }}
-      />
+        <section id="quiet-hours" className="scroll-mt-24">
+          <QuietHoursSettings
+            enabled={quietHoursEnabled}
+            start={quietHoursStart}
+            end={quietHoursEnd}
+            prefLoading={prefLoading}
+            prefSaving={prefSaving}
+            onEnabledChange={(checked) => {
+              setQuietHoursEnabled(checked);
+              updatePreference({ QuietHoursEnabled: checked });
+            }}
+            onStartChange={(value) => {
+              setQuietHoursStart(value);
+              updatePreference({ QuietHoursStart: value });
+            }}
+            onEndChange={(value) => {
+              setQuietHoursEnd(value);
+              updatePreference({ QuietHoursEnd: value });
+            }}
+          />
+        </section>
 
-      <DigestStyleSettings
-        digestStyle={digestStyle}
-        prefLoading={prefLoading}
-        prefSaving={prefSaving}
-        onDigestStyleChange={(value) => {
-          setDigestStyle(value);
-          updatePreference({ DigestStyle: value });
-        }}
-      />
+        <section id="inbox" className="scroll-mt-24">
+          <InboxDisplaySettings
+            topicLimit={topicLimit}
+            prefLoading={prefLoading}
+            prefSaving={prefSaving}
+            onTopicLimitChange={(value) => {
+              setTopicLimit(value);
+              updatePreference({ TopicLimit: value });
+            }}
+          />
+        </section>
 
-      <DigestCategoriesSettings
-        excludedCategories={excludedCategories}
-        prefLoading={prefLoading}
-        prefSaving={prefSaving}
-        onExcludedCategoriesChange={(categories) => {
-          setExcludedCategories(categories);
-          updatePreference({ ExcludedCategories: categories });
-        }}
-      />
+        <section id="digest-style" className="scroll-mt-24">
+          <DigestStyleSettings
+            digestStyle={digestStyle}
+            prefLoading={prefLoading}
+            prefSaving={prefSaving}
+            onDigestStyleChange={(value) => {
+              setDigestStyle(value);
+              updatePreference({ DigestStyle: value });
+            }}
+          />
+        </section>
 
-      <LabelSettings />
+        <section id="categories" className="scroll-mt-24">
+          <DigestCategoriesSettings
+            excludedCategories={excludedCategories}
+            prefLoading={prefLoading}
+            prefSaving={prefSaving}
+            onExcludedCategoriesChange={(categories) => {
+              setExcludedCategories(categories);
+              updatePreference({ ExcludedCategories: categories });
+            }}
+          />
+        </section>
 
-      <AutoArchiveSettings />
+        <section id="labels" className="scroll-mt-24">
+          <LabelSettings />
+        </section>
 
-      <KeywordPreferencesSettings
-        interestKeywords={interestKeywords}
-        exclusionKeywords={exclusionKeywords}
-        prefLoading={prefLoading}
-        prefSaving={prefSaving}
-        onInterestKeywordsChange={(keywords) => {
-          setInterestKeywords(keywords);
-          updatePreference({ InterestKeywords: keywords });
-        }}
-        onExclusionKeywordsChange={(keywords) => {
-          setExclusionKeywords(keywords);
-          updatePreference({ ExclusionKeywords: keywords });
-        }}
-      />
+        <section id="auto-archive" className="scroll-mt-24">
+          <AutoArchiveSettings />
+        </section>
 
-      {accounts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Forwarding Setup</CardTitle>
-            <CardDescription>
-              Learn how to forward newsletters from your email provider
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ForwardingGuide emailAddress={accounts[0]?.EmailAddress} />
-          </CardContent>
-        </Card>
-      )}
+        <section id="keywords" className="scroll-mt-24">
+          <KeywordPreferencesSettings
+            interestKeywords={interestKeywords}
+            exclusionKeywords={exclusionKeywords}
+            prefLoading={prefLoading}
+            prefSaving={prefSaving}
+            onInterestKeywordsChange={(keywords) => {
+              setInterestKeywords(keywords);
+              updatePreference({ InterestKeywords: keywords });
+            }}
+            onExclusionKeywordsChange={(keywords) => {
+              setExclusionKeywords(keywords);
+              updatePreference({ ExclusionKeywords: keywords });
+            }}
+          />
+        </section>
 
-      <ApiKeysSettings />
+        {accounts.length > 0 && (
+          <section id="forwarding" className="scroll-mt-24">
+            <Card>
+              <CardHeader>
+                <CardTitle>Forwarding Setup</CardTitle>
+                <CardDescription>
+                  Learn how to forward newsletters from your email provider
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ForwardingGuide emailAddress={accounts[0]?.EmailAddress} />
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
-      <DailyLimitSettings
-        dailyTokenLimit={dailyTokenLimit}
-        prefLoading={prefLoading}
-        prefSaving={prefSaving}
-        onDailyTokenLimitChange={(value) => {
-          setDailyTokenLimit(value);
-          updatePreference({ DailyTokenLimit: value });
-        }}
-      />
+        <section id="api-keys" className="scroll-mt-24">
+          <ApiKeysSettings />
+        </section>
 
-      <UsageStatsCard />
+        <section id="limits" className="scroll-mt-24">
+          <DailyLimitSettings
+            dailyTokenLimit={dailyTokenLimit}
+            prefLoading={prefLoading}
+            prefSaving={prefSaving}
+            onDailyTokenLimitChange={(value) => {
+              setDailyTokenLimit(value);
+              updatePreference({ DailyTokenLimit: value });
+            }}
+          />
+        </section>
 
-      <Separator />
+        <section id="usage" className="scroll-mt-24">
+          <UsageStatsCard />
+        </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Data</CardTitle>
-          <CardDescription>Export all your emails and digests as JSON</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ExportDataButton />
-        </CardContent>
-      </Card>
+        <section id="data" className="scroll-mt-24">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Data</CardTitle>
+              <CardDescription>Export all your emails and digests as JSON</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ExportDataButton />
+            </CardContent>
+          </Card>
+        </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Account</CardTitle>
-          <CardDescription>Manage your account settings</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SignOutButton />
-        </CardContent>
-      </Card>
+        <section id="account" className="scroll-mt-24">
+          <Card>
+            <CardHeader>
+              <CardTitle>Account</CardTitle>
+              <CardDescription>Manage your account settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SignOutButton />
+            </CardContent>
+          </Card>
+        </section>
+      </div>
     </div>
   );
 }
