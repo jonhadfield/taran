@@ -215,25 +215,10 @@
   }
 }
 
-/* View Transitions — old page stays solid, new page fades in on top */
-::view-transition-old(*) {
-  animation: none;
-}
+/* View Transitions — instant swap, no animation */
+::view-transition-old(*),
 ::view-transition-new(*) {
-  animation: vt-fade-in 200ms ease-out both;
-}
-
-@keyframes vt-fade-in {
-  from {
-    opacity: 0;
-  }
-}
-
-/* Disable transitions for users who prefer reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-new(*) {
-    animation: none !important;
-  }
+  animation: none !important;
 }
 
 @utility scrollbar-hide {
