@@ -1,3 +1,4 @@
+import { ViewTransition } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Header } from "@/components/header";
@@ -47,7 +48,9 @@ export default async function DashboardLayout({
         {/* Main content area offset by sidebar width */}
         <div className="lg:pl-64">
           <Header isAdmin={admin} />
-          <main className="@container p-4 lg:p-6">{children}</main>
+          <main className="@container p-4 lg:p-6">
+            <ViewTransition>{children}</ViewTransition>
+          </main>
         </div>
         <Toaster />
       </div>
