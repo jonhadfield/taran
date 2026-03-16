@@ -215,12 +215,6 @@
   }
 }
 
-/* View Transitions — instant swap, no animation */
-::view-transition-old(*),
-::view-transition-new(*) {
-  animation: none !important;
-}
-
 @utility scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
