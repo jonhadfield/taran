@@ -37,11 +37,13 @@ function VolumeChart({ data }: { data: WeekCount[] }) {
   if (data.length === 0) return null;
   const max = Math.max(...data.map((d) => d.Count), 1);
 
+  const BAR_MAX_HEIGHT = 100;
+
   return (
     <div className="space-y-2">
       <div className="flex items-end gap-1" style={{ height: 120 }}>
         {data.map((wc, i) => {
-          const height = Math.max((wc.Count / max) * 100, 2);
+          const height = Math.max((wc.Count / max) * BAR_MAX_HEIGHT, 2);
           return (
             <div
               key={i}
@@ -52,7 +54,7 @@ function VolumeChart({ data }: { data: WeekCount[] }) {
               </span>
               <div
                 className="w-full rounded-t bg-primary/80 transition-all"
-                style={{ height: `${height}%` }}
+                style={{ height }}
               />
             </div>
           );
