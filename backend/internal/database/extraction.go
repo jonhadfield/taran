@@ -115,6 +115,28 @@ func (r *ExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID string,
 	return extractions, nil
 }
 
+func (r *ExtractionRepo) GetSummariesByEmailIDs(ctx context.Context, emailIDs []string) (map[string]string, error) {
+	if len(emailIDs) == 0 {
+		return nil, nil
+	}
+	rows, err := r.pool.Query(ctx,
+		`SELECT email_id, summary FROM extraction WHERE email_id = ANY($1)`, emailIDs)
+	if err != nil {
+		return nil, fmt.Errorf("get summaries by email IDs: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]string, len(emailIDs))
+	for rows.Next() {
+		var emailID, summary string
+		if err := rows.Scan(&emailID, &summary); err != nil {
+			return nil, fmt.Errorf("scan summary: %w", err)
+		}
+		result[emailID] = summary
+	}
+	return result, nil
+}
+
 func (r *ExtractionRepo) ListTopicsByUser(ctx context.Context, userID string, limit int) ([]string, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT topic FROM (

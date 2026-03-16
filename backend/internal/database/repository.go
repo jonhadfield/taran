@@ -52,6 +52,7 @@ type ExtractionRepository interface {
 	ListTopicsWithCount(ctx context.Context, userID string, limit int) ([]domain.TopicCount, error)
 	CountByCategory(ctx context.Context, userID string) ([]domain.CategoryCount, error)
 	CountActionItems(ctx context.Context, userID string, from, to time.Time) (int, error)
+	GetSummariesByEmailIDs(ctx context.Context, emailIDs []string) (map[string]string, error)
 }
 
 type FeedbackRepository interface {

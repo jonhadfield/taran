@@ -323,6 +323,10 @@ func (m *MockExtractionRepo) CountActionItems(ctx context.Context, userID string
 	return 0, nil
 }
 
+func (m *MockExtractionRepo) GetSummariesByEmailIDs(ctx context.Context, emailIDs []string) (map[string]string, error) {
+	return nil, nil
+}
+
 // MockFeedbackRepo implements database.FeedbackRepository for testing.
 type MockFeedbackRepo struct {
 	UpsertFn          func(ctx context.Context, fb *domain.EmailFeedback) error

@@ -160,6 +160,13 @@ func (h *EmailHandler) GetThread(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Batch-fetch extraction summaries for all thread emails (avoids N+1)
+	emailIDs := make([]string, len(thread))
+	for i, e := range thread {
+		emailIDs[i] = e.ID
+	}
+	summaries, _ := h.Extractions.GetSummariesByEmailIDs(r.Context(), emailIDs)
+
 	result := make([]ThreadEmail, 0, len(thread))
 	for _, e := range thread {
 		te := ThreadEmail{
@@ -169,10 +176,7 @@ func (h *EmailHandler) GetThread(w http.ResponseWriter, r *http.Request) {
 			FromAddress: e.FromAddress,
 			ReceivedAt:  e.ReceivedAt.Format("2006-01-02T15:04:05Z07:00"),
 			IsRead:      e.IsRead,
-		}
-		// Include extraction summary if available
-		if ext, err := h.Extractions.GetByEmailIDScoped(r.Context(), userID, e.ID); err == nil && ext != nil {
-			te.Summary = ext.Summary
+			Summary:     summaries[e.ID],
 		}
 		result = append(result, te)
 	}
