@@ -12,13 +12,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/sidebar";
-import { Menu, LogOut, Sun, Moon } from "lucide-react";
+import { Menu, LogOut, Sun, Moon, Bell, BellOff, BellRing } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEmailNotifications } from "@/hooks/use-email-notifications";
 
 export function Header({ isAdmin }: { isAdmin?: boolean }) {
   const { data: session } = authClient.useSession();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { permission, requestPermission } = useEmailNotifications();
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -55,6 +57,29 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
       </div>
 
       <div className="flex items-center gap-1">
+        {permission !== "unsupported" && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={requestPermission}
+            title={
+              permission === "granted"
+                ? "Notifications enabled"
+                : permission === "denied"
+                  ? "Notifications blocked — update in browser settings"
+                  : "Enable notifications"
+            }
+          >
+            {permission === "granted" ? (
+              <BellRing className="size-4" />
+            ) : permission === "denied" ? (
+              <BellOff className="size-4 text-muted-foreground" />
+            ) : (
+              <Bell className="size-4 text-muted-foreground" />
+            )}
+            <span className="sr-only">Toggle notifications</span>
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"

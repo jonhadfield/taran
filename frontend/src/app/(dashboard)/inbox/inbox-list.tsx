@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useEmailNotifications } from "@/hooks/use-email-notifications";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api";
@@ -173,6 +174,23 @@ export function InboxList({
 
   const emails = useMemo(() => res.data || [], [res.data]);
   const total = res.total;
+
+  // Notify on new emails (only when "all" filter, no search — the default inbox view)
+  const { notify } = useEmailNotifications();
+  const prevEmailIds = useRef<Set<string>>(new Set(initialEmails.map((e) => e.ID)));
+
+  useEffect(() => {
+    if (filter !== "all" || debouncedSearch) return;
+
+    const currentIds = new Set(emails.map((e) => e.ID));
+    const newEmails = emails.filter((e) => !prevEmailIds.current.has(e.ID));
+
+    if (newEmails.length > 0 && prevEmailIds.current.size > 0) {
+      notify(newEmails);
+    }
+
+    prevEmailIds.current = currentIds;
+  }, [emails, filter, debouncedSearch, notify]);
 
   const handleFilterChange = useCallback((value: string) => {
     setFilter(value);
