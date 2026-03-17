@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { APP_NAME } from "@/lib/config";
 import { Mail, Sparkles, BookOpen } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   return (
@@ -13,12 +14,12 @@ export default function LoginPage() {
       <div className="flex w-full max-w-md flex-col items-center gap-10">
         {/* Hero */}
         <div className="flex flex-col items-center gap-3 text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src="/logo.svg"
             alt={`${APP_NAME} logo`}
             width={80}
             height={80}
+            priority
           />
           <h1 className="text-4xl font-bold tracking-tight">{APP_NAME}</h1>
           <p className="text-lg text-muted-foreground">

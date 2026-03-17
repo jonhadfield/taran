@@ -685,6 +685,7 @@ export function InboxList({
 
       <BulkActionBar
         selectedIds={selectedIds}
+        labels={labels}
         onClear={() => setSelectedIds(new Set())}
       />
 

@@ -3,29 +3,23 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { apiGet, apiPost, apiPatch, apiDeleteJSON } from "@/lib/api";
+import { apiPost, apiPatch, apiDeleteJSON } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import type { Label } from "@/types/api";
 import { Archive, ArchiveRestore, Eye, EyeOff, Trash2, X, Tag } from "lucide-react";
 
 interface BulkActionBarProps {
   selectedIds: Set<string>;
+  labels: Label[];
   onClear: () => void;
 }
 
-export function BulkActionBar({ selectedIds, onClear }: BulkActionBarProps) {
+export function BulkActionBar({ selectedIds, labels, onClear }: BulkActionBarProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [labels, setLabels] = useState<Label[]>([]);
   const [showLabelMenu, setShowLabelMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const count = selectedIds.size;
-
-  useEffect(() => {
-    if (count > 0 && labels.length === 0) {
-      apiGet<Label[]>("labels").then((data) => setLabels(data || [])).catch(() => {});
-    }
-  }, [count, labels.length]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

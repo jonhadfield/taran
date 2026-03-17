@@ -12,27 +12,8 @@ import { FeedbackButtons } from "./feedback-buttons";
 import { ReprocessButton } from "./reprocess-button";
 import { UnsubscribeButton } from "./unsubscribe-button";
 import { EmailThread } from "./email-thread";
-import dynamic from "next/dynamic";
-
-const EmailContentCard = dynamic(
-  () => import("./email-content-card").then((mod) => mod.EmailContentCard),
-  {
-    loading: () => (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Email Content</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-3">
-            <div className="h-4 bg-muted rounded w-3/4" />
-            <div className="h-4 bg-muted rounded w-full" />
-            <div className="h-4 bg-muted rounded w-5/6" />
-          </div>
-        </CardContent>
-      </Card>
-    ),
-  }
-);
+import { EmailContentCard } from "./email-content-card";
+import sanitizeHtml from "sanitize-html";
 
 function estimateReadingTime(text: string): string {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
@@ -265,7 +246,16 @@ export default async function EmailDetailPage({
           </Card>
         )}
 
-        <EmailContentCard htmlBody={email.HTMLBody} textBody={email.TextBody} />
+        <EmailContentCard
+          htmlBody={email.HTMLBody ? sanitizeHtml(email.HTMLBody, {
+            allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
+            allowedAttributes: {
+              ...sanitizeHtml.defaults.allowedAttributes,
+              "*": ["style", "class"],
+            },
+          }) : ""}
+          textBody={email.TextBody}
+        />
       </div>
     </div>
   );
