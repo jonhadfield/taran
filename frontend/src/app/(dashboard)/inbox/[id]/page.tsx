@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { EmailResponse } from "@/types/api";
-import { ArrowLeft, Sparkles, CheckCircle2, Info, Paperclip, Clock } from "lucide-react";
+import { Sparkles, CheckCircle2, Info, Paperclip, Clock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
@@ -47,15 +47,11 @@ export default async function EmailDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          href="/inbox"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground py-1"
-        >
-          <ArrowLeft className="size-4" />
-          Back to Inbox
-        </Link>
-      </div>
+      <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Link href="/inbox" className="hover:text-foreground transition-colors">Inbox</Link>
+        <span>/</span>
+        <span className="text-foreground truncate max-w-xs">{email.Subject}</span>
+      </nav>
 
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">

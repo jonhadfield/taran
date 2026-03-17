@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { Digest, UserPreference } from "@/types/api";
-import { ArrowLeft, Mail, MailX, Clock } from "lucide-react";
+import { Mail, MailX, Clock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ShareButton } from "./share-button";
@@ -34,13 +34,11 @@ export default async function DigestDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/digests"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Digests
-      </Link>
+      <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Link href="/digests" className="hover:text-foreground transition-colors">Digests</Link>
+        <span>/</span>
+        <span className="text-foreground truncate max-w-xs">{digest.Title}</span>
+      </nav>
 
       <div className="space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

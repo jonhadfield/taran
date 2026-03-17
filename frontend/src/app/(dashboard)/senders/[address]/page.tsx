@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderDetail, WeekCount, Email, ListResponse } from "@/types/api";
-import { ArrowLeft, Loader2, Mail, Calendar, BarChart3, Clock, TrendingUp, ExternalLink } from "lucide-react";
+import { Loader2, Mail, Calendar, BarChart3, Clock, TrendingUp, ExternalLink } from "lucide-react";
 
 const STATUS_OPTIONS = [
   { value: "normal", label: "Normal" },
@@ -147,13 +147,11 @@ export default function SenderDetailPage() {
   if (!detail) {
     return (
       <div className="space-y-4">
-        <Link
-          href="/senders"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Back to Senders
-        </Link>
+        <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Link href="/senders" className="hover:text-foreground transition-colors">Senders</Link>
+          <span>/</span>
+          <span className="text-foreground">Not found</span>
+        </nav>
         <p className="text-muted-foreground">Sender not found.</p>
       </div>
     );
@@ -174,13 +172,11 @@ export default function SenderDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/senders"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Back to Senders
-      </Link>
+      <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Link href="/senders" className="hover:text-foreground transition-colors">Senders</Link>
+        <span>/</span>
+        <span className="text-foreground truncate max-w-xs">{name}</span>
+      </nav>
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
