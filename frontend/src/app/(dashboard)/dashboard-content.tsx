@@ -31,14 +31,16 @@ function WeeklyChart({ data }: { data: WeekCount[] }) {
             day: "numeric",
           });
           return (
-            <div key={i} className="flex flex-col items-center justify-end gap-1 min-w-0">
+            <div key={i} className="group relative flex flex-col items-center justify-end gap-1 min-w-0">
+              <div className="absolute -top-7 left-1/2 -translate-x-1/2 hidden group-hover:block z-10 whitespace-nowrap rounded bg-popover border px-2 py-1 text-xs shadow-md">
+                {label}: <span className="font-medium">{week.Count}</span> email{week.Count !== 1 ? "s" : ""}
+              </div>
               <span className="text-[10px] text-muted-foreground tabular-nums">
                 {week.Count > 0 ? week.Count : ""}
               </span>
               <div
-                className="w-full rounded-sm bg-primary/80 transition-all hover:bg-primary"
-                style={{ height: `${pct}%` }}
-                title={`${label}: ${week.Count} emails`}
+                className="w-full rounded-sm bg-primary/80 hover:bg-primary animate-bar-grow"
+                style={{ "--bar-height": `${pct}%`, animationDelay: `${i * 60}ms` } as React.CSSProperties}
               />
             </div>
           );
@@ -96,25 +98,32 @@ function CategoryBars({ categories }: { categories: CategoryCount[] }) {
   if (categories.length === 0) return null;
 
   const max = Math.max(...categories.map((c) => c.Count), 1);
+  const total = categories.reduce((s, c) => s + c.Count, 0);
 
   return (
     <div className="space-y-2">
-      {categories.map((cat) => (
-        <div key={cat.Category} className="flex items-center gap-3">
-          <span className="text-xs w-24 text-right truncate capitalize text-muted-foreground">
-            {cat.Category || "other"}
-          </span>
-          <div className="flex-1 h-5 bg-muted rounded-sm overflow-hidden">
-            <div
-              className={`h-full rounded-sm transition-all ${CATEGORY_COLORS[cat.Category] || CATEGORY_COLORS.other}`}
-              style={{ width: `${(cat.Count / max) * 100}%` }}
-            />
+      {categories.map((cat, i) => {
+        const pct = ((cat.Count / total) * 100).toFixed(1);
+        return (
+          <div key={cat.Category} className="group relative flex items-center gap-3">
+            <div className="absolute -top-7 left-28 hidden group-hover:block z-10 whitespace-nowrap rounded bg-popover border px-2 py-1 text-xs shadow-md">
+              <span className="capitalize font-medium">{cat.Category || "other"}</span>: {cat.Count} ({pct}%)
+            </div>
+            <span className="text-xs w-24 text-right truncate capitalize text-muted-foreground">
+              {cat.Category || "other"}
+            </span>
+            <div className="flex-1 h-5 bg-muted rounded-sm overflow-hidden">
+              <div
+                className={`h-full rounded-sm animate-bar-grow-h ${CATEGORY_COLORS[cat.Category] || CATEGORY_COLORS.other}`}
+                style={{ "--bar-width": `${(cat.Count / max) * 100}%`, animationDelay: `${i * 80}ms` } as React.CSSProperties}
+              />
+            </div>
+            <span className="text-xs tabular-nums text-muted-foreground w-8">
+              {cat.Count}
+            </span>
           </div>
-          <span className="text-xs tabular-nums text-muted-foreground w-8">
-            {cat.Count}
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -167,9 +176,14 @@ function ArrivalHeatmap({ cells }: { cells: HeatmapCell[] }) {
           {row.map((count, hour) => (
             <div
               key={hour}
-              className={`flex-1 aspect-square rounded-[2px] transition-colors ${getColor(count)}`}
-              title={`${DAY_LABELS[day]} ${hour}:00 — ${count} email${count !== 1 ? "s" : ""}`}
-            />
+              className={`group relative flex-1 aspect-square rounded-[2px] transition-colors ${getColor(count)}`}
+            >
+              {count > 0 && (
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block z-10 whitespace-nowrap rounded bg-popover border px-2 py-1 text-xs shadow-md">
+                  {DAY_LABELS[day]} {hour}:00 — <span className="font-medium">{count}</span>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       ))}

@@ -215,6 +215,32 @@
   }
 }
 
+/* Chart bar animations */
+@utility animate-bar-grow {
+  animation: bar-grow 500ms ease-out both;
+  height: var(--bar-height);
+}
+@utility animate-bar-grow-h {
+  animation: bar-grow-h 500ms ease-out both;
+  width: var(--bar-width);
+}
+
+@keyframes bar-grow {
+  from { height: 0; }
+  to { height: var(--bar-height); }
+}
+@keyframes bar-grow-h {
+  from { width: 0; }
+  to { width: var(--bar-width); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-bar-grow,
+  .animate-bar-grow-h {
+    animation: none !important;
+  }
+}
+
 @utility scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
