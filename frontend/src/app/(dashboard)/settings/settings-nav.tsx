@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 export interface SettingsSection {
   id: string;
   label: string;
+  group?: string;
 }
 
 interface SettingsNavProps {
@@ -71,21 +72,29 @@ export function SettingsNav({ sections }: SettingsNavProps) {
         ref={scrollRef}
         className="flex gap-1 overflow-x-auto px-4 lg:px-6 py-2 scrollbar-hide"
       >
-        {sections.map((s) => (
-          <button
-            key={s.id}
-            ref={s.id === activeId ? pillRef : null}
-            onClick={() => scrollTo(s.id)}
-            className={cn(
-              "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-              s.id === activeId
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-            )}
-          >
-            {s.label}
-          </button>
-        ))}
+        {sections.map((s, i) => {
+          const prevGroup = i > 0 ? sections[i - 1].group : undefined;
+          const showSep = s.group && s.group !== prevGroup;
+          return (
+            <span key={s.id} className="contents">
+              {showSep && i > 0 && (
+                <span className="shrink-0 w-px h-5 bg-border self-center mx-1" />
+              )}
+              <button
+                ref={s.id === activeId ? pillRef : null}
+                onClick={() => scrollTo(s.id)}
+                className={cn(
+                  "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                  s.id === activeId
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+              >
+                {s.label}
+              </button>
+            </span>
+          );
+        })}
       </div>
     </div>
   );

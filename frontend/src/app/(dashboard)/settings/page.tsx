@@ -57,22 +57,22 @@ function detectTimezone(): string {
 }
 
 const SECTIONS: SettingsSection[] = [
-  { id: "accounts", label: "Accounts" },
-  { id: "appearance", label: "Appearance" },
-  { id: "delivery", label: "Delivery" },
-  { id: "quiet-hours", label: "Quiet Hours" },
-  { id: "inbox", label: "Inbox" },
-  { id: "digest-style", label: "Digest Style" },
-  { id: "categories", label: "Categories" },
-  { id: "labels", label: "Labels" },
-  { id: "auto-archive", label: "Auto-Archive" },
-  { id: "keywords", label: "Keywords" },
-  { id: "forwarding", label: "Forwarding" },
-  { id: "api-keys", label: "API Keys" },
-  { id: "limits", label: "Limits" },
-  { id: "usage", label: "Usage" },
-  { id: "data", label: "Data" },
-  { id: "account", label: "Account" },
+  { id: "accounts", label: "Accounts", group: "General" },
+  { id: "appearance", label: "Appearance", group: "General" },
+  { id: "delivery", label: "Delivery", group: "Digest" },
+  { id: "quiet-hours", label: "Quiet Hours", group: "Digest" },
+  { id: "digest-style", label: "Digest Style", group: "Digest" },
+  { id: "categories", label: "Categories", group: "Digest" },
+  { id: "keywords", label: "Keywords", group: "Digest" },
+  { id: "inbox", label: "Inbox", group: "Organisation" },
+  { id: "labels", label: "Labels", group: "Organisation" },
+  { id: "auto-archive", label: "Auto-Archive", group: "Organisation" },
+  { id: "forwarding", label: "Forwarding", group: "Advanced" },
+  { id: "api-keys", label: "API Keys", group: "Advanced" },
+  { id: "limits", label: "Limits", group: "Advanced" },
+  { id: "usage", label: "Usage", group: "Advanced" },
+  { id: "data", label: "Data", group: "Advanced" },
+  { id: "account", label: "Account", group: "Advanced" },
 ];
 
 export default function SettingsPage() {
@@ -210,6 +210,8 @@ export default function SettingsPage() {
 
       <div className="space-y-6 mt-6">
 
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-2">General</h2>
+
         <section id="accounts" className="scroll-mt-24">
           <AccountSettings
             accounts={accounts}
@@ -229,6 +231,8 @@ export default function SettingsPage() {
             onColorThemeChange={setColorTheme}
           />
         </section>
+
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-4">Digest</h2>
 
         <section id="delivery" className="scroll-mt-24">
           <DigestDeliverySettings
@@ -285,18 +289,6 @@ export default function SettingsPage() {
           />
         </section>
 
-        <section id="inbox" className="scroll-mt-24">
-          <InboxDisplaySettings
-            topicLimit={topicLimit}
-            prefLoading={prefLoading}
-            prefSaving={prefSaving}
-            onTopicLimitChange={(value) => {
-              setTopicLimit(value);
-              updatePreference({ TopicLimit: value });
-            }}
-          />
-        </section>
-
         <section id="digest-style" className="scroll-mt-24">
           <DigestStyleSettings
             digestStyle={digestStyle}
@@ -321,14 +313,6 @@ export default function SettingsPage() {
           />
         </section>
 
-        <section id="labels" className="scroll-mt-24">
-          <LabelSettings />
-        </section>
-
-        <section id="auto-archive" className="scroll-mt-24">
-          <AutoArchiveSettings />
-        </section>
-
         <section id="keywords" className="scroll-mt-24">
           <KeywordPreferencesSettings
             interestKeywords={interestKeywords}
@@ -345,6 +329,30 @@ export default function SettingsPage() {
             }}
           />
         </section>
+
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-4">Organisation</h2>
+
+        <section id="inbox" className="scroll-mt-24">
+          <InboxDisplaySettings
+            topicLimit={topicLimit}
+            prefLoading={prefLoading}
+            prefSaving={prefSaving}
+            onTopicLimitChange={(value) => {
+              setTopicLimit(value);
+              updatePreference({ TopicLimit: value });
+            }}
+          />
+        </section>
+
+        <section id="labels" className="scroll-mt-24">
+          <LabelSettings />
+        </section>
+
+        <section id="auto-archive" className="scroll-mt-24">
+          <AutoArchiveSettings />
+        </section>
+
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-4">Advanced</h2>
 
         {accounts.length > 0 && (
           <section id="forwarding" className="scroll-mt-24">
