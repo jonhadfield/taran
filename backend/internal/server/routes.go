@@ -45,6 +45,8 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", handleHealth(deps.Pool))
+	mux.HandleFunc("GET /docs", handleDocs)
+	mux.HandleFunc("GET /api/openapi.yaml", handleOpenAPISpec)
 
 	// Webhook (shared secret auth)
 	webhookAuth := auth.WebhookAuth(deps.WebhookSecret, http.HandlerFunc(deps.WebhookHandler.IngestEmail))

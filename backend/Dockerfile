@@ -15,6 +15,7 @@ RUN apk add --no-cache ca-certificates tzdata && \
   adduser -D -h /app appuser
 
 COPY --from=build /build/taran /app/taran
+COPY --from=build /build/api/openapi.yaml /app/api/openapi.yaml
 
 EXPOSE 8080
 

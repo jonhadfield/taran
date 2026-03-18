@@ -1,117 +1,202 @@
 # MailBrief Roadmap
 
-## Priority 1: High Impact / User Experience
+## Completed
 
-### 1.1 Bulk Email Actions
-- **Status**: Done
+### High Impact / User Experience
+- **Bulk Email Actions** — Batch archive, delete, mark read/unread from multi-select inbox UI
+- **Digest Preview** — Draft/preview step before finalizing digest generation
+- **Attachment Display** — Store and display attachments in email detail view
+- **Data Export** — Export emails and digests as JSON/CSV for GDPR compliance
+- **Browser Notifications** — Notify on new email arrivals when tab is unfocused
+- **Breadcrumb Navigation** — Inbox / Subject breadcrumbs on detail pages
+- **Settings Navigation** — Sticky pill bar with scroll tracking, grouped sections
+
+### Operational / Business
+- **LLM Cost Controls** — Per-user monthly/daily token limits, 80% warning emails, usage dashboard, admin cost monitoring
+- **Usage Analytics Dashboard** — Admin pipeline health, feedback summary, 8-week trend charts
+- **Improved Search (Full-Text)** — PostgreSQL FTS on subject/sender/extraction fields, sort by relevance
+- **Multi-Provider LLM Fallback** — Automatic Anthropic/OpenAI failover with FallbackProvider
+- **Webhook Reliability** — Dead letter queue, admin replay/retry, pipeline health monitoring
+- **Email Encryption at Rest** — AES-256-GCM encryption of email bodies in the repository layer
+- **Performance Indexes** — Composite indexes on hot query paths, N+1 fix in thread handler
+- **Dashboard Query Optimisation** — Lightweight count queries, CTE-based sender category lookups
+- **Server-Side Sanitisation** — Moved sanitize-html from client bundle to server component
+
+### Growth / Retention
+- **Email Labels / Folders** — User-defined labels with inbox filtering
+- **Onboarding Email Provider Guides** — 9 provider forwarding guides with pro tips
+- **Mobile Responsive Polish** — Touch-friendly inbox, responsive layouts across all pages
+- **Token Limit Warning Email** — Automated 80% usage notification via Resend
+- **Keyboard Shortcuts** — j/k navigate, x select, e archive, s star, / search, Enter open, Esc clear
+- **Quiet Hours** — Defer processing during user-defined window
+- **Auto-Archive Rules** — Archive by category/sender after N days
+- **Category Distribution Chart** — Animated horizontal bars by category on dashboard
+- **Email Arrival Time Heatmap** — Hour x day-of-week grid with hover tooltips
+- **Reading Time Estimates** — Per-email estimate at 200 WPM
+- **Saved Searches / Filter Presets** — Save/load/delete filter presets (max 20 per user)
+- **Unsubscribe Tracking** — Surface senders with unsubscribe links, manage subscriptions view
+- **Sender Detail Page** — Last seen, avg frequency, inbox link
+- **Digest Comparison** — New/dropped senders and topics vs previous digest
+- **Email Threading** — Conversation view grouping related emails
+- **Animated Dashboard Charts** — Staggered bar grow animations with hover tooltips
+
+## Not Started
+
+### UI/UX
+
+#### Command Palette
+- **Effort**: Medium
+- **Impact**: High
+- **Description**: `Cmd+K` overlay to search emails, jump to pages (inbox, settings, senders), and trigger actions (generate digest, export data). Builds on existing keyboard shortcuts.
+- **Scope**: Frontend component, fuzzy search, action registry
+
+#### Inline Email Preview
+- **Effort**: Medium
+- **Impact**: Medium
+- **Description**: Split-pane view on desktop — email list on the left, preview on the right — so users don't have to navigate away from the inbox.
+- **Scope**: Frontend layout change, responsive breakpoint, keyboard navigation
+
+#### Onboarding Checklist
 - **Effort**: Low
-- **Impact**: High
-- **Description**: Add batch operations to the inbox — select multiple emails, then archive, delete, or mark read/unread in one action. Essential for users managing high-volume newsletters.
-- **Scope**: Frontend multi-select UI, backend batch endpoint (`PATCH /api/emails/batch`)
-
-### 1.2 Digest Preview
-- **Status**: Done
-- **Effort**: Medium
-- **Impact**: High
-- **Description**: Allow users to preview a digest before it's finalized and sent. Introduces a draft/preview step so users can see what the digest will contain, edit if needed, and then confirm generation. Reduces wasted LLM calls and gives users more control.
-- **Scope**: Backend draft generation endpoint, frontend preview UI, confirm/discard flow
-
-### 1.3 Attachment Display
-- **Status**: Done
-- **Effort**: Medium
 - **Impact**: Medium
-- **Description**: Attachments are parsed during email ingestion but not stored or displayed. Store attachments (with size limits) and show them in the email detail view so users don't lose context.
-- **Scope**: Backend attachment storage (object storage or DB), email detail UI update, download endpoint
+- **Description**: Persistent checklist after signup (forward first email, configure digest schedule, etc.) that dismisses when all steps are complete.
+- **Scope**: Frontend component, backend preference flag
 
-### 1.4 Data Export
-- **Status**: Done
-- **Effort**: Medium
-- **Impact**: Medium
-- **Description**: Allow users to export their emails and digests (JSON, CSV, or both). Important for user trust and GDPR compliance. Could also support digest export as PDF.
-- **Scope**: Backend export endpoint (`GET /api/export`), frontend settings integration
+#### Digest Diff Highlighting
+- **Effort**: Low
+- **Impact**: Low
+- **Description**: Visually highlight new content that appeared in a digest compared to the previous one (beyond the current new/dropped senders and topics).
+- **Scope**: Frontend diff rendering on digest detail page
 
-## Priority 2: Operational / Business
+#### Empty State Illustrations
+- **Effort**: Low
+- **Impact**: Low
+- **Description**: Replace generic icons with more engaging illustrations or animated SVGs for zero-state inbox, digests, and senders pages.
+- **Scope**: Frontend design assets
 
-### 2.1 LLM Cost Controls
-- **Status**: Done
-- **Effort**: Medium
-- **Impact**: High
-- **Description**: Per-user monthly and daily token limits with enforcement (skip/defer on exceed), 80% warning emails, usage dashboard with 30-day history chart, projected usage, operation breakdown, admin cost monitoring with per-user limit editing.
-- **Scope**: Token usage tracking, monthly + daily rate limiting, admin cost dashboard, user usage display with history
+### Features
 
-### 2.2 Usage Analytics Dashboard
-- **Status**: Done
-- **Effort**: Medium
-- **Impact**: Medium
-- **Description**: Admin dashboard with processing pipeline health (processed/failed/skipped/pending counts with success rate), user feedback summary (useful/not-useful ratio), 8-week trend charts for emails, digests, and token usage.
-- **Scope**: Backend analytics queries in admin stats endpoint, frontend mini bar charts, processing pipeline card, feedback card
-
-### 2.3 Improved Search (Full-Text)
-- **Status**: Done
-- **Effort**: Medium
-- **Impact**: Medium
-- **Description**: PostgreSQL full-text search with `tsvector`/`tsquery` on email subject, body, sender name/address, and AI-extracted summaries/key points/action items. Sort options (newest/oldest/relevance), search result count display, and search-aware empty states.
-- **Scope**: Extended search query to include extraction content, from_name ILIKE fallback, sort parameter, frontend sort dropdown and UX improvements
-
-## Priority 3: Growth / Retention
-
-### 3.1 Custom Digest Templates
-- **Status**: Not started
+#### Custom Digest Templates
 - **Effort**: High
 - **Impact**: Medium
 - **Description**: Move beyond detailed/concise to user-defined digest formats. Let users choose what sections appear (e.g., only action items and links, or summaries only), reorder sections, and set content density per section.
 - **Scope**: Backend template schema and LLM prompt customization, frontend template builder UI
 
-### 3.2 Email Labels / Folders
-- **Status**: Done
+#### Weekly Activity Summary Email
 - **Effort**: Medium
 - **Impact**: Medium
-- **Description**: The inbox is flat (star/archive only). Add user-defined labels or folders so users can organize emails by project, priority, or custom categories. Labels could also feed into digest filtering.
-- **Scope**: Backend labels table, label CRUD endpoints, inbox filter by label, frontend label management UI
+- **Description**: Lighter than digest — email counts, top senders, action items pending, trends vs previous week. Sent weekly regardless of digest schedule.
+- **Scope**: Backend summary generator, Resend HTML template, user preference toggle
 
-### 3.3 Onboarding Email Provider Guides
-- **Status**: Done
-- **Effort**: Low
-- **Impact**: Medium
-- **Description**: Expanded forwarding guide from 4 to 9 providers: Gmail, Outlook, Yahoo Mail, Apple Mail (iCloud), ProtonMail, Fastmail, Zoho Mail, Hey.com, and direct subscription. Each provider includes pro tips for selective forwarding.
-- **Scope**: Frontend forwarding guide component expansion with per-provider tips
-
-### 3.4 Mobile Responsive Polish
-- **Status**: Done
-- **Effort**: Low
-- **Impact**: Medium
-- **Description**: Mobile-first fixes across all pages: inbox row actions always visible on touch devices, bulk action bar icons-only on mobile, keyboard shortcuts hidden on mobile, HTML email content overflow prevention, senders page two-row layout on mobile with visible dropdowns and category badges, email detail responsive header and subject sizing, better touch targets.
-- **Scope**: Frontend CSS/layout changes across inbox, senders, email detail, and bulk action components
-
-### 3.5 Token Limit Warning Email
-- **Status**: Done
-- **Effort**: Low
-- **Impact**: Medium
-- **Description**: Automated email notification at 80% monthly token usage with HTML progress bar, formatted usage stats, and link to settings. Sends once per month via Resend, triggered after each email extraction in the worker pipeline.
-- **Scope**: Already implemented in mailer (SendTokenWarning), worker (checkTokenWarning), and database (SetTokenWarningSent)
-
-### 3.6 Webhook Reliability (Dead Letter Queue & Admin Replay)
-- **Status**: Done
+#### Slack/Webhook Integration
 - **Effort**: Medium
-- **Impact**: High
-- **Description**: Raw webhook payload storage for replay capability, admin endpoints for failed email management (list, retry, batch retry, replay from stored payload), pipeline health monitoring. Admin UI with failed email list, retry/batch-retry buttons, expandable details, and pipeline status overview.
-- **Scope**: Backend webhook_payload table, admin webhook handler (5 endpoints), frontend admin failed emails panel with pipeline health grid
+- **Impact**: Medium
+- **Description**: Push digest summaries to Slack channels or arbitrary webhook URLs. Users configure destination in settings.
+- **Scope**: Backend webhook dispatcher, Slack formatting, frontend config UI
 
-### 3.7 Multi-Provider LLM Fallback
-- **Status**: Done
+#### Email Rules Engine
+- **Effort**: High
+- **Impact**: Medium
+- **Description**: "If sender matches X, auto-label Y and skip digest" — more powerful than current auto-archive. Condition-action pairs with AND/OR logic.
+- **Scope**: Backend rules table, evaluation in worker pipeline, frontend rule builder
+
+#### Digest PDF Export
+- **Effort**: Low
+- **Impact**: Low
+- **Description**: Download digests as formatted PDFs for offline reading or sharing.
+- **Scope**: Backend PDF generation endpoint, frontend download button
+
+#### Multi-Inbox
+- **Effort**: High
+- **Impact**: Medium
+- **Description**: Let users create multiple inboxes (e.g., work vs personal newsletters) with separate digest schedules and preferences.
+- **Scope**: Backend inbox scoping, frontend inbox switcher, per-inbox settings
+
+### Backend / Infrastructure
+
+#### Server-Sent Events
 - **Effort**: Medium
 - **Impact**: High
-- **Description**: When both Anthropic and OpenAI API keys are configured, the system wraps them in a FallbackProvider. On transient error from the primary provider, it automatically retries with the secondary. Non-transient errors (parse failures, empty responses) fail immediately. BYOK users get their own provider without fallback. Config auto-detects available keys and logs fallback status.
-- **Scope**: Already implemented in llm/fallback.go, cmd/taran/main.go (newSecondaryProvider), and config auto-detection
+- **Description**: Replace 60-second polling with real-time push. The webhook handler broadcasts an event when an email arrives; connected browsers get notified instantly.
+- **Scope**: Backend SSE endpoint, frontend EventSource hook, Cloud Run connection management
+
+#### Background Encryption Migration
+- **Effort**: Low
+- **Impact**: Medium
+- **Description**: Encrypt existing plaintext email bodies. Currently only new emails are encrypted at rest; a background job would migrate historical data.
+- **Scope**: Backend migration worker, progress tracking, graceful batching
+
+#### Per-User Rate Limiting
+- **Effort**: Medium
+- **Impact**: Medium
+- **Description**: Current rate limiter is global. Per-user limits would prevent one heavy user from starving others.
+- **Scope**: Backend middleware, token bucket per user ID
+
+#### Cloudflare Worker Retry Queue
+- **Effort**: Medium
+- **Impact**: Medium
+- **Description**: If Cloud Run is temporarily down, the Cloudflare email worker currently rejects the email. A retry queue in the worker (using Durable Objects or Queues) would buffer and retry.
+- **Scope**: Cloudflare Worker rewrite, queue configuration
+
+#### Database Connection Pool Tuning
+- **Effort**: Low
+- **Impact**: Low
+- **Description**: Configure pgx pool size based on Cloud Run instance count and concurrency settings.
+- **Scope**: Backend config, pool configuration
+
+#### Audit Log
+- **Effort**: Medium
+- **Impact**: Low
+- **Description**: Track admin actions (invite, retry, batch operations) for accountability and debugging.
+- **Scope**: Backend audit table, middleware, admin UI log viewer
+
+### Security
+
+#### Content Security Policy Headers
+- **Effort**: Low
+- **Impact**: High
+- **Description**: Add CSP headers to prevent XSS beyond the current HTML sanitisation. Restrict script sources, style sources, and frame ancestors.
+- **Scope**: Backend security middleware
+
+#### Session Token Rotation
+- **Effort**: Medium
+- **Impact**: Medium
+- **Description**: Rotate session tokens periodically (e.g., every 24 hours) to limit the window of a stolen token. On rotation, the old token is invalidated and a new one is issued transparently.
+- **Scope**: Backend session middleware, Better Auth configuration, cookie refresh logic
+
+#### Per-Key API Rate Limiting
+- **Effort**: Low
+- **Impact**: Medium
+- **Description**: Separate rate limits for webhook traffic vs user API traffic. Webhook bursts (email flood) shouldn't block user API requests.
+- **Scope**: Backend middleware, separate token buckets by auth type
+
+### Developer Experience
+
+#### E2E Tests with Playwright
+- **Effort**: High
+- **Impact**: High
+- **Description**: Test the full login → forward email → view inbox → generate digest flow in a real browser. Run in CI against a test database.
+- **Scope**: Playwright test suite, CI configuration, test fixtures
+
+#### Seed Script
+- **Effort**: Low
+- **Impact**: Medium
+- **Description**: Populate local dev with realistic test data — users, emails, extractions, digests, labels — so developers can work on the UI without manual setup.
+- **Scope**: Backend CLI command or script
+
+#### OpenAPI Spec
+- **Effort**: Medium
+- **Impact**: Medium
+- **Description**: Hand-written OpenAPI 3.1 spec (the standard formerly known as Swagger) served at `/docs` via Scalar UI. Swagger is the old name — OpenAPI is the spec, Swagger/Scalar/Redoc are UIs that render it. For a plain `net/http` backend, a hand-written YAML spec is cleaner than annotation-based generation (swaggo/swag).
+- **Scope**: Backend YAML spec, `/docs` HTML endpoint, Dockerfile update
 
 ## Future Considerations
 
-These are not prioritized but worth tracking for later evaluation:
+These are not prioritised but worth tracking for later evaluation:
 
-- **Email threading / conversation view** — Group related emails into threads
 - **Mobile app** — Native iOS/Android or PWA
-- **API webhooks for third-party integrations** — Let users push digest data to Slack, Notion, etc.
 - **Collaborative accounts** — Shared inboxes for teams
 - **Two-factor authentication** — Beyond OAuth2 provider 2FA
 - **Digest scheduling on specific dates** — Custom calendar-based scheduling
-- **Email encryption at rest** — Enhanced data protection
+- **Drag-and-drop label management** — Reorder labels, drag emails into label groups
+- **Dashboard widget customisation** — Let users show/hide or reorder dashboard cards

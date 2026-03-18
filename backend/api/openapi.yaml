@@ -1,0 +1,2962 @@
+openapi: 3.1.0
+info:
+  title: MailBrief API
+  description: |
+    REST API for MailBrief, a multi-user email digest dashboard.
+    Users receive AI-generated daily digests of their newsletters via managed inboxes.
+  version: 1.0.0
+  contact:
+    name: MailBrief
+    url: https://mailbrief.io
+
+servers:
+  - url: https://mailbrief.io
+    description: Production
+  - url: http://localhost:8080
+    description: Local development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Health
+    description: Service health checks
+  - name: Webhooks
+    description: Inbound email and cron webhook endpoints
+  - name: Emails
+    description: Email listing, reading, and management
+  - name: Digests
+    description: AI-generated digest creation and management
+  - name: Accounts
+    description: Email account provisioning
+  - name: Preferences
+    description: User preference management
+  - name: Senders
+    description: Sender information and preference management
+  - name: Subscriptions
+    description: Newsletter subscription tracking and unsubscribe
+  - name: Labels
+    description: User-defined email labels
+  - name: Saved Searches
+    description: Saved filter presets
+  - name: Auto-Archive
+    description: Automatic email archiving rules
+  - name: Stats
+    description: User statistics and history
+  - name: Topics
+    description: Extracted email topics
+  - name: Usage
+    description: Token usage tracking
+  - name: Dashboard
+    description: Aggregated dashboard data
+  - name: Feedback
+    description: Email and digest quality feedback
+  - name: LLM Keys
+    description: Bring-your-own-key LLM provider management
+  - name: Export
+    description: Data export
+  - name: Invites
+    description: Invite management (admin)
+  - name: Waitlist
+    description: Access control and waitlist
+  - name: Admin
+    description: Administrative endpoints (requires admin role)
+
+paths:
+  # ── Health ──────────────────────────────────────────────────────────
+  /health:
+    get:
+      operationId: getHealth
+      summary: Service health check
+      description: Returns current service health status.
+      tags: [Health]
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok, unhealthy]
+                  reason:
+                    type: string
+                    description: Present only when status is unhealthy.
+
+  # ── Webhooks ────────────────────────────────────────────────────────
+  /webhook/email:
+    post:
+      operationId: ingestEmail
+      summary: Ingest a raw email
+      description: |
+        Receives a raw RFC 5322 email from the Cloudflare Email Worker.
+        The X-Original-To header identifies the target managed inbox.
+      tags: [Webhooks]
+      security:
+        - WebhookSecret: []
+      parameters:
+        - name: X-Original-To
+          in: header
+          required: true
+          schema:
+            type: string
+          description: The managed inbox address the email was sent to.
+      requestBody:
+        required: true
+        content:
+          message/rfc822:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Email accepted for processing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /cron/digests:
+    post:
+      operationId: triggerDigests
+      summary: Trigger digest generation
+      description: Fires the digest generation cron job for all eligible users.
+      tags: [Webhooks]
+      security:
+        - ApiKey: []
+      responses:
+        "200":
+          description: Digest generation triggered.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: triggered
+
+  # ── Accounts ────────────────────────────────────────────────────────
+  /api/accounts:
+    get:
+      operationId: listAccounts
+      summary: List email accounts
+      description: Returns all managed email accounts for the authenticated user.
+      tags: [Accounts]
+      responses:
+        "200":
+          description: List of email accounts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailAccountList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createAccount
+      summary: Create an email account
+      description: Provisions a new managed inbox with the given username.
+      tags: [Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [Username]
+              properties:
+                Username:
+                  type: string
+                  minLength: 3
+                  maxLength: 30
+                  pattern: "^[a-z0-9][a-z0-9._-]*[a-z0-9]$"
+      responses:
+        "201":
+          description: Account created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailAccount"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Username already taken.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/accounts/check-username:
+    get:
+      operationId: checkUsername
+      summary: Check username availability
+      description: Validates whether a username is available and well-formed.
+      tags: [Accounts]
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Availability result.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [available]
+                properties:
+                  available:
+                    type: boolean
+                  reason:
+                    type: string
+
+  /api/accounts/{id}:
+    delete:
+      operationId: deleteAccount
+      summary: Delete an email account
+      description: Permanently removes a managed email account.
+      tags: [Accounts]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: Account deleted.
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Emails ──────────────────────────────────────────────────────────
+  /api/emails:
+    get:
+      operationId: listEmails
+      summary: List emails
+      description: Returns a paginated, filterable list of emails.
+      tags: [Emails]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: is_read
+          in: query
+          schema:
+            type: boolean
+        - name: is_starred
+          in: query
+          schema:
+            type: boolean
+        - name: is_archived
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Full-text search across subject and body.
+        - name: topic
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: from_address
+          in: query
+          schema:
+            type: string
+        - name: label
+          in: query
+          schema:
+            type: string
+          description: Filter by label ID.
+        - name: has_attachment
+          in: query
+          schema:
+            type: boolean
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, oldest, relevance]
+            default: newest
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: before
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Paginated email list.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/emails/{id}:
+    get:
+      operationId: getEmail
+      summary: Get email details
+      description: Returns the full email with extraction results, attachments, and thread count.
+      tags: [Emails]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Email with enrichments.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateEmail
+      summary: Update email state
+      description: Toggles read, starred, or archived status on a single email.
+      tags: [Emails]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailState"
+      responses:
+        "200":
+          description: Email updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteEmail
+      summary: Delete an email
+      description: Permanently removes an email and its extraction.
+      tags: [Emails]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Email deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: deleted
+
+  /api/emails/{id}/thread:
+    get:
+      operationId: getEmailThread
+      summary: Get email thread
+      description: Returns all emails in the same conversation thread.
+      tags: [Emails]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Thread emails ordered chronologically.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ThreadEmail"
+
+  /api/emails/{id}/reprocess:
+    post:
+      operationId: reprocessEmail
+      summary: Reprocess an email
+      description: Queues the email for re-extraction by the LLM pipeline.
+      tags: [Emails]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Email queued for reprocessing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/emails/{id}/unsubscribe:
+    post:
+      operationId: unsubscribeEmail
+      summary: Unsubscribe from sender
+      description: |
+        Attempts to unsubscribe using the List-Unsubscribe header from this email.
+        Returns the method used (url or mailto) and the target.
+      tags: [Emails]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Unsubscribe result.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                  method:
+                    type: string
+                    enum: [url, mailto]
+                  url:
+                    type: string
+                  address:
+                    type: string
+
+  /api/emails/batch:
+    patch:
+      operationId: batchUpdateEmails
+      summary: Batch update email state
+      description: Applies the same state change to multiple emails at once.
+      tags: [Emails]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, state]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                state:
+                  $ref: "#/components/schemas/EmailState"
+      responses:
+        "200":
+          description: Emails updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+    delete:
+      operationId: batchDeleteEmails
+      summary: Batch delete emails
+      description: Permanently removes multiple emails.
+      tags: [Emails]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        "200":
+          description: Emails deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: deleted
+
+  # ── Email Feedback ──────────────────────────────────────────────────
+  /api/emails/{id}/feedback:
+    post:
+      operationId: createEmailFeedback
+      summary: Submit email feedback
+      description: Rate an email extraction as useful or not useful for quality improvement.
+      tags: [Feedback]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [Rating]
+              properties:
+                Rating:
+                  type: string
+                  enum: [useful, not_useful]
+      responses:
+        "200":
+          description: Feedback recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailFeedback"
+    get:
+      operationId: getEmailFeedback
+      summary: Get email feedback
+      description: Returns existing feedback for an email, if any.
+      tags: [Feedback]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Feedback record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailFeedback"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteEmailFeedback
+      summary: Remove email feedback
+      description: Deletes previously submitted feedback for an email.
+      tags: [Feedback]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Feedback deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: deleted
+
+  # ── Email Labels ────────────────────────────────────────────────────
+  /api/emails/{id}/labels:
+    get:
+      operationId: getEmailLabels
+      summary: Get labels for an email
+      description: Returns all labels applied to a specific email.
+      tags: [Labels]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Labels for the email.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Label"
+
+  /api/emails/{id}/labels/{labelId}:
+    put:
+      operationId: addLabelToEmail
+      summary: Apply a label to an email
+      description: Associates an existing label with an email.
+      tags: [Labels]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - name: labelId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Label applied.
+    delete:
+      operationId: removeLabelFromEmail
+      summary: Remove a label from an email
+      description: Disassociates a label from an email.
+      tags: [Labels]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - name: labelId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Label removed.
+
+  /api/emails/labels/batch-add:
+    post:
+      operationId: batchAddLabel
+      summary: Batch add label to emails
+      description: Applies a single label to multiple emails at once.
+      tags: [Labels]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [EmailIDs, LabelID]
+              properties:
+                EmailIDs:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                LabelID:
+                  type: string
+                  format: uuid
+      responses:
+        "204":
+          description: Label applied to all specified emails.
+
+  /api/emails/labels/batch-remove:
+    post:
+      operationId: batchRemoveLabel
+      summary: Batch remove label from emails
+      description: Removes a single label from multiple emails at once.
+      tags: [Labels]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [EmailIDs, LabelID]
+              properties:
+                EmailIDs:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                LabelID:
+                  type: string
+                  format: uuid
+      responses:
+        "204":
+          description: Label removed from all specified emails.
+
+  # ── Subscriptions ───────────────────────────────────────────────────
+  /api/subscriptions:
+    get:
+      operationId: listSubscriptions
+      summary: List subscriptions with unsubscribe info
+      description: Returns senders that have unsubscribe links, with tracking status.
+      tags: [Subscriptions]
+      responses:
+        "200":
+          description: Subscription list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionInfo"
+
+  /api/subscriptions/unsubscribe:
+    post:
+      operationId: batchUnsubscribe
+      summary: Batch unsubscribe from senders
+      description: Marks one or more senders as unsubscribed.
+      tags: [Subscriptions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [FromAddresses]
+              properties:
+                FromAddresses:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+      responses:
+        "200":
+          description: Senders unsubscribed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  # ── Digests ─────────────────────────────────────────────────────────
+  /api/digests:
+    get:
+      operationId: listDigests
+      summary: List digests
+      description: Returns a paginated list of generated digests.
+      tags: [Digests]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        "200":
+          description: Paginated digest list.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigestList"
+
+  /api/digests/{id}:
+    get:
+      operationId: getDigest
+      summary: Get digest details
+      description: Returns a single digest with its items.
+      tags: [Digests]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Digest with items.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Digest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteDigest
+      summary: Delete a digest
+      description: Permanently removes a digest.
+      tags: [Digests]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Digest deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: deleted
+
+  /api/digests/{id}/share:
+    post:
+      operationId: shareDigest
+      summary: Create a share link
+      description: Generates a public share token for a digest.
+      tags: [Digests]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Share token created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ShareToken]
+                properties:
+                  ShareToken:
+                    type: string
+    delete:
+      operationId: unshareDigest
+      summary: Revoke share link
+      description: Removes the public share token from a digest.
+      tags: [Digests]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Share revoked.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/digests/preview:
+    post:
+      operationId: previewDigest
+      summary: Preview digest contents
+      description: Shows which emails would be included in a digest for the given time window, without generating it.
+      tags: [Digests]
+      parameters:
+        - name: period_start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: period_end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Digest preview.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigestPreview"
+
+  /api/digests/generate:
+    post:
+      operationId: generateDigest
+      summary: Generate a digest on demand
+      description: Creates a new digest for the specified time window using the LLM pipeline.
+      tags: [Digests]
+      parameters:
+        - name: period_start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: period_end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "201":
+          description: Digest generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Digest"
+        "409":
+          description: A digest already exists for this period.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: No processed emails in the given period.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/digests/{id}/feedback:
+    post:
+      operationId: createDigestFeedback
+      summary: Submit digest feedback
+      description: Rate a digest as useful or not useful.
+      tags: [Feedback]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [Rating]
+              properties:
+                Rating:
+                  type: string
+                  enum: [useful, not_useful]
+      responses:
+        "200":
+          description: Feedback recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigestFeedback"
+    get:
+      operationId: getDigestFeedback
+      summary: Get digest feedback
+      description: Returns existing feedback for a digest.
+      tags: [Feedback]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Feedback record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigestFeedback"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteDigestFeedback
+      summary: Remove digest feedback
+      description: Deletes previously submitted feedback for a digest.
+      tags: [Feedback]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Feedback deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: deleted
+
+  /api/public/digests/{token}:
+    get:
+      operationId: getPublicDigest
+      summary: View a shared digest
+      description: Returns a digest via its public share token. No authentication required.
+      tags: [Digests]
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Shared digest.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Digest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Preferences ─────────────────────────────────────────────────────
+  /api/preferences:
+    get:
+      operationId: getPreferences
+      summary: Get user preferences
+      description: Returns the authenticated user's preference settings.
+      tags: [Preferences]
+      responses:
+        "200":
+          description: User preferences.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreference"
+    patch:
+      operationId: updatePreferences
+      summary: Update user preferences
+      description: Partially updates user preferences. Only included fields are changed.
+      tags: [Preferences]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPreference"
+      responses:
+        "200":
+          description: Updated preferences.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreference"
+
+  # ── Public Unsubscribe ──────────────────────────────────────────────
+  /api/public/unsubscribe:
+    post:
+      operationId: publicUnsubscribe
+      summary: One-click email unsubscribe
+      description: Handles List-Unsubscribe one-click POST. Returns an HTML confirmation page.
+      tags: [Subscriptions]
+      security: []
+      parameters:
+        - name: uid
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: HTML confirmation page.
+          content:
+            text/html:
+              schema:
+                type: string
+
+  # ── Senders ─────────────────────────────────────────────────────────
+  /api/senders:
+    get:
+      operationId: listSenders
+      summary: List senders
+      description: Returns all senders with email counts and preference status.
+      tags: [Senders]
+      responses:
+        "200":
+          description: Sender list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SenderInfo"
+    patch:
+      operationId: updateSender
+      summary: Update sender preference
+      description: Sets the status or category override for a sender.
+      tags: [Senders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [FromAddress]
+              properties:
+                FromAddress:
+                  type: string
+                  format: email
+                Status:
+                  type: string
+                  enum: [normal, muted, blocked, favorite]
+                Category:
+                  type: string
+                  enum: [newsletter, personal, transactional, marketing, notification, other, ""]
+      responses:
+        "200":
+          description: Sender preference updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/senders/detail:
+    get:
+      operationId: getSenderDetail
+      summary: Get sender details
+      description: Returns enriched information for a single sender address.
+      tags: [Senders]
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        "200":
+          description: Sender detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SenderDetail"
+
+  /api/senders/suggestions:
+    get:
+      operationId: getSenderSuggestions
+      summary: Get mute suggestions
+      description: Returns senders with high not-useful feedback rates, suggesting they be muted.
+      tags: [Senders]
+      responses:
+        "200":
+          description: Mute suggestions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MuteSuggestion"
+
+  /api/senders/history:
+    get:
+      operationId: getSenderHistory
+      summary: Get sender email history
+      description: Returns weekly email counts from a specific sender.
+      tags: [Senders]
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+        - name: weeks
+          in: query
+          schema:
+            type: integer
+            default: 12
+      responses:
+        "200":
+          description: Weekly email counts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeekCount"
+
+  # ── Labels ──────────────────────────────────────────────────────────
+  /api/labels:
+    get:
+      operationId: listLabels
+      summary: List labels
+      description: Returns all user-defined labels with email counts.
+      tags: [Labels]
+      responses:
+        "200":
+          description: Label list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Label"
+    post:
+      operationId: createLabel
+      summary: Create a label
+      description: Creates a new label and returns the full label list.
+      tags: [Labels]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [Name, Color]
+              properties:
+                Name:
+                  type: string
+                Color:
+                  type: string
+                  description: Hex color code.
+      responses:
+        "200":
+          description: Updated label list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Label"
+
+  /api/labels/{id}:
+    patch:
+      operationId: updateLabel
+      summary: Update a label
+      description: Renames or recolors a label. Returns the full label list.
+      tags: [Labels]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Name:
+                  type: string
+                Color:
+                  type: string
+      responses:
+        "200":
+          description: Updated label list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Label"
+    delete:
+      operationId: deleteLabel
+      summary: Delete a label
+      description: Removes a label and all email associations.
+      tags: [Labels]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: Label deleted.
+
+  # ── Saved Searches ──────────────────────────────────────────────────
+  /api/saved-searches:
+    get:
+      operationId: listSavedSearches
+      summary: List saved searches
+      description: Returns all saved filter presets (max 20 per user).
+      tags: [Saved Searches]
+      responses:
+        "200":
+          description: Saved search list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SavedSearch"
+    post:
+      operationId: createSavedSearch
+      summary: Create a saved search
+      description: Saves a named filter preset. Returns the full list.
+      tags: [Saved Searches]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [Name, Filters]
+              properties:
+                Name:
+                  type: string
+                Filters:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Updated saved search list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SavedSearch"
+
+  /api/saved-searches/{id}:
+    delete:
+      operationId: deleteSavedSearch
+      summary: Delete a saved search
+      description: Removes a saved filter preset.
+      tags: [Saved Searches]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: Saved search deleted.
+
+  # ── Auto-Archive ────────────────────────────────────────────────────
+  /api/auto-archive-rules:
+    get:
+      operationId: listAutoArchiveRules
+      summary: List auto-archive rules
+      description: Returns all active auto-archive rules for the user.
+      tags: [Auto-Archive]
+      responses:
+        "200":
+          description: Rule list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AutoArchiveRule"
+    put:
+      operationId: upsertAutoArchiveRule
+      summary: Create or update an auto-archive rule
+      description: Creates a new rule or updates an existing one. Returns the full rule list.
+      tags: [Auto-Archive]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AutoArchiveRule"
+      responses:
+        "200":
+          description: Updated rule list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AutoArchiveRule"
+
+  /api/auto-archive-rules/{id}:
+    delete:
+      operationId: deleteAutoArchiveRule
+      summary: Delete an auto-archive rule
+      description: Removes an auto-archive rule.
+      tags: [Auto-Archive]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: Rule deleted.
+
+  # ── Stats ───────────────────────────────────────────────────────────
+  /api/stats:
+    get:
+      operationId: getUserStats
+      summary: Get user statistics
+      description: Returns email counts and top senders for the authenticated user.
+      tags: [Stats]
+      responses:
+        "200":
+          description: User statistics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserStats"
+
+  /api/stats/history:
+    get:
+      operationId: getStatsHistory
+      summary: Get weekly email history
+      description: Returns email counts grouped by week.
+      tags: [Stats]
+      parameters:
+        - name: weeks
+          in: query
+          schema:
+            type: integer
+            default: 12
+      responses:
+        "200":
+          description: Weekly email counts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeekCount"
+
+  /api/topics:
+    get:
+      operationId: listTopics
+      summary: List extracted topics
+      description: Returns the most frequent topics extracted from user emails.
+      tags: [Topics]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 15
+      responses:
+        "200":
+          description: Topic list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /api/usage:
+    get:
+      operationId: getUsage
+      summary: Get token usage
+      description: Returns monthly and daily token usage with breakdown by operation type.
+      tags: [Usage]
+      responses:
+        "200":
+          description: Usage statistics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsageStats"
+
+  /api/dashboard:
+    get:
+      operationId: getDashboard
+      summary: Get dashboard data
+      description: |
+        Returns an aggregated response combining recent emails, digests, statistics,
+        processing status, weekly history, topics, categories, action item count, and
+        the email arrival heatmap. Designed to power the main dashboard view in a
+        single request.
+      tags: [Dashboard]
+      responses:
+        "200":
+          description: Dashboard data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardResponse"
+
+  # ── LLM Keys ────────────────────────────────────────────────────────
+  /api/llm-keys:
+    get:
+      operationId: listLLMKeys
+      summary: List LLM API keys
+      description: Returns configured BYOK (bring-your-own-key) providers with masked key hints.
+      tags: [LLM Keys]
+      responses:
+        "200":
+          description: LLM key list.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LLMKeyList"
+        "501":
+          description: BYOK feature not configured on this server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/llm-keys/{provider}:
+    put:
+      operationId: putLLMKey
+      summary: Set an LLM API key
+      description: Creates or replaces the API key for a provider. The key is encrypted at rest.
+      tags: [LLM Keys]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [anthropic, openai]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [api_key]
+              properties:
+                api_key:
+                  type: string
+                  description: The full API key. Stored encrypted; only the last 4 characters are returned.
+                model:
+                  type: string
+                  description: Optional model override (e.g. claude-sonnet-4-20250514).
+      responses:
+        "200":
+          description: Key saved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LLMKeyInfo"
+    patch:
+      operationId: updateLLMKey
+      summary: Update LLM key settings
+      description: Toggles active status or changes the model override without re-submitting the key.
+      tags: [LLM Keys]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [anthropic, openai]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_active:
+                  type: boolean
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Key updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LLMKeyInfo"
+    delete:
+      operationId: deleteLLMKey
+      summary: Delete an LLM API key
+      description: Permanently removes the stored API key for a provider.
+      tags: [LLM Keys]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [anthropic, openai]
+      responses:
+        "204":
+          description: Key deleted.
+
+  # ── Export ──────────────────────────────────────────────────────────
+  /api/export:
+    get:
+      operationId: exportData
+      summary: Export all user data
+      description: Downloads a JSON file containing all emails and digests for the authenticated user.
+      tags: [Export]
+      responses:
+        "200":
+          description: JSON export file.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emails:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Email"
+                  digests:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Digest"
+
+  # ── Access / Waitlist ───────────────────────────────────────────────
+  /api/access:
+    get:
+      operationId: checkAccess
+      summary: Check user access
+      description: Returns whether the authenticated user has been granted access to the service.
+      tags: [Waitlist]
+      responses:
+        "200":
+          description: Access status.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hasAccess, reason]
+                properties:
+                  hasAccess:
+                    type: boolean
+                  reason:
+                    type: string
+
+  /api/waitlist:
+    post:
+      operationId: joinWaitlist
+      summary: Join the waitlist
+      description: Adds the authenticated user to the access waitlist.
+      tags: [Waitlist]
+      responses:
+        "200":
+          description: Waitlist request created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistRequest"
+
+  # ── Admin ───────────────────────────────────────────────────────────
+  /api/admin/stats:
+    get:
+      operationId: getAdminStats
+      summary: Get admin statistics
+      description: Returns system-wide statistics including user counts, email volume, LLM usage, and processing status.
+      tags: [Admin]
+      responses:
+        "200":
+          description: Admin statistics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/admin/users:
+    get:
+      operationId: listAdminUsers
+      summary: List all users
+      description: Returns all registered users with email counts and token usage.
+      tags: [Admin]
+      responses:
+        "200":
+          description: User list.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserList"
+
+  /api/admin/users/{id}/token-limit:
+    patch:
+      operationId: setUserTokenLimit
+      summary: Set user token limit
+      description: Overrides the monthly token limit for a specific user.
+      tags: [Admin]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [MonthlyTokenLimit]
+              properties:
+                MonthlyTokenLimit:
+                  type: integer
+                  minimum: 0
+      responses:
+        "200":
+          description: Token limit updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/admin/settings/token-limit:
+    patch:
+      operationId: setDefaultTokenLimit
+      summary: Set default token limit
+      description: Changes the default monthly token limit applied to new users.
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [DefaultMonthlyTokenLimit]
+              properties:
+                DefaultMonthlyTokenLimit:
+                  type: integer
+                  minimum: 0
+      responses:
+        "200":
+          description: Default limit updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/admin/invites:
+    post:
+      operationId: createInvite
+      summary: Create an invite
+      description: Generates an access invite for a specific email address.
+      tags: [Invites]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Invite created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invite"
+    get:
+      operationId: listInvites
+      summary: List all invites
+      description: Returns all issued invites with acceptance status.
+      tags: [Invites]
+      responses:
+        "200":
+          description: Invite list.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteList"
+
+  /api/admin/waitlist:
+    get:
+      operationId: listWaitlist
+      summary: List waitlist requests
+      description: Returns all pending waitlist requests.
+      tags: [Waitlist]
+      responses:
+        "200":
+          description: Waitlist entries.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistList"
+
+  /api/admin/waitlist/{id}/approve:
+    post:
+      operationId: approveWaitlist
+      summary: Approve a waitlist request
+      description: Converts a waitlist entry into an active invite.
+      tags: [Waitlist]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Invite created from waitlist approval.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invite"
+
+  /api/admin/digests/{id}/send:
+    post:
+      operationId: sendDigestEmail
+      summary: Send a digest via email
+      description: Sends a previously generated digest as an email to the user.
+      tags: [Admin]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Digest email sent.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, to]
+                properties:
+                  status:
+                    type: string
+                    example: sent
+                  to:
+                    type: string
+                    format: email
+
+  /api/admin/digests/generate:
+    post:
+      operationId: adminGenerateDigest
+      summary: Generate digest for a user
+      description: Triggers digest generation for a specific user (admin override).
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+      responses:
+        "201":
+          description: Digest generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Digest"
+
+  /api/admin/emails/failed:
+    get:
+      operationId: listFailedEmails
+      summary: List failed emails
+      description: Returns emails that failed processing, across all users.
+      tags: [Admin]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Failed email list.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedEmailList"
+
+  /api/admin/emails/{id}/retry:
+    post:
+      operationId: retryFailedEmail
+      summary: Retry a failed email
+      description: Queues a single failed email for reprocessing.
+      tags: [Admin]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Email queued for retry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/admin/emails/batch-retry:
+    post:
+      operationId: batchRetryFailedEmails
+      summary: Batch retry failed emails
+      description: Queues multiple failed emails for reprocessing, or all failed emails.
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Specific email IDs to retry.
+                all_failed:
+                  type: boolean
+                  description: Set to true to retry all failed emails.
+      responses:
+        "200":
+          description: Emails queued for retry.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, count]
+                properties:
+                  status:
+                    type: string
+                    example: queued
+                  count:
+                    type: integer
+
+  /api/admin/webhooks/{id}/replay:
+    post:
+      operationId: replayWebhook
+      summary: Replay a stored webhook
+      description: Re-ingests a stored webhook payload as if it were received again.
+      tags: [Admin]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Webhook replayed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: replayed
+
+  /api/admin/pipeline:
+    get:
+      operationId: getPipelineHealth
+      summary: Get pipeline health
+      description: Returns aggregate email processing status counts and stored webhook payload count.
+      tags: [Admin]
+      responses:
+        "200":
+          description: Pipeline health status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineHealth"
+
+# ══════════════════════════════════════════════════════════════════════
+# Components
+# ══════════════════════════════════════════════════════════════════════
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Session token from Better Auth (passed as Authorization header).
+    WebhookSecret:
+      type: apiKey
+      in: header
+      name: X-Webhook-Secret
+      description: Shared secret for Cloudflare Email Worker webhook.
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for cron and service-to-service calls.
+
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Invalid request body or parameters.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Missing or invalid authentication.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Insufficient permissions.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    # ── Common ──────────────────────────────────────────────────────
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    StatusResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    # ── Email ───────────────────────────────────────────────────────
+    Email:
+      type: object
+      required: [ID, UserID, AccountID, FromAddress, ToAddress, Subject, ReceivedAt, Status, IsRead, IsStarred, IsArchived, CreatedAt, UpdatedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        UserID:
+          type: string
+          format: uuid
+        AccountID:
+          type: string
+          format: uuid
+        MessageID:
+          type: string
+        InReplyTo:
+          type: string
+        ThreadID:
+          type: string
+        FromAddress:
+          type: string
+          format: email
+        FromName:
+          type: string
+        ToAddress:
+          type: string
+          format: email
+        Subject:
+          type: string
+        TextBody:
+          type: string
+        HTMLBody:
+          type: string
+        ReceivedAt:
+          type: string
+          format: date-time
+        DateHeader:
+          type: string
+          format: date-time
+        Status:
+          type: string
+          enum: [pending, processing, processed, failed, skipped]
+        StatusReason:
+          type: string
+        IsRead:
+          type: boolean
+        IsStarred:
+          type: boolean
+        IsArchived:
+          type: boolean
+        UnsubscribeURL:
+          type: string
+        UnsubscribeMailto:
+          type: string
+        RetryCount:
+          type: integer
+        CreatedAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time
+
+    EmailState:
+      type: object
+      description: Partial state update for an email. All fields are optional.
+      properties:
+        IsRead:
+          type: boolean
+        IsStarred:
+          type: boolean
+        IsArchived:
+          type: boolean
+
+    EmailResponse:
+      description: Email with extraction, attachments, and thread count.
+      allOf:
+        - $ref: "#/components/schemas/Email"
+        - type: object
+          properties:
+            extraction:
+              $ref: "#/components/schemas/Extraction"
+            attachments:
+              type: array
+              items:
+                $ref: "#/components/schemas/EmailAttachment"
+            ThreadCount:
+              type: integer
+
+    ThreadEmail:
+      type: object
+      required: [ID, Subject, FromName, FromAddress, ReceivedAt, IsRead]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        Subject:
+          type: string
+        FromName:
+          type: string
+        FromAddress:
+          type: string
+          format: email
+        ReceivedAt:
+          type: string
+          format: date-time
+        IsRead:
+          type: boolean
+        Summary:
+          type: string
+
+    EmailList:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Email"
+        total:
+          type: integer
+
+    # ── Extraction ──────────────────────────────────────────────────
+    Extraction:
+      type: object
+      required: [ID, EmailID, Summary, CreatedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        EmailID:
+          type: string
+          format: uuid
+        Summary:
+          type: string
+        KeyPoints:
+          type: array
+          items:
+            type: string
+        Topics:
+          type: array
+          items:
+            type: string
+        Links:
+          type: array
+          items:
+            $ref: "#/components/schemas/Link"
+        ActionItems:
+          type: array
+          items:
+            type: string
+        Sentiment:
+          type: string
+        SourceCategory:
+          type: string
+        Provider:
+          type: string
+        Model:
+          type: string
+        TokensUsed:
+          type: integer
+        ProcessedAt:
+          type: string
+          format: date-time
+        CreatedAt:
+          type: string
+          format: date-time
+
+    Link:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+
+    EmailAttachment:
+      type: object
+      required: [ID, EmailID, Filename, ContentType, SizeBytes, CreatedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        EmailID:
+          type: string
+          format: uuid
+        Filename:
+          type: string
+        ContentType:
+          type: string
+        SizeBytes:
+          type: integer
+        CreatedAt:
+          type: string
+          format: date-time
+
+    # ── Email Account ───────────────────────────────────────────────
+    EmailAccount:
+      type: object
+      required: [ID, UserID, EmailAddress, IsActive, CreatedAt, UpdatedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        UserID:
+          type: string
+          format: uuid
+        EmailAddress:
+          type: string
+          format: email
+        DisplayName:
+          type: string
+        IsActive:
+          type: boolean
+        CreatedAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time
+
+    EmailAccountList:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailAccount"
+        total:
+          type: integer
+
+    # ── Digest ──────────────────────────────────────────────────────
+    Digest:
+      type: object
+      required: [ID, UserID, Title, Summary, PeriodStart, PeriodEnd, PeriodType, EmailCount, GeneratedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        UserID:
+          type: string
+          format: uuid
+        Title:
+          type: string
+        Summary:
+          type: string
+        Highlights:
+          type: array
+          items:
+            type: string
+        TopTopics:
+          type: array
+          items:
+            type: string
+        PeriodStart:
+          type: string
+          format: date-time
+        PeriodEnd:
+          type: string
+          format: date-time
+        PeriodType:
+          type: string
+          enum: [daily, weekly]
+        EmailCount:
+          type: integer
+        TokensUsed:
+          type: integer
+        Provider:
+          type: string
+        Model:
+          type: string
+        GeneratedAt:
+          type: string
+          format: date-time
+        SentAt:
+          type: string
+          format: date-time
+          nullable: true
+        ShareToken:
+          type: string
+          nullable: true
+        Items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigestItem"
+
+    DigestItem:
+      type: object
+      required: [ID, DigestID, EmailID, ExtractionID, SortOrder]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        DigestID:
+          type: string
+          format: uuid
+        EmailID:
+          type: string
+          format: uuid
+        ExtractionID:
+          type: string
+          format: uuid
+        SortOrder:
+          type: integer
+        Subject:
+          type: string
+        FromName:
+          type: string
+        FromAddress:
+          type: string
+          format: email
+        Summary:
+          type: string
+
+    DigestPreview:
+      type: object
+      required: [PeriodStart, PeriodEnd, PeriodType, EmailCount, Items]
+      properties:
+        PeriodStart:
+          type: string
+          format: date-time
+        PeriodEnd:
+          type: string
+          format: date-time
+        PeriodType:
+          type: string
+        EmailCount:
+          type: integer
+        Items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigestPreviewItem"
+
+    DigestPreviewItem:
+      type: object
+      required: [EmailID, Subject, FromName, FromAddress, ReceivedAt]
+      properties:
+        EmailID:
+          type: string
+          format: uuid
+        Subject:
+          type: string
+        FromName:
+          type: string
+        FromAddress:
+          type: string
+          format: email
+        Summary:
+          type: string
+        ReceivedAt:
+          type: string
+          format: date-time
+
+    DigestList:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Digest"
+        total:
+          type: integer
+
+    # ── Preferences ─────────────────────────────────────────────────
+    UserPreference:
+      type: object
+      properties:
+        DigestEmail:
+          type: boolean
+        DigestFrequency:
+          type: string
+          enum: [daily, weekly]
+        DigestHour:
+          type: integer
+          minimum: 0
+          maximum: 23
+        DigestDay:
+          type: integer
+          minimum: 0
+          maximum: 6
+          description: "0 = Sunday through 6 = Saturday. Used for weekly digests."
+        DigestTimezone:
+          type: string
+          description: IANA timezone identifier (e.g. America/New_York).
+        TopicLimit:
+          type: integer
+          minimum: 5
+          maximum: 50
+        DigestStyle:
+          type: string
+          enum: [concise, detailed]
+        InterestKeywords:
+          type: array
+          items:
+            type: string
+        ExclusionKeywords:
+          type: array
+          items:
+            type: string
+        ColorTheme:
+          type: string
+          enum: [neutral, blue, rose, green, violet, amber]
+        MonthlyTokenLimit:
+          type: integer
+        ExcludedCategories:
+          type: array
+          items:
+            type: string
+        DailyTokenLimit:
+          type: integer
+          description: "0 = no daily limit."
+        QuietHoursEnabled:
+          type: boolean
+        QuietHoursStart:
+          type: integer
+          minimum: 0
+          maximum: 23
+        QuietHoursEnd:
+          type: integer
+          minimum: 0
+          maximum: 23
+
+    # ── Senders ─────────────────────────────────────────────────────
+    SenderInfo:
+      type: object
+      required: [FromAddress, EmailCount, Status, Category]
+      properties:
+        FromAddress:
+          type: string
+          format: email
+        FromName:
+          type: string
+        EmailCount:
+          type: integer
+        Status:
+          type: string
+          enum: [normal, muted, blocked, favorite]
+        Category:
+          type: string
+        AutoCategory:
+          type: string
+
+    SenderDetail:
+      type: object
+      required: [FromAddress, EmailCount, Status, Category, FirstSeen, LastSeen]
+      properties:
+        FromAddress:
+          type: string
+          format: email
+        FromName:
+          type: string
+        EmailCount:
+          type: integer
+        Status:
+          type: string
+          enum: [normal, muted, blocked, favorite]
+        Category:
+          type: string
+        AutoCategory:
+          type: string
+        FirstSeen:
+          type: string
+          format: date-time
+        LastSeen:
+          type: string
+          format: date-time
+
+    MuteSuggestion:
+      type: object
+      required: [FromAddress, NotUsefulCount, TotalCount]
+      properties:
+        FromAddress:
+          type: string
+          format: email
+        FromName:
+          type: string
+        NotUsefulCount:
+          type: integer
+        TotalCount:
+          type: integer
+
+    SenderCount:
+      type: object
+      required: [FromAddress, Count]
+      properties:
+        FromAddress:
+          type: string
+          format: email
+        FromName:
+          type: string
+        Count:
+          type: integer
+
+    # ── Subscriptions ───────────────────────────────────────────────
+    SubscriptionInfo:
+      type: object
+      required: [FromAddress, EmailCount, LastSeen]
+      properties:
+        FromAddress:
+          type: string
+          format: email
+        FromName:
+          type: string
+        EmailCount:
+          type: integer
+        LastSeen:
+          type: string
+          format: date-time
+        UnsubscribeURL:
+          type: string
+        UnsubscribeMailto:
+          type: string
+        UnsubscribedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ── Labels ──────────────────────────────────────────────────────
+    Label:
+      type: object
+      required: [ID, UserID, Name, Color, EmailCount, CreatedAt, UpdatedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        UserID:
+          type: string
+          format: uuid
+        Name:
+          type: string
+        Color:
+          type: string
+        EmailCount:
+          type: integer
+        CreatedAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time
+
+    # ── Saved Searches ──────────────────────────────────────────────
+    SavedSearch:
+      type: object
+      required: [ID, UserID, Name, Filters, CreatedAt, UpdatedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        UserID:
+          type: string
+          format: uuid
+        Name:
+          type: string
+        Filters:
+          type: object
+          additionalProperties: true
+        CreatedAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time
+
+    # ── Auto-Archive ────────────────────────────────────────────────
+    AutoArchiveRule:
+      type: object
+      required: [RuleType, RuleValue, ArchiveAfterDays, IsActive]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        UserID:
+          type: string
+          format: uuid
+        RuleType:
+          type: string
+          enum: [category, sender]
+        RuleValue:
+          type: string
+        ArchiveAfterDays:
+          type: integer
+          minimum: 1
+          maximum: 365
+        IsActive:
+          type: boolean
+        CreatedAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time
+
+    # ── Stats ───────────────────────────────────────────────────────
+    UserStats:
+      type: object
+      required: [EmailsThisWeek, EmailsLastWeek, TotalEmails, TopSenders]
+      properties:
+        EmailsThisWeek:
+          type: integer
+        EmailsLastWeek:
+          type: integer
+        TotalEmails:
+          type: integer
+        TopSenders:
+          type: array
+          items:
+            $ref: "#/components/schemas/SenderCount"
+
+    WeekCount:
+      type: object
+      required: [Week, Count]
+      properties:
+        Week:
+          type: string
+          format: date-time
+        Count:
+          type: integer
+
+    # ── Usage ───────────────────────────────────────────────────────
+    UsageStats:
+      type: object
+      required: [MonthlyTokensUsed, MonthlyTokenLimit, DailyTokensUsed, DailyTokenLimit, TriageTokens, ExtractTokens, DigestTokens, PeriodStart, PeriodEnd]
+      properties:
+        MonthlyTokensUsed:
+          type: integer
+        MonthlyTokenLimit:
+          type: integer
+          description: "0 = unlimited."
+        DailyTokensUsed:
+          type: integer
+        DailyTokenLimit:
+          type: integer
+          description: "0 = no daily limit."
+        TriageTokens:
+          type: integer
+        ExtractTokens:
+          type: integer
+        DigestTokens:
+          type: integer
+        DailyHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyTokenCount"
+        PeriodStart:
+          type: string
+          format: date-time
+        PeriodEnd:
+          type: string
+          format: date-time
+
+    DailyTokenCount:
+      type: object
+      required: [Date, Tokens]
+      properties:
+        Date:
+          type: string
+          description: "ISO date string (YYYY-MM-DD)."
+        Tokens:
+          type: integer
+
+    # ── Dashboard ───────────────────────────────────────────────────
+    DashboardResponse:
+      type: object
+      required: [emails, emailTotal, digests, unreadCount, stats, processing, weeklyHistory, topTopics, topicsWithCount, categories, actionItems, heatmap]
+      properties:
+        emails:
+          type: array
+          items:
+            $ref: "#/components/schemas/Email"
+        emailTotal:
+          type: integer
+        digests:
+          type: array
+          items:
+            $ref: "#/components/schemas/Digest"
+        unreadCount:
+          type: integer
+        stats:
+          $ref: "#/components/schemas/UserStats"
+        processing:
+          $ref: "#/components/schemas/ProcessingStats"
+        weeklyHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeekCount"
+        topTopics:
+          type: array
+          items:
+            type: string
+        topicsWithCount:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopicCount"
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryCount"
+        actionItems:
+          type: integer
+        heatmap:
+          type: array
+          items:
+            $ref: "#/components/schemas/HeatmapCell"
+
+    ProcessingStats:
+      type: object
+      required: [PendingCount, ProcessingCount, FailedCount]
+      properties:
+        PendingCount:
+          type: integer
+        ProcessingCount:
+          type: integer
+        FailedCount:
+          type: integer
+
+    TopicCount:
+      type: object
+      required: [Topic, Count]
+      properties:
+        Topic:
+          type: string
+        Count:
+          type: integer
+
+    CategoryCount:
+      type: object
+      required: [Category, Count]
+      properties:
+        Category:
+          type: string
+        Count:
+          type: integer
+
+    HeatmapCell:
+      type: object
+      required: [Hour, Day, Count]
+      properties:
+        Hour:
+          type: integer
+          minimum: 0
+          maximum: 23
+        Day:
+          type: integer
+          minimum: 0
+          maximum: 6
+          description: "0 = Sunday through 6 = Saturday."
+        Count:
+          type: integer
+
+    # ── Feedback ────────────────────────────────────────────────────
+    EmailFeedback:
+      type: object
+      required: [ID, UserID, EmailID, Rating, CreatedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        UserID:
+          type: string
+          format: uuid
+        EmailID:
+          type: string
+          format: uuid
+        Rating:
+          type: string
+          enum: [useful, not_useful]
+        CreatedAt:
+          type: string
+          format: date-time
+
+    DigestFeedback:
+      type: object
+      required: [ID, UserID, DigestID, Rating, CreatedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        UserID:
+          type: string
+          format: uuid
+        DigestID:
+          type: string
+          format: uuid
+        Rating:
+          type: string
+          enum: [useful, not_useful]
+        CreatedAt:
+          type: string
+          format: date-time
+
+    # ── LLM Keys ────────────────────────────────────────────────────
+    LLMKeyInfo:
+      type: object
+      required: [Provider, KeyHint, IsActive, CreatedAt, UpdatedAt]
+      properties:
+        Provider:
+          type: string
+          enum: [anthropic, openai]
+        KeyHint:
+          type: string
+          description: "Last 4 characters of the API key, prefixed with '...'."
+        Model:
+          type: string
+        IsActive:
+          type: boolean
+        CreatedAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time
+
+    LLMKeyList:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/LLMKeyInfo"
+        total:
+          type: integer
+
+    # ── Admin ───────────────────────────────────────────────────────
+    AdminStats:
+      type: object
+      required: [TotalUsers, ActiveUsersWeek, TotalEmails, EmailsThisWeek, TotalDigests, DigestsThisWeek]
+      properties:
+        TotalUsers:
+          type: integer
+        ActiveUsersWeek:
+          type: integer
+        TotalEmails:
+          type: integer
+        EmailsThisWeek:
+          type: integer
+        TotalDigests:
+          type: integer
+        DigestsThisWeek:
+          type: integer
+        TopGlobalSenders:
+          type: array
+          items:
+            $ref: "#/components/schemas/SenderCount"
+        LLMProvider:
+          type: string
+        LLMModel:
+          type: string
+        MonthlyTokensUsed:
+          type: integer
+        DefaultMonthlyTokenLimit:
+          type: integer
+        ProcessedCount:
+          type: integer
+        FailedCount:
+          type: integer
+        SkippedCount:
+          type: integer
+        PendingCount:
+          type: integer
+        FeedbackUseful:
+          type: integer
+        FeedbackNotUseful:
+          type: integer
+        WeeklyEmails:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeekCount"
+        WeeklyDigests:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeekCount"
+        WeeklyTokens:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeekCount"
+
+    AdminUser:
+      type: object
+      required: [ID, Email, EmailCount, MonthlyTokensUsed, MonthlyTokenLimit]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        Email:
+          type: string
+          format: email
+        Name:
+          type: string
+        EmailCount:
+          type: integer
+        MonthlyTokensUsed:
+          type: integer
+        MonthlyTokenLimit:
+          type: integer
+
+    AdminUserList:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        total:
+          type: integer
+
+    FailedEmail:
+      description: An email that failed processing, enriched with the owning user's email address.
+      allOf:
+        - $ref: "#/components/schemas/Email"
+        - type: object
+          required: [UserEmail]
+          properties:
+            UserEmail:
+              type: string
+              format: email
+
+    FailedEmailList:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/FailedEmail"
+        total:
+          type: integer
+
+    PipelineHealth:
+      type: object
+      required: [pending, processing, processed, failed, skipped, payloads]
+      properties:
+        pending:
+          type: integer
+        processing:
+          type: integer
+        processed:
+          type: integer
+        failed:
+          type: integer
+        skipped:
+          type: integer
+        payloads:
+          type: integer
+          description: Number of stored webhook payloads available for replay.
+
+    # ── Invites / Waitlist ──────────────────────────────────────────
+    Invite:
+      type: object
+      required: [ID, Email, InvitedBy, CreatedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        Email:
+          type: string
+          format: email
+        InvitedBy:
+          type: string
+          format: uuid
+        CreatedAt:
+          type: string
+          format: date-time
+        AcceptedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    InviteList:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invite"
+        total:
+          type: integer
+
+    WaitlistRequest:
+      type: object
+      required: [ID, Email, CreatedAt]
+      properties:
+        ID:
+          type: string
+          format: uuid
+        Email:
+          type: string
+          format: email
+        CreatedAt:
+          type: string
+          format: date-time
+
+    WaitlistList:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WaitlistRequest"
+        total:
+          type: integer
