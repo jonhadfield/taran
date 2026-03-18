@@ -298,7 +298,10 @@ func main() {
 		SavedSearchHandler:   savedSearchHandler,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
-	limiter := server.NewRateLimiter(10, 30) // 10 req/s sustained, 30 burst
+	limiter := server.NewSplitRateLimiter(
+		10, 30,  // API: 10 req/s sustained, 30 burst
+		50, 100, // Webhooks/cron: 50 req/s sustained, 100 burst
+	)
 	httpHandler := server.RecoveryMiddleware(server.SecurityHeaders(cors(limiter.Middleware(server.LoggingMiddleware(mux)))))
 
 	var tlsCfg *server.TLSConfig

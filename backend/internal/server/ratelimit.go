@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -80,6 +81,32 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+// SplitRateLimiter applies different rate limits based on the request path.
+// Webhook/cron paths get higher limits since they're machine-to-machine.
+type SplitRateLimiter struct {
+	api     *RateLimiter
+	webhook *RateLimiter
+}
+
+// NewSplitRateLimiter creates separate rate limiters for API and webhook traffic.
+func NewSplitRateLimiter(apiRPS float64, apiBurst int, webhookRPS float64, webhookBurst int) *SplitRateLimiter {
+	return &SplitRateLimiter{
+		api:     NewRateLimiter(apiRPS, apiBurst),
+		webhook: NewRateLimiter(webhookRPS, webhookBurst),
+	}
+}
+
+func (sl *SplitRateLimiter) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if strings.HasPrefix(path, "/webhook/") || strings.HasPrefix(path, "/cron/") {
+			sl.webhook.Middleware(next).ServeHTTP(w, r)
+		} else {
+			sl.api.Middleware(next).ServeHTTP(w, r)
+		}
 	})
 }
 
