@@ -518,20 +518,23 @@ func (r *EmailRepo) TopSenders(ctx context.Context, userID string, from, to time
 
 func (r *EmailRepo) ListSenders(ctx context.Context, userID string) ([]domain.SenderInfo, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT e.from_address,
+		`WITH sender_cats AS (
+		    SELECT e.from_address, ex.source_category, COUNT(*) AS cat_cnt,
+		           ROW_NUMBER() OVER (PARTITION BY e.from_address ORDER BY COUNT(*) DESC) AS rn
+		    FROM email e
+		    JOIN extraction ex ON ex.email_id = e.id
+		    WHERE e.user_id = $1 AND ex.source_category != ''
+		    GROUP BY e.from_address, ex.source_category
+		 )
+		 SELECT e.from_address,
 		        COALESCE(MAX(e.from_name), '') as from_name,
 		        COUNT(*) as cnt,
-		        COALESCE((
-		            SELECT ex.source_category
-		            FROM extraction ex
-		            JOIN email e2 ON e2.id = ex.email_id
-		            WHERE e2.user_id = $1 AND e2.from_address = e.from_address
-		              AND ex.source_category != ''
-		            GROUP BY ex.source_category
-		            ORDER BY COUNT(*) DESC
-		            LIMIT 1
-		        ), '') as auto_category
-		 FROM email e WHERE e.user_id = $1 GROUP BY e.from_address ORDER BY cnt DESC`,
+		        COALESCE(sc.source_category, '') as auto_category
+		 FROM email e
+		 LEFT JOIN sender_cats sc ON sc.from_address = e.from_address AND sc.rn = 1
+		 WHERE e.user_id = $1
+		 GROUP BY e.from_address, sc.source_category
+		 ORDER BY cnt DESC`,
 		userID)
 	if err != nil {
 		return nil, fmt.Errorf("list senders: %w", err)
@@ -547,6 +550,30 @@ func (r *EmailRepo) ListSenders(ctx context.Context, userID string) ([]domain.Se
 		senders = append(senders, s)
 	}
 	return senders, nil
+}
+
+func (r *EmailRepo) CountByFilter(ctx context.Context, userID string, status *domain.EmailStatus, isRead *bool) (int, error) {
+	where := []string{"user_id = $1"}
+	args := []any{userID}
+	argIdx := 2
+
+	if status != nil {
+		where = append(where, fmt.Sprintf("status = $%d", argIdx))
+		args = append(args, string(*status))
+		argIdx++
+	}
+	if isRead != nil {
+		where = append(where, fmt.Sprintf("is_read = $%d", argIdx))
+		args = append(args, *isRead)
+	}
+
+	var count int64
+	err := r.pool.QueryRow(ctx,
+		"SELECT COUNT(*) FROM email WHERE "+strings.Join(where, " AND "), args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count by filter: %w", err)
+	}
+	return int(count), nil
 }
 
 func (r *EmailRepo) CountByStatus(ctx context.Context, userID string) (map[domain.EmailStatus]int, error) {
@@ -630,21 +657,21 @@ func (r *EmailRepo) ListSubscriptions(ctx context.Context, userID string) ([]dom
 
 func (r *EmailRepo) GetSenderDetail(ctx context.Context, userID, fromAddress string) (*domain.SenderDetail, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT e.from_address,
+		`WITH top_cat AS (
+		    SELECT ex.source_category
+		    FROM extraction ex
+		    JOIN email e ON e.id = ex.email_id
+		    WHERE e.user_id = $1 AND e.from_address = $2 AND ex.source_category != ''
+		    GROUP BY ex.source_category
+		    ORDER BY COUNT(*) DESC
+		    LIMIT 1
+		 )
+		 SELECT e.from_address,
 		        COALESCE(MAX(e.from_name), '') as from_name,
 		        COUNT(*) as cnt,
 		        MIN(e.received_at) as first_seen,
 		        MAX(e.received_at) as last_seen,
-		        COALESCE((
-		            SELECT ex.source_category
-		            FROM extraction ex
-		            JOIN email e2 ON e2.id = ex.email_id
-		            WHERE e2.user_id = $1 AND e2.from_address = $2
-		              AND ex.source_category != ''
-		            GROUP BY ex.source_category
-		            ORDER BY COUNT(*) DESC
-		            LIMIT 1
-		        ), '') as auto_category
+		        COALESCE((SELECT source_category FROM top_cat), '') as auto_category
 		 FROM email e WHERE e.user_id = $1 AND e.from_address = $2
 		 GROUP BY e.from_address`,
 		userID, fromAddress)

@@ -16,19 +16,19 @@ func TestDashboardHandler_Get_Success(t *testing.T) {
 	h := &DashboardHandler{
 		Emails: &testutil.MockEmailRepo{
 			ListFn: func(_ context.Context, _ string, opts domain.ListOptions) ([]domain.Email, int, error) {
-				// Unread count query has IsRead=false
-				if opts.IsRead != nil && !*opts.IsRead {
-					return nil, 3, nil
-				}
-				// Total processed query has Status filter
-				if opts.Status != nil {
-					return nil, 100, nil
-				}
-				// Recent emails query
 				return []domain.Email{
 					{ID: "em-1", Subject: "First"},
 					{ID: "em-2", Subject: "Second"},
 				}, 50, nil
+			},
+			CountByFilterFn: func(_ context.Context, _ string, status *domain.EmailStatus, isRead *bool) (int, error) {
+				if isRead != nil && !*isRead {
+					return 3, nil // unread count
+				}
+				if status != nil {
+					return 100, nil // processed count
+				}
+				return 0, nil
 			},
 			CountByPeriodFn: func(_ context.Context, _ string, _, _ time.Time) (int, error) {
 				return 7, nil

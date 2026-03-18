@@ -36,6 +36,7 @@ type EmailRepository interface {
 	BatchResetForRetry(ctx context.Context, ids []string) (int, error)
 	DeleteInternal(ctx context.Context, id string) error
 	CountByHourAndDay(ctx context.Context, userID string) ([]domain.HeatmapCell, error)
+	CountByFilter(ctx context.Context, userID string, status *domain.EmailStatus, isRead *bool) (int, error)
 	ListSubscriptions(ctx context.Context, userID string) ([]domain.SubscriptionInfo, error)
 	GetThreadEmails(ctx context.Context, userID, threadID string) ([]domain.Email, error)
 	UpdateThreadID(ctx context.Context, id, threadID string) error

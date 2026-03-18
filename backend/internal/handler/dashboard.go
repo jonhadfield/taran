@@ -83,13 +83,13 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer wg.Done()
 		isRead := false
-		_, total, err := h.Emails.List(ctx, userID, domain.ListOptions{Limit: 1, IsRead: &isRead})
+		count, err := h.Emails.CountByFilter(ctx, userID, nil, &isRead)
 		if err != nil {
 			setErr(err)
 			return
 		}
 		mu.Lock()
-		resp.UnreadCount = total
+		resp.UnreadCount = count
 		mu.Unlock()
 	}()
 
@@ -129,7 +129,7 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		processed := domain.EmailStatusProcessed
-		_, total, err := h.Emails.List(ctx, userID, domain.ListOptions{Limit: 1, Status: &processed})
+		total, err := h.Emails.CountByFilter(ctx, userID, &processed, nil)
 		if err != nil {
 			setErr(err)
 			return

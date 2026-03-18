@@ -37,6 +37,7 @@ type MockEmailRepo struct {
 	CountBySenderWeekFn   func(ctx context.Context, userID, fromAddress string, weeks int) ([]domain.WeekCount, error)
 	BatchUpdateStateFn    func(ctx context.Context, userID string, ids []string, state domain.EmailState) error
 	BatchDeleteFn         func(ctx context.Context, userID string, ids []string) error
+	CountByFilterFn       func(ctx context.Context, userID string, status *domain.EmailStatus, isRead *bool) (int, error)
 
 	mu             sync.Mutex
 	SetStatusCalls []SetStatusCall
@@ -231,6 +232,13 @@ func (m *MockEmailRepo) DeleteInternal(ctx context.Context, id string) error {
 
 func (m *MockEmailRepo) CountByHourAndDay(ctx context.Context, userID string) ([]domain.HeatmapCell, error) {
 	return nil, nil
+}
+
+func (m *MockEmailRepo) CountByFilter(ctx context.Context, userID string, status *domain.EmailStatus, isRead *bool) (int, error) {
+	if m.CountByFilterFn != nil {
+		return m.CountByFilterFn(ctx, userID, status, isRead)
+	}
+	return 0, nil
 }
 
 func (m *MockEmailRepo) ListSubscriptions(ctx context.Context, userID string) ([]domain.SubscriptionInfo, error) {
