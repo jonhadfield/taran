@@ -169,6 +169,20 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		// CSP: restrict sources. The /docs page loads Scalar from CDN so it needs
+		// a looser policy; all other routes get a strict default.
+		if r.URL.Path == "/docs" {
+			w.Header().Set("Content-Security-Policy",
+				"default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "+
+					"style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "+
+					"img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; "+
+					"connect-src 'self'")
+		} else {
+			w.Header().Set("Content-Security-Policy",
+				"default-src 'none'; frame-ancestors 'none'")
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }
