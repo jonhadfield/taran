@@ -15,6 +15,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Menu, LogOut, Sun, Moon, Bell, BellOff, BellRing } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
+import { cn } from "@/lib/utils";
 
 export function Header({ isAdmin }: { isAdmin?: boolean }) {
   const { data: session } = authClient.useSession();
@@ -61,6 +62,10 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
           <Button
             variant="ghost"
             size="icon"
+            className={cn(
+              "relative",
+              permission === "default" && "text-foreground"
+            )}
             onClick={requestPermission}
             title={
               permission === "granted"
@@ -75,7 +80,10 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
             ) : permission === "denied" ? (
               <BellOff className="size-4 text-muted-foreground" />
             ) : (
-              <Bell className="size-4 text-muted-foreground" />
+              <>
+                <Bell className="size-4" />
+                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-blue-500 animate-pulse" />
+              </>
             )}
             <span className="sr-only">Toggle notifications</span>
           </Button>

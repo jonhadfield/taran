@@ -175,8 +175,37 @@ export function InboxList({
   const emails = useMemo(() => res.data || [], [res.data]);
   const total = res.total;
 
+  // Prompt to enable notifications on first visit
+  const { permission, requestPermission, notify } = useEmailNotifications();
+  const hasPrompted = useRef(false);
+
+  useEffect(() => {
+    if (hasPrompted.current) return;
+    if (permission !== "default") return;
+    if (typeof window === "undefined") return;
+    const dismissed = localStorage.getItem("notification-prompt-dismissed");
+    if (dismissed) return;
+    hasPrompted.current = true;
+
+    const timer = setTimeout(() => {
+      toast("Get notified when new emails arrive", {
+        description: "Enable browser notifications so you never miss a message.",
+        action: {
+          label: "Enable",
+          onClick: () => {
+            requestPermission();
+          },
+        },
+        onDismiss: () => {
+          localStorage.setItem("notification-prompt-dismissed", "1");
+        },
+        duration: 15000,
+      });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [permission, requestPermission]);
+
   // Notify on new emails (only when "all" filter, no search — the default inbox view)
-  const { notify } = useEmailNotifications();
   const prevEmailIds = useRef<Set<string>>(new Set(initialEmails.map((e) => e.ID)));
 
   useEffect(() => {
