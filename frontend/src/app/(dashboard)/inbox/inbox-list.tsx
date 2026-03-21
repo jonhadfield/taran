@@ -15,6 +15,8 @@ import Link from "next/link";
 import { InboxFilters } from "./inbox-filters";
 import { InboxRowActions } from "./inbox-row-actions";
 import { BulkActionBar } from "./bulk-action-bar";
+import { EmailPreview } from "./email-preview";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 const avatarColors = [
   "bg-blue-500",
@@ -126,9 +128,11 @@ export function InboxList({
   const [showSavedSearches, setShowSavedSearches] = useState(false);
   const [savingSearch, setSavingSearch] = useState(false);
   const [saveSearchName, setSaveSearchName] = useState("");
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const savedSearchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const isDesktop = useMediaQuery("(min-width: 1280px)");
   const topics = initialTopics;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeFilterCount = [
@@ -261,12 +265,24 @@ export function InboxList({
       switch (e.key) {
         case "j": {
           e.preventDefault();
-          setFocusedIndex((prev) => Math.min(prev + 1, emails.length - 1));
+          setFocusedIndex((prev) => {
+            const next = Math.min(prev + 1, emails.length - 1);
+            if (isDesktop && next >= 0 && next < emails.length) {
+              setPreviewId(emails[next].ID);
+            }
+            return next;
+          });
           break;
         }
         case "k": {
           e.preventDefault();
-          setFocusedIndex((prev) => Math.max(prev - 1, 0));
+          setFocusedIndex((prev) => {
+            const next = Math.max(prev - 1, 0);
+            if (isDesktop && next >= 0 && next < emails.length) {
+              setPreviewId(emails[next].ID);
+            }
+            return next;
+          });
           break;
         }
         case "x": {
@@ -311,13 +327,18 @@ export function InboxList({
           }
           setFocusedIndex(-1);
           setSelectedIds(new Set());
+          setPreviewId(null);
           break;
         }
         case "Enter":
         case "o": {
           e.preventDefault();
           if (focusedIndex >= 0 && focusedIndex < emails.length) {
-            router.push(`/inbox/${emails[focusedIndex].ID}`);
+            if (isDesktop) {
+              setPreviewId(emails[focusedIndex].ID);
+            } else {
+              router.push(`/inbox/${emails[focusedIndex].ID}`);
+            }
           }
           break;
         }
@@ -326,7 +347,7 @@ export function InboxList({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [emails, focusedIndex, toggleSelect, router]);
+  }, [emails, focusedIndex, toggleSelect, router, isDesktop]);
 
   // Scroll focused row into view
   useEffect(() => {
@@ -397,7 +418,7 @@ export function InboxList({
     window.history.replaceState(null, "", url);
   }, []);
 
-  return (
+  const listContent = (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-balance">Inbox</h1>
@@ -785,11 +806,60 @@ export function InboxList({
               const isSelected = selectedIds.has(email.ID);
               const isFocused = activeFocusIndex === index;
 
+              const isPreviewActive = isDesktop && previewId === email.ID;
+
+              const rowInner = (
+                <>
+                  {/* Unread dot */}
+                  <div className="w-2 shrink-0">
+                    {!email.IsRead && (
+                      <span className="block size-2 rounded-full bg-blue-500" />
+                    )}
+                  </div>
+
+                  {/* Avatar */}
+                  <div
+                    className={`hidden sm:flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white ${getAvatarColor(senderName)}`}
+                  >
+                    {initial}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`text-sm truncate ${!email.IsRead ? "font-semibold" : ""}`}
+                      >
+                        {senderName}
+                      </span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(email.ReceivedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm text-muted-foreground truncate">
+                        {email.Subject}
+                      </p>
+                      {email.Status === "skipped" && (
+                        <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
+                          Skipped
+                        </Badge>
+                      )}
+                      {email.Status === "failed" && (
+                        <Badge variant="outline" className="shrink-0 text-xs text-destructive">
+                          Failed
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </>
+              );
+
               return (
                 <div
                   key={email.ID}
                   data-inbox-row={index}
-                  className={`group/row flex items-center gap-3 p-3.5 transition-colors hover:bg-accent/50 ${isSelected ? "bg-accent/30" : ""} ${isFocused ? "ring-2 ring-inset ring-primary/50 bg-accent/40" : ""}`}
+                  className={`group/row flex items-center gap-3 p-3.5 transition-colors hover:bg-accent/50 cursor-pointer ${isSelected ? "bg-accent/30" : ""} ${isFocused ? "ring-2 ring-inset ring-primary/50 bg-accent/40" : ""} ${isPreviewActive ? "border-l-2 border-l-primary bg-accent/50" : ""}`}
                 >
                   {/* Checkbox */}
                   <input
@@ -801,53 +871,25 @@ export function InboxList({
                     aria-label={`Select ${email.Subject}`}
                   />
 
-                  <Link
-                    href={`/inbox/${email.ID}`}
-                    className="flex flex-1 items-center gap-3 min-w-0"
-                  >
-                    {/* Unread dot */}
-                    <div className="w-2 shrink-0">
-                      {!email.IsRead && (
-                        <span className="block size-2 rounded-full bg-blue-500" />
-                      )}
-                    </div>
-
-                    {/* Avatar */}
-                    <div
-                      className={`hidden sm:flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white ${getAvatarColor(senderName)}`}
+                  {isDesktop ? (
+                    <button
+                      type="button"
+                      className="flex flex-1 items-center gap-3 min-w-0 text-left"
+                      onClick={() => {
+                        setPreviewId(email.ID);
+                        setFocusedIndex(index);
+                      }}
                     >
-                      {initial}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`text-sm truncate ${!email.IsRead ? "font-semibold" : ""}`}
-                        >
-                          {senderName}
-                        </span>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {new Date(email.ReceivedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm text-muted-foreground truncate">
-                          {email.Subject}
-                        </p>
-                        {email.Status === "skipped" && (
-                          <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
-                            Skipped
-                          </Badge>
-                        )}
-                        {email.Status === "failed" && (
-                          <Badge variant="outline" className="shrink-0 text-xs text-destructive">
-                            Failed
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
+                      {rowInner}
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/inbox/${email.ID}`}
+                      className="flex flex-1 items-center gap-3 min-w-0"
+                    >
+                      {rowInner}
+                    </Link>
+                  )}
 
                   {/* Actions - visible on hover */}
                   <InboxRowActions
@@ -882,6 +924,24 @@ export function InboxList({
           </div>
         </>
       )}
+    </div>
+  );
+
+  if (!isDesktop) {
+    return listContent;
+  }
+
+  return (
+    <div className="flex gap-4 h-[calc(100vh-10rem)]">
+      <div className="w-2/5 min-w-0 overflow-y-auto">
+        {listContent}
+      </div>
+      <div className="w-3/5 min-w-0 overflow-y-auto rounded-lg border">
+        <EmailPreview
+          id={previewId}
+          onDeleted={() => setPreviewId(null)}
+        />
+      </div>
     </div>
   );
 }

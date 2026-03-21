@@ -39,6 +39,7 @@
 - **Digest Comparison** — New/dropped senders and topics vs previous digest
 - **Email Threading** — Conversation view grouping related emails
 - **Animated Dashboard Charts** — Staggered bar grow animations with hover tooltips
+- **Inline Email Preview** — Split-pane view on desktop: email list left, preview right, keyboard-driven
 
 ## Not Started
 
@@ -49,12 +50,6 @@
 - **Impact**: High
 - **Description**: `Cmd+K` overlay to search emails, jump to pages (inbox, settings, senders), and trigger actions (generate digest, export data). Builds on existing keyboard shortcuts.
 - **Scope**: Frontend component, fuzzy search, action registry
-
-#### Inline Email Preview
-- **Effort**: Medium
-- **Impact**: Medium
-- **Description**: Split-pane view on desktop — email list on the left, preview on the right — so users don't have to navigate away from the inbox.
-- **Scope**: Frontend layout change, responsive breakpoint, keyboard navigation
 
 #### Onboarding Checklist
 - **Effort**: Low

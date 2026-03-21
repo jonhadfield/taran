@@ -16,7 +16,7 @@ import {
 import type { Email } from "@/types/api";
 import { Archive, Star, StarOff, Trash2, Loader2 } from "lucide-react";
 
-export function EmailActions({ email }: { email: Email }) {
+export function EmailActions({ email, onDeleted }: { email: Email; onDeleted?: () => void }) {
   const router = useRouter();
   const [starred, setStarred] = useState(email.IsStarred);
   const [archived, setArchived] = useState(email.IsArchived);
@@ -55,7 +55,11 @@ export function EmailActions({ email }: { email: Email }) {
     try {
       await apiDelete(`emails/${email.ID}`);
       toast.success("Email deleted");
-      router.push("/inbox");
+      if (onDeleted) {
+        onDeleted();
+      } else {
+        router.push("/inbox");
+      }
     } catch {
       toast.error("Failed to delete email");
       setDeleting(false);
