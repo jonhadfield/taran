@@ -61,11 +61,14 @@ SKIP these types of emails (extract: false):
 
 EXTRACT these types of emails (extract: true):
 - Newsletters with editorial content
-- Curated digests and roundups
+- Curated digests and roundups (e.g. Hacker News, TLDR, Morning Brew, link roundups)
 - Personal emails with substantive content
 - Industry updates and reports
 - Blog post notifications with content
 - Product announcements with detail
+- Any email with multiple links and headlines (likely a newsletter or digest)
+
+IMPORTANT: When in doubt, extract. It is much better to extract a low-value email than to skip a valuable newsletter. Only skip emails that are clearly automated/transactional with no editorial content.
 
 Respond ONLY with valid JSON: {"extract": true/false, "reason": "brief reason"}
 No markdown fences, no explanation outside the JSON.`

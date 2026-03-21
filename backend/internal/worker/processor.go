@@ -287,8 +287,8 @@ func ProcessEmail(
 
 	// Triage: cheap LLM call to decide if this email is worth extracting.
 	contentPreview := content
-	if len(contentPreview) > 500 {
-		contentPreview = contentPreview[:500]
+	if len(contentPreview) > 1500 {
+		contentPreview = contentPreview[:1500]
 	}
 	triageResult, triageUsage, triageErr := provider.TriageEmail(ctx, em.Subject, em.FromAddress, contentPreview)
 	// Always record triage tokens when available, even if parsing failed
