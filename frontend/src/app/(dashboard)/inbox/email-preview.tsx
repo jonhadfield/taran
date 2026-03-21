@@ -231,8 +231,8 @@ export function EmailPreview({ id, onDeleted }: EmailPreviewProps) {
         </>
       )}
 
-      {/* Text body preview */}
-      {email.TextBody && (
+      {/* Text body preview — only when there's no AI extraction */}
+      {!ext && email.TextBody && (
         <>
           <Separator />
           <div>
@@ -240,12 +240,6 @@ export function EmailPreview({ id, onDeleted }: EmailPreviewProps) {
             <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-[12]">
               {email.TextBody.slice(0, 800)}
             </p>
-            <Link
-              href={`/inbox/${email.ID}`}
-              className="inline-block mt-2 text-xs text-primary hover:underline"
-            >
-              View full email content
-            </Link>
           </div>
         </>
       )}
