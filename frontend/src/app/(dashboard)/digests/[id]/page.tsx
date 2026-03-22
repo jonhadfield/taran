@@ -11,6 +11,7 @@ import { SendEmailButton } from "./send-email-button";
 import { DeleteDigestButton } from "./delete-button";
 import { DigestFeedbackButtons } from "./digest-feedback-buttons";
 import { DigestComparison } from "./digest-comparison";
+import { HighlightedTopics, HighlightedItems } from "./digest-highlights";
 import { isAdmin } from "@/lib/admin";
 
 export default async function DigestDetailPage({
@@ -120,13 +121,7 @@ export default async function DigestDetailPage({
             <CardTitle className="text-lg">Top Topics</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {digest.TopTopics.map((topic) => (
-                <Badge key={topic} variant="secondary">
-                  {topic}
-                </Badge>
-              ))}
-            </div>
+            <HighlightedTopics currentDigest={digest} />
           </CardContent>
         </Card>
       )}
@@ -138,33 +133,7 @@ export default async function DigestDetailPage({
           <Separator />
           <div className="space-y-2">
             <h2 className="text-lg font-medium">Included Emails</h2>
-            <div className="space-y-2">
-              {digest.Items.map((item) => (
-                <Link
-                  key={item.ID}
-                  href={`/inbox/${item.EmailID}`}
-                  className="block rounded-lg border p-3 transition-colors hover:bg-accent"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">
-                        {item.Subject || `Email ${item.SortOrder + 1}`}
-                      </p>
-                      {item.FromName && (
-                        <p className="text-xs text-muted-foreground truncate">
-                          {item.FromName}
-                        </p>
-                      )}
-                      {item.Summary && (
-                        <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                          {item.Summary}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <HighlightedItems currentDigest={digest} />
           </div>
         </>
       )}

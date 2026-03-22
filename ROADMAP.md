@@ -43,16 +43,11 @@
 - **Command Palette** — Cmd+K overlay with navigation, quick filters, and actions (theme toggle, export, generate digest)
 - **Server-Sent Events** — Real-time push replacing 60s polling; SSE broker in Go backend, auto-reconnecting EventSource on frontend
 - **Onboarding Checklist** — Persistent dashboard checklist (create inbox, receive email, generate digest, configure settings) with progress bar, dismissible
+- **Digest Diff Highlighting** — Inline visual diffs: new topics get sparkle icon + green ring, new-sender emails get green left border + badge
 
 ## Not Started
 
 ### UI/UX
-
-#### Digest Diff Highlighting
-- **Effort**: Low
-- **Impact**: Low
-- **Description**: Visually highlight new content that appeared in a digest compared to the previous one (beyond the current new/dropped senders and topics).
-- **Scope**: Frontend diff rendering on digest detail page
 
 #### Empty State Illustrations
 - **Effort**: Low
