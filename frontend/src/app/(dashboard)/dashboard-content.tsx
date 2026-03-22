@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import type { DashboardData, WeekCount, TopicCount, CategoryCount, HeatmapCell } from "@/types/api";
 import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, Loader2, AlertCircle, BarChart3, Tag, CheckSquare, PieChart, Clock } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
+import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import Link from "next/link";
 
 interface DashboardContentProps {
@@ -276,6 +277,13 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
           </CardContent>
         </Card>
       </div>
+
+      {/* Onboarding checklist — persistent until dismissed */}
+      <OnboardingChecklist
+        emailAddress={emailAddress}
+        hasEmails={stats.TotalEmails > 0}
+        hasDigest={digests.length > 0}
+      />
 
       {/* Processing status */}
       {(inFlightCount > 0 || failedCount > 0) && (

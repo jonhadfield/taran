@@ -8,5 +8,6 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     restoreMocks: true,
+    exclude: ["e2e/**", "node_modules/**"],
   },
 });

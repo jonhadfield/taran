@@ -42,16 +42,11 @@
 - **Inline Email Preview** — Split-pane view on desktop: email list left, preview right, keyboard-driven
 - **Command Palette** — Cmd+K overlay with navigation, quick filters, and actions (theme toggle, export, generate digest)
 - **Server-Sent Events** — Real-time push replacing 60s polling; SSE broker in Go backend, auto-reconnecting EventSource on frontend
+- **Onboarding Checklist** — Persistent dashboard checklist (create inbox, receive email, generate digest, configure settings) with progress bar, dismissible
 
 ## Not Started
 
 ### UI/UX
-
-#### Onboarding Checklist
-- **Effort**: Low
-- **Impact**: Medium
-- **Description**: Persistent checklist after signup (forward first email, configure digest schedule, etc.) that dismisses when all steps are complete.
-- **Scope**: Frontend component, backend preference flag
 
 #### Digest Diff Highlighting
 - **Effort**: Low
