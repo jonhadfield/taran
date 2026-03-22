@@ -40,16 +40,11 @@
 - **Email Threading** — Conversation view grouping related emails
 - **Animated Dashboard Charts** — Staggered bar grow animations with hover tooltips
 - **Inline Email Preview** — Split-pane view on desktop: email list left, preview right, keyboard-driven
+- **Command Palette** — Cmd+K overlay with navigation, quick filters, and actions (theme toggle, export, generate digest)
 
 ## Not Started
 
 ### UI/UX
-
-#### Command Palette
-- **Effort**: Medium
-- **Impact**: High
-- **Description**: `Cmd+K` overlay to search emails, jump to pages (inbox, settings, senders), and trigger actions (generate digest, export data). Builds on existing keyboard shortcuts.
-- **Scope**: Frontend component, fuzzy search, action registry
 
 #### Onboarding Checklist
 - **Effort**: Low
