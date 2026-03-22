@@ -147,7 +147,7 @@ gcloud init
 This will open your browser and ask you to log in with your Google account. Follow the prompts to:
 1. Log in with the Google account you used for Google Cloud.
 2. Select your Google Cloud project (or create one -- name it something like `mailbrief`).
-3. Choose a default region (e.g., `us-central1`).
+3. Choose a default region (e.g., `europe-west2` for the UK, or `us-central1` for the US).
 
 **Verify it works:**
 ```bash
@@ -235,7 +235,7 @@ This downloads all the source code to your computer.
 
 ### Step 3: Generate Secrets
 
-You need three random secret strings. Run each of these commands and save the output:
+You need four random secret strings. Run each of these commands and save the output:
 
 ```bash
 # Webhook secret -- authenticates email deliveries from Cloudflare
@@ -246,35 +246,40 @@ openssl rand -hex 32
 
 # Unsubscribe secret -- secures email unsubscribe links
 openssl rand -hex 32
+
+# Encryption key -- encrypts email bodies at rest (AES-256)
+openssl rand -hex 32
 ```
 
-Each command outputs a long string of random characters like `a3f8b2c1d4e5...`. Save all three -- you will need them in the next step.
+Each command outputs a long string of random characters like `a3f8b2c1d4e5...`. Save all four -- you will need them in the next step.
 
-### Step 4: Deploy to Cloud Run
+### Step 4: Initial Deploy to Cloud Run
 
-Run the following command, replacing every `<placeholder>` with your actual values:
+Run the following command, replacing every `<placeholder>` with your actual values. Choose a region close to your users and your Neon database (e.g., `europe-west2` for the UK, `us-central1` for the US):
 
 ```bash
 cd backend
 
-gcloud run deploy taran \
+gcloud run deploy mailbrief \
   --source . \
-  --region us-central1 \
+  --region <your-region> \
   --allow-unauthenticated \
   --port 8080 \
   --set-env-vars "\
 TARAN_HOST=0.0.0.0,\
-TARAN_PORT=8080,\
 TARAN_DB_URL=<your-neon-connection-string>,\
 TARAN_WEBHOOK_SECRET=<your-webhook-secret>,\
 TARAN_API_KEY=<your-api-key>,\
 TARAN_LLM_PROVIDER=anthropic,\
 TARAN_ANTHROPIC_API_KEY=<your-anthropic-api-key>,\
 TARAN_ANTHROPIC_MODEL=claude-haiku-4-5-20251001,\
+TARAN_DIGEST_CRON=0 7 * * *,\
+TARAN_DIGEST_TIMEZONE=UTC,\
 TARAN_EMAIL_DOMAIN=<yourdomain.com>,\
 TARAN_ADMIN_EMAILS=<your-personal-email>,\
 TARAN_ALLOWED_ORIGINS=https://<yourdomain.com>,\
 TARAN_UNSUBSCRIBE_SECRET=<your-unsubscribe-secret>,\
+TARAN_ENCRYPTION_KEY=<your-encryption-key>,\
 TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT=500000"
 ```
 
@@ -283,20 +288,24 @@ TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT=500000"
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `TARAN_HOST` | IP address to listen on. Always `0.0.0.0` for Cloud Run. | `0.0.0.0` |
-| `TARAN_PORT` | Port number. Cloud Run expects `8080`. | `8080` |
 | `TARAN_DB_URL` | Your Neon PostgreSQL connection string from Part 3. | `postgresql://neondb_owner:...` |
 | `TARAN_WEBHOOK_SECRET` | Random secret that authenticates incoming email webhooks. | Output of `openssl rand -hex 32` |
 | `TARAN_API_KEY` | Random secret that authenticates the frontend-to-backend connection. | Output of `openssl rand -hex 32` |
-| `TARAN_LLM_PROVIDER` | Which AI provider to use. Set to `anthropic`. | `anthropic` |
+| `TARAN_LLM_PROVIDER` | Which AI provider to use. Options: `anthropic` or `openai`. | `anthropic` |
 | `TARAN_ANTHROPIC_API_KEY` | Your Anthropic API key, from [console.anthropic.com](https://console.anthropic.com) under API Keys. | `sk-ant-api03-...` |
 | `TARAN_ANTHROPIC_MODEL` | Which Claude model to use. Haiku is fast and affordable. | `claude-haiku-4-5-20251001` |
+| `TARAN_DIGEST_CRON` | Default digest schedule in cron format. `0 7 * * *` means 7am daily. | `0 7 * * *` |
+| `TARAN_DIGEST_TIMEZONE` | Default timezone for digest scheduling. | `UTC` |
 | `TARAN_EMAIL_DOMAIN` | Your domain name, used to create user email addresses. | `yourdomain.com` |
 | `TARAN_ADMIN_EMAILS` | Comma-separated list of admin email addresses. | `you@gmail.com` |
 | `TARAN_ALLOWED_ORIGINS` | Your frontend URL, for CORS security. | `https://yourdomain.com` |
 | `TARAN_UNSUBSCRIBE_SECRET` | Random secret that secures email unsubscribe links. | Output of `openssl rand -hex 32` |
+| `TARAN_ENCRYPTION_KEY` | AES-256 key for encrypting email bodies at rest. | Output of `openssl rand -hex 32` |
 | `TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT` | AI token budget per user per month. 500,000 is a good start. | `500000` |
 
-> **Note:** You will add `TARAN_RESEND_API_KEY` and `TARAN_BASE_URL` later in Part 7, after setting up Resend.
+> **Note:** You will add `TARAN_RESEND_API_KEY`, `TARAN_EMAIL_FROM`, and `TARAN_BASE_URL` later in Part 7, after setting up Resend.
+
+> **Optional: LLM fallback provider.** If you want automatic failover between providers, set both API keys and add: `TARAN_OPENAI_API_KEY=<key>,TARAN_OPENAI_MODEL=gpt-4.1-mini`. The backend will try the primary provider first and fall back to the other if it fails.
 
 The first deploy will take 3 to 5 minutes. Google Cloud will:
 1. Upload your source code.
@@ -308,18 +317,45 @@ The first deploy will take 3 to 5 minutes. Google Cloud will:
 When the deploy finishes, the output will include a line like:
 
 ```
-Service URL: https://taran-abc123-uc.a.run.app
+Service URL: https://mailbrief-abc123-nw.a.run.app
 ```
 
 **Copy this URL and save it.** You will need it in Part 5 (frontend), Part 8 (email routing), and Part 9 (scheduler).
 
-### Step 6: Test the Health Endpoint
+### Step 6: Set Up Continuous Deployment
+
+Instead of manually deploying each time you update the code, set up a Cloud Build trigger so the backend auto-deploys on every push to `main`:
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) > **Cloud Build** > **Triggers**.
+2. Click **Create Trigger**.
+3. Configure:
+   - **Name**: `mailbrief-deploy`
+   - **Event**: Push to a branch
+   - **Source**: Connect your GitHub repository (`taran`)
+   - **Branch**: `^main$`
+4. Under **Build configuration**, select **Dockerfile** and set:
+   - **Dockerfile directory**: `backend`
+5. Add a build step to deploy:
+   - **Image**: `gcr.io/<your-project-id>/mailbrief:$COMMIT_SHA`
+   - **Deploy step**: `gcloud run deploy mailbrief --region <your-region> --image gcr.io/<your-project-id>/mailbrief:$COMMIT_SHA`
+6. Click **Create**.
+
+Alternatively, use Cloud Run's built-in continuous deployment:
+1. Go to **Cloud Run** > your `mailbrief` service.
+2. Click **Set up continuous deployment**.
+3. Connect your GitHub repository and select the `main` branch.
+4. Set the Dockerfile path to `backend/Dockerfile`.
+5. Cloud Run will automatically build and deploy on every push.
+
+After this, every push to `main` will trigger a build and deploy automatically. Existing environment variables are preserved across deploys.
+
+### Step 7: Test the Health Endpoint
 
 ```bash
 curl https://<your-cloud-run-url>/health
 ```
 
-Replace `<your-cloud-run-url>` with the URL from the previous step. You should see:
+Replace `<your-cloud-run-url>` with the URL from Step 5. You should see:
 
 ```json
 {"status":"healthy"}
@@ -427,13 +463,17 @@ Add each of the following variables. For each one, set it for all environments (
 
 ### Step 6: Deploy
 
-```bash
-vercel --prod
-```
+The recommended approach is to connect your GitHub repository to Vercel for automatic deploys:
 
-This builds and deploys the frontend. It takes about 1 to 2 minutes. When it finishes, Vercel will show you a URL like `https://mailbrief.vercel.app`.
+1. Go to [vercel.com/new](https://vercel.com/new).
+2. Import your GitHub repository (`taran`).
+3. Set the **Root Directory** to `frontend/`.
+4. The environment variables you added in Step 5 will be picked up automatically.
+5. Click **Deploy**.
 
-> **Alternative: Auto-deploy from GitHub.** Instead of manual deploys, you can connect your GitHub repository to Vercel. Go to [vercel.com/new](https://vercel.com/new), import your GitHub repository, set the root directory to `frontend/`, add the environment variables, and every push to `main` will automatically deploy.
+Every subsequent push to `main` will automatically deploy the frontend.
+
+> **Alternative: Manual deploy.** If you prefer not to connect GitHub, you can deploy manually with `vercel --prod` from the `frontend/` directory.
 
 ---
 
@@ -544,24 +584,18 @@ Go back to the Resend dashboard. Click on your domain. Click **Verify**. If all 
 
 ### Step 6: Update the Backend
 
-Now add the Resend API key and the base URL to your Cloud Run deployment:
+Now add the Resend API key, sender address, and base URL to your Cloud Run deployment. Use `--update-env-vars` (not `--set-env-vars`) to add new variables without removing existing ones:
 
 ```bash
-gcloud run services update taran \
-  --region us-central1 \
-  --set-env-vars "\
+gcloud run services update mailbrief \
+  --region <your-region> \
+  --update-env-vars "\
 TARAN_RESEND_API_KEY=<your-resend-api-key>,\
+TARAN_EMAIL_FROM=digest@<yourdomain.com>,\
 TARAN_BASE_URL=https://<your-cloud-run-url>"
 ```
 
-> **Warning:** The `--set-env-vars` command on `gcloud run services update` will **replace** all environment variables unless you use `--update-env-vars` instead. To add new variables without removing existing ones, use:
-> ```bash
-> gcloud run services update taran \
->   --region us-central1 \
->   --update-env-vars "\
-> TARAN_RESEND_API_KEY=<your-resend-api-key>,\
-> TARAN_BASE_URL=https://<your-cloud-run-url>"
-> ```
+> **Warning:** `--set-env-vars` **replaces all** environment variables. Always use `--update-env-vars` when adding new variables to an existing deployment.
 
 ---
 
@@ -660,8 +694,8 @@ The digest scheduler calls your backend every hour. The backend then checks if a
 You already enabled the Cloud Scheduler API in Part 4. Now create the job:
 
 ```bash
-gcloud scheduler jobs create http mailbrief-digest-trigger \
-  --location us-central1 \
+gcloud scheduler jobs create http digest-hourly \
+  --location <your-region> \
   --schedule "0 * * * *" \
   --uri "https://<your-cloud-run-url>/cron/digests" \
   --http-method POST \
@@ -678,21 +712,21 @@ gcloud scheduler jobs create http mailbrief-digest-trigger \
 ### Step 2: Verify the Scheduler
 
 ```bash
-gcloud scheduler jobs list --location us-central1
+gcloud scheduler jobs list --location <your-region>
 ```
 
-You should see your `mailbrief-digest-trigger` job listed with status `ENABLED`.
+You should see your `digest-hourly` job listed with status `ENABLED`.
 
 ### Step 3: Test It Manually
 
 ```bash
-gcloud scheduler jobs run mailbrief-digest-trigger --location us-central1
+gcloud scheduler jobs run digest-hourly --location <your-region>
 ```
 
 This triggers the job immediately. Check the Cloud Run logs to confirm the backend received and processed the request:
 
 ```bash
-gcloud run services logs read taran --region us-central1 --limit 20
+gcloud run services logs read mailbrief --region <your-region> --limit 20
 ```
 
 Look for log entries related to digest generation. If there are no users with pending digests, it will simply log that no digests were needed.
@@ -740,7 +774,7 @@ Your email address is now `yourname@yourdomain.com`.
 
 **If the email does not appear:**
 - Check Cloudflare Workers logs: **Workers & Pages** > your worker > **Logs**.
-- Check Cloud Run logs: `gcloud run services logs read taran --region us-central1 --limit 20`
+- Check Cloud Run logs: `gcloud run services logs read mailbrief --region <your-region> --limit 20`
 - Verify the webhook secret matches between the Cloudflare worker and the backend.
 
 ### Test 5: AI Extraction
@@ -781,21 +815,21 @@ cd frontend
 vercel --prod
 ```
 
-**Backend:** Rebuild and deploy the container:
+**Backend:** If you set up continuous deployment in Part 4, every push to `main` automatically triggers a build and deploy. Otherwise, rebuild and deploy manually:
 ```bash
 cd backend
-gcloud run deploy taran \
+gcloud run deploy mailbrief \
   --source . \
-  --region us-central1
+  --region <your-region>
 ```
 This rebuilds the Docker image and deploys the new version. Existing environment variables are preserved.
 
 ### Monitoring
 
-- **Backend logs:** `gcloud run services logs read taran --region us-central1 --limit 50`
+- **Backend logs:** `gcloud run services logs read mailbrief --region <your-region> --limit 50`
 - **Frontend logs:** Available at [vercel.com](https://vercel.com) > your project > **Deployments** > click a deployment > **Functions** tab
 - **Health check:** `curl https://<your-cloud-run-url>/health`
-- **Scheduler status:** `gcloud scheduler jobs list --location us-central1`
+- **Scheduler status:** `gcloud scheduler jobs list --location <your-region>`
 - **Email worker logs:** Cloudflare dashboard > **Workers & Pages** > your worker > **Logs**
 
 ### Estimated Costs
@@ -843,7 +877,7 @@ pg_dump "<your-neon-connection-string>" > mailbrief-backup.sql
    - `Webhook failed: 401` -- the webhook secret in the worker does not match `TARAN_WEBHOOK_SECRET` in the backend.
    - `Webhook failed: 500` -- the backend encountered an error. Check Cloud Run logs.
    - No log entries at all -- the email routing rule is not configured correctly.
-4. **Cloud Run logs:** Run `gcloud run services logs read taran --region us-central1 --limit 20`. Look for errors during email processing.
+4. **Cloud Run logs:** Run `gcloud run services logs read mailbrief --region <your-region> --limit 20`. Look for errors during email processing.
 
 ### AI Extraction Failed
 
@@ -851,7 +885,7 @@ pg_dump "<your-neon-connection-string>" > mailbrief-backup.sql
 
 1. **Check API key:** Verify `TARAN_ANTHROPIC_API_KEY` is set correctly in Cloud Run.
 2. **Check credits:** Log in to [console.anthropic.com](https://console.anthropic.com) and verify your account has available credits.
-3. **Check logs:** Run `gcloud run services logs read taran --region us-central1 --limit 20` and look for LLM-related errors.
+3. **Check logs:** Run `gcloud run services logs read mailbrief --region <your-region> --limit 20` and look for LLM-related errors.
 4. **Model availability:** Ensure the model specified in `TARAN_ANTHROPIC_MODEL` is still available. Anthropic occasionally retires older model versions.
 
 ### Login Not Working
@@ -869,11 +903,11 @@ pg_dump "<your-neon-connection-string>" > mailbrief-backup.sql
 
 **Symptom:** The scheduler runs but no digest appears.
 
-1. **Check scheduler execution:** Run `gcloud scheduler jobs describe mailbrief-digest-trigger --location us-central1`. Look at `lastAttemptTime` and `status`.
+1. **Check scheduler execution:** Run `gcloud scheduler jobs describe digest-hourly --location <your-region>`. Look at `lastAttemptTime` and `status`.
 2. **Check the cron header:** The scheduler must send `X-Webhook-Secret` in the headers. Verify this matches `TARAN_WEBHOOK_SECRET`.
 3. **Check user settings:** Digests are only generated when it is the right time for a user based on their preferred schedule and timezone. Make sure your user account has a digest schedule configured.
 4. **Check for emails:** Digests require at least some undigested emails. If your inbox is empty, no digest will be generated.
-5. **Check logs:** `gcloud run services logs read taran --region us-central1 --limit 20` -- look for entries from the digest generator.
+5. **Check logs:** `gcloud run services logs read mailbrief --region <your-region> --limit 20` -- look for entries from the digest generator.
 
 ### Domain Not Loading
 
@@ -891,7 +925,7 @@ pg_dump "<your-neon-connection-string>" > mailbrief-backup.sql
 1. **Check Resend:** Log in to [resend.com](https://resend.com) and check the **Emails** tab. Look for your digest emails -- they may show as "Delivered", "Bounced", or "Complained".
 2. **Check spam:** Look in your spam/junk folder.
 3. **DNS records:** Go to Resend > Domains and verify your domain shows "Verified". If not, recheck the DNS records from Part 7.
-4. **API key:** Verify `TARAN_RESEND_API_KEY` is set in Cloud Run: `gcloud run services describe taran --region us-central1 --format='value(spec.template.spec.containers[0].env)'`
+4. **API key:** Verify `TARAN_RESEND_API_KEY` is set in Cloud Run: `gcloud run services describe mailbrief --region <your-region> --format='value(spec.template.spec.containers[0].env)'`
 5. **SPF/DKIM:** Use [mail-tester.com](https://www.mail-tester.com) to send a test email and check your email authentication score.
 
 ### Backend Returns 500 Errors
@@ -900,7 +934,7 @@ pg_dump "<your-neon-connection-string>" > mailbrief-backup.sql
 
 1. **Database connection:** Verify the Neon database is accessible. Go to [console.neon.tech](https://console.neon.tech) and check your project status. The free tier suspends after 5 minutes of inactivity -- the first request may be slow while it wakes up.
 2. **Connection string:** Verify `TARAN_DB_URL` includes `?sslmode=require` at the end.
-3. **Environment variables:** List all environment variables with `gcloud run services describe taran --region us-central1`. Verify nothing is missing.
+3. **Environment variables:** List all environment variables with `gcloud run services describe mailbrief --region <your-region>`. Verify nothing is missing.
 4. **Logs:** The error message in the logs usually indicates the specific problem. Common ones:
    - `database unreachable` -- Neon connection issue
    - `context deadline exceeded` -- request took too long, may need to increase timeout
