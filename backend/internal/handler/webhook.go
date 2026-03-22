@@ -13,6 +13,7 @@ import (
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/hadfielj/taran/backend/internal/email"
 	"github.com/hadfielj/taran/backend/internal/llm"
+	"github.com/hadfielj/taran/backend/internal/sse"
 	"github.com/hadfielj/taran/backend/internal/worker"
 )
 
@@ -77,6 +78,7 @@ type WebhookHandler struct {
 	SenderPrefs     database.SenderPreferenceRepository
 	TokenUsage      database.TokenUsageRepository
 	Preferences     database.PreferenceRepository
+	SSEBroker       *sse.Broker
 }
 
 func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
@@ -194,7 +196,7 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 
 	// Process extraction synchronously so the summary is available immediately
 	if h.Resolver != nil {
-		worker.ProcessEmail(r.Context(), emailRecord.ID, h.Emails, h.Extractions, h.Resolver, h.SenderPrefs, h.TokenUsage, h.Preferences)
+		worker.ProcessEmail(r.Context(), emailRecord.ID, h.Emails, h.Extractions, h.Resolver, h.SenderPrefs, h.TokenUsage, h.Preferences, h.SSEBroker)
 	}
 
 	WriteJSON(w, http.StatusAccepted, map[string]string{

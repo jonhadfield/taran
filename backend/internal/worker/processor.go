@@ -12,6 +12,7 @@ import (
 	emailpkg "github.com/hadfielj/taran/backend/internal/email"
 	"github.com/hadfielj/taran/backend/internal/llm"
 	"github.com/hadfielj/taran/backend/internal/mailer"
+	"github.com/hadfielj/taran/backend/internal/sse"
 )
 
 const (
@@ -40,6 +41,7 @@ type Processor struct {
 	Mailer           mailer.Mailer
 	Sessions         database.SessionRepository
 	AutoArchiveRules database.AutoArchiveRuleRepository
+	SSEBroker        *sse.Broker
 }
 
 func NewProcessor(
@@ -182,7 +184,7 @@ func (p *Processor) sweepRetryable(ctx context.Context) {
 }
 
 func (p *Processor) processEmail(ctx context.Context, emailID string) {
-	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.resolver, p.senderPrefs, p.tokenUsage, p.preferences)
+	ProcessEmail(ctx, emailID, p.emails, p.extractions, p.resolver, p.senderPrefs, p.tokenUsage, p.preferences, p.SSEBroker)
 
 	// Check token warning after processing (best-effort, non-blocking)
 	if p.Mailer != nil && p.Sessions != nil && p.tokenUsage != nil && p.preferences != nil {
@@ -204,6 +206,7 @@ func ProcessEmail(
 	senderPrefs database.SenderPreferenceRepository,
 	tokenUsage database.TokenUsageRepository,
 	preferences database.PreferenceRepository,
+	broker *sse.Broker,
 ) {
 	logger := slog.With("emailID", emailID)
 
@@ -367,6 +370,13 @@ func ProcessEmail(
 	}
 
 	recordTokenUsage(ctx, tokenUsage, em.UserID, "extract", provider, usage)
+
+	if broker != nil {
+		broker.Publish(em.UserID, sse.Event{
+			Type:    "email_processed",
+			EmailID: emailID,
+		})
+	}
 
 	logger.Info("email processed",
 		"provider", provider.Name(),

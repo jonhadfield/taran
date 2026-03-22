@@ -20,6 +20,7 @@ import (
 	"github.com/hadfielj/taran/backend/internal/llm"
 	"github.com/hadfielj/taran/backend/internal/mailer"
 	"github.com/hadfielj/taran/backend/internal/server"
+	"github.com/hadfielj/taran/backend/internal/sse"
 	"github.com/hadfielj/taran/backend/internal/worker"
 	"github.com/joho/godotenv"
 )
@@ -108,8 +109,12 @@ func main() {
 	// Provider resolver (BYOK → platform fallback)
 	resolver := llm.NewProviderResolver(provider, userLLMKeyRepo, encryptor, &cfg.LLM)
 
+	// SSE broker for real-time push notifications
+	sseBroker := sse.NewBroker()
+
 	// Background worker
 	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, resolver, senderPrefRepo, tokenUsageRepo, preferenceRepo)
+	proc.SSEBroker = sseBroker
 
 	// Mailer (optional — disabled if no Resend API key)
 	var m mailer.Mailer
@@ -161,6 +166,7 @@ func main() {
 		SenderPrefs:     senderPrefRepo,
 		TokenUsage:      tokenUsageRepo,
 		Preferences:     preferenceRepo,
+		SSEBroker:       sseBroker,
 	}
 	emailHandler := &handler.EmailHandler{
 		Emails:      emailRepo,
@@ -296,6 +302,7 @@ func main() {
 		AutoArchiveHandler:   autoArchiveHandler,
 		LabelHandler:         labelHandler,
 		SavedSearchHandler:   savedSearchHandler,
+		EventsHandler:        &handler.EventsHandler{Broker: sseBroker},
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewSplitRateLimiter(

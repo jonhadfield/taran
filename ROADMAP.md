@@ -41,6 +41,7 @@
 - **Animated Dashboard Charts** — Staggered bar grow animations with hover tooltips
 - **Inline Email Preview** — Split-pane view on desktop: email list left, preview right, keyboard-driven
 - **Command Palette** — Cmd+K overlay with navigation, quick filters, and actions (theme toggle, export, generate digest)
+- **Server-Sent Events** — Real-time push replacing 60s polling; SSE broker in Go backend, auto-reconnecting EventSource on frontend
 
 ## Not Started
 
@@ -103,12 +104,6 @@
 - **Scope**: Backend inbox scoping, frontend inbox switcher, per-inbox settings
 
 ### Backend / Infrastructure
-
-#### Server-Sent Events
-- **Effort**: Medium
-- **Impact**: High
-- **Description**: Replace 60-second polling with real-time push. The webhook handler broadcasts an event when an email arrives; connected browsers get notified instantly.
-- **Scope**: Backend SSE endpoint, frontend EventSource hook, Cloud Run connection management
 
 #### Background Encryption Migration
 - **Effort**: Low

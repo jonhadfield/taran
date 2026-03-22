@@ -39,6 +39,7 @@ type RouterDeps struct {
 	AutoArchiveHandler   *handler.AutoArchiveHandler
 	LabelHandler         *handler.LabelHandler
 	SavedSearchHandler   *handler.SavedSearchHandler
+	EventsHandler        *handler.EventsHandler
 }
 
 func NewRouter(deps RouterDeps) *http.ServeMux {
@@ -124,6 +125,11 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("POST /api/digests/{id}/feedback", deps.DigestHandler.UpsertFeedback)
 	api.HandleFunc("GET /api/digests/{id}/feedback", deps.DigestHandler.GetFeedback)
 	api.HandleFunc("DELETE /api/digests/{id}/feedback", deps.DigestHandler.DeleteFeedback)
+
+	// SSE events stream
+	if deps.EventsHandler != nil {
+		api.HandleFunc("GET /api/events", deps.EventsHandler.Stream)
+	}
 
 	// Admin routes
 	admin := http.NewServeMux()

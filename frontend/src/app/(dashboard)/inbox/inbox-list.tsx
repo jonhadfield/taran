@@ -17,6 +17,7 @@ import { InboxRowActions } from "./inbox-row-actions";
 import { BulkActionBar } from "./bulk-action-bar";
 import { EmailPreview } from "./email-preview";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useEventSource } from "@/hooks/use-event-source";
 
 const avatarColors = [
   "bg-blue-500",
@@ -171,10 +172,15 @@ export function InboxList({
     };
   }, [searchInput]);
 
-  const { data: res } = usePolling<ListResponse<Email>>(
+  const { data: res, refresh } = usePolling<ListResponse<Email>>(
     `emails?${queryString}`,
     { data: initialEmails, total: initialTotal }
   );
+
+  // Real-time updates via SSE — triggers immediate refresh when an email is processed
+  useEventSource(useCallback(() => {
+    refresh();
+  }, [refresh]));
 
   const emails = useMemo(() => res.data || [], [res.data]);
   const total = res.total;
