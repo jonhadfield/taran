@@ -216,12 +216,14 @@ gcloud services enable run.googleapis.com
 gcloud services enable cloudbuild.googleapis.com
 gcloud services enable artifactregistry.googleapis.com
 gcloud services enable cloudscheduler.googleapis.com
+gcloud services enable secretmanager.googleapis.com
 ```
 
 These commands tell Google Cloud to activate:
 - **Cloud Run**: runs your backend container
 - **Cloud Build**: builds your Docker container in the cloud
 - **Artifact Registry**: stores your built container images
+- **Secret Manager**: stores sensitive credentials securely (API keys, database passwords)
 - **Cloud Scheduler**: triggers digest generation on a schedule (used in Part 9)
 
 ### Step 2: Clone the Repository
@@ -253,7 +255,33 @@ openssl rand -hex 32
 
 Each command outputs a long string of random characters like `a3f8b2c1d4e5...`. Save all four -- you will need them in the next step.
 
-### Step 4: Initial Deploy to Cloud Run
+### Step 4: Store Secrets in Secret Manager
+
+Sensitive values (API keys, database credentials, encryption keys) are stored in Google Secret Manager rather than as plaintext environment variables. This prevents them from being visible to anyone with `gcloud run services describe` access.
+
+Create each secret by piping its value:
+
+```bash
+echo -n "<your-neon-connection-string>" | gcloud secrets create taran-db-url --data-file=- --replication-policy=automatic
+echo -n "<your-webhook-secret>" | gcloud secrets create taran-webhook-secret --data-file=- --replication-policy=automatic
+echo -n "<your-api-key>" | gcloud secrets create taran-api-key --data-file=- --replication-policy=automatic
+echo -n "<your-anthropic-api-key>" | gcloud secrets create taran-anthropic-api-key --data-file=- --replication-policy=automatic
+echo -n "<your-unsubscribe-secret>" | gcloud secrets create taran-unsubscribe-secret --data-file=- --replication-policy=automatic
+echo -n "<your-encryption-key>" | gcloud secrets create taran-encryption-key --data-file=- --replication-policy=automatic
+```
+
+Then grant the Cloud Run service account permission to read them:
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format='value(projectNumber)')
+SA="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+for SECRET in taran-db-url taran-webhook-secret taran-api-key taran-anthropic-api-key taran-unsubscribe-secret taran-encryption-key; do
+  gcloud secrets add-iam-policy-binding "$SECRET" --member="$SA" --role="roles/secretmanager.secretAccessor" --quiet
+done
+```
+
+### Step 5: Initial Deploy to Cloud Run
 
 Run the following command, replacing every `<placeholder>` with your actual values. Choose a region close to your users and your Neon database (e.g., `europe-west2` for the UK, `us-central1` for the US):
 
@@ -267,52 +295,58 @@ gcloud run deploy mailbrief \
   --port 8080 \
   --set-env-vars "\
 TARAN_HOST=0.0.0.0,\
-TARAN_DB_URL=<your-neon-connection-string>,\
-TARAN_WEBHOOK_SECRET=<your-webhook-secret>,\
-TARAN_API_KEY=<your-api-key>,\
 TARAN_LLM_PROVIDER=anthropic,\
-TARAN_ANTHROPIC_API_KEY=<your-anthropic-api-key>,\
 TARAN_ANTHROPIC_MODEL=claude-haiku-4-5-20251001,\
 TARAN_DIGEST_CRON=0 7 * * *,\
 TARAN_DIGEST_TIMEZONE=UTC,\
 TARAN_EMAIL_DOMAIN=<yourdomain.com>,\
 TARAN_ADMIN_EMAILS=<your-personal-email>,\
 TARAN_ALLOWED_ORIGINS=https://<yourdomain.com>,\
-TARAN_UNSUBSCRIBE_SECRET=<your-unsubscribe-secret>,\
-TARAN_ENCRYPTION_KEY=<your-encryption-key>,\
-TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT=500000"
+TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT=500000" \
+  --set-secrets "\
+TARAN_DB_URL=taran-db-url:latest,\
+TARAN_WEBHOOK_SECRET=taran-webhook-secret:latest,\
+TARAN_API_KEY=taran-api-key:latest,\
+TARAN_ANTHROPIC_API_KEY=taran-anthropic-api-key:latest,\
+TARAN_UNSUBSCRIBE_SECRET=taran-unsubscribe-secret:latest,\
+TARAN_ENCRYPTION_KEY=taran-encryption-key:latest"
 ```
 
-**What each environment variable means:**
+**Environment variables** (non-sensitive, set as `--set-env-vars`):
 
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `TARAN_HOST` | IP address to listen on. Always `0.0.0.0` for Cloud Run. | `0.0.0.0` |
-| `TARAN_DB_URL` | Your Neon PostgreSQL connection string from Part 3. | `postgresql://neondb_owner:...` |
-| `TARAN_WEBHOOK_SECRET` | Random secret that authenticates incoming email webhooks. | Output of `openssl rand -hex 32` |
-| `TARAN_API_KEY` | Random secret that authenticates the frontend-to-backend connection. | Output of `openssl rand -hex 32` |
 | `TARAN_LLM_PROVIDER` | Which AI provider to use. Options: `anthropic` or `openai`. | `anthropic` |
-| `TARAN_ANTHROPIC_API_KEY` | Your Anthropic API key, from [console.anthropic.com](https://console.anthropic.com) under API Keys. | `sk-ant-api03-...` |
 | `TARAN_ANTHROPIC_MODEL` | Which Claude model to use. Haiku is fast and affordable. | `claude-haiku-4-5-20251001` |
 | `TARAN_DIGEST_CRON` | Default digest schedule in cron format. `0 7 * * *` means 7am daily. | `0 7 * * *` |
 | `TARAN_DIGEST_TIMEZONE` | Default timezone for digest scheduling. | `UTC` |
 | `TARAN_EMAIL_DOMAIN` | Your domain name, used to create user email addresses. | `yourdomain.com` |
 | `TARAN_ADMIN_EMAILS` | Comma-separated list of admin email addresses. | `you@gmail.com` |
 | `TARAN_ALLOWED_ORIGINS` | Your frontend URL, for CORS security. | `https://yourdomain.com` |
-| `TARAN_UNSUBSCRIBE_SECRET` | Random secret that secures email unsubscribe links. | Output of `openssl rand -hex 32` |
-| `TARAN_ENCRYPTION_KEY` | AES-256 key for encrypting email bodies at rest. | Output of `openssl rand -hex 32` |
 | `TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT` | AI token budget per user per month. 500,000 is a good start. | `500000` |
 
-> **Note:** You will add `TARAN_RESEND_API_KEY`, `TARAN_EMAIL_FROM`, and `TARAN_BASE_URL` later in Part 7, after setting up Resend.
+**Secrets** (sensitive, stored in Secret Manager via `--set-secrets`):
 
-> **Optional: LLM fallback provider.** If you want automatic failover between providers, set both API keys and add: `TARAN_OPENAI_API_KEY=<key>,TARAN_OPENAI_MODEL=gpt-4.1-mini`. The backend will try the primary provider first and fall back to the other if it fails.
+| Secret | Description |
+|--------|-------------|
+| `taran-db-url` | Your Neon PostgreSQL connection string from Part 3 |
+| `taran-webhook-secret` | Random secret that authenticates incoming email webhooks |
+| `taran-api-key` | Random secret that authenticates the frontend-to-backend connection |
+| `taran-anthropic-api-key` | Your Anthropic API key from [console.anthropic.com](https://console.anthropic.com) |
+| `taran-unsubscribe-secret` | Random secret that secures email unsubscribe links |
+| `taran-encryption-key` | AES-256 key for encrypting email bodies at rest |
+
+> **Note:** You will add `taran-resend-api-key` (as a secret) and `TARAN_EMAIL_FROM`, `TARAN_BASE_URL` (as env vars) later in Part 7, after setting up Resend.
+
+> **Optional: LLM fallback provider.** If you want automatic failover, create an additional secret (`echo -n "<key>" | gcloud secrets create taran-openai-api-key ...`) and add `TARAN_OPENAI_MODEL=gpt-4.1-mini` as an env var and `TARAN_OPENAI_API_KEY=taran-openai-api-key:latest` as a secret.
 
 The first deploy will take 3 to 5 minutes. Google Cloud will:
 1. Upload your source code.
 2. Build the Docker container in the cloud.
 3. Deploy the container to Cloud Run.
 
-### Step 5: Note Your Cloud Run URL
+### Step 6: Note Your Cloud Run URL
 
 When the deploy finishes, the output will include a line like:
 
@@ -322,7 +356,7 @@ Service URL: https://mailbrief-abc123-nw.a.run.app
 
 **Copy this URL and save it.** You will need it in Part 5 (frontend), Part 8 (email routing), and Part 9 (scheduler).
 
-### Step 6: Set Up Continuous Deployment
+### Step 7: Set Up Continuous Deployment
 
 Instead of manually deploying each time you update the code, set up a Cloud Build trigger so the backend auto-deploys on every push to `main`:
 
@@ -349,7 +383,7 @@ Alternatively, use Cloud Run's built-in continuous deployment:
 
 After this, every push to `main` will trigger a build and deploy automatically. Existing environment variables are preserved across deploys.
 
-### Step 7: Test the Health Endpoint
+### Step 8: Test the Health Endpoint
 
 ```bash
 curl https://<your-cloud-run-url>/health
@@ -584,18 +618,25 @@ Go back to the Resend dashboard. Click on your domain. Click **Verify**. If all 
 
 ### Step 6: Update the Backend
 
-Now add the Resend API key, sender address, and base URL to your Cloud Run deployment. Use `--update-env-vars` (not `--set-env-vars`) to add new variables without removing existing ones:
+First, store the Resend API key in Secret Manager:
+
+```bash
+echo -n "<your-resend-api-key>" | gcloud secrets create taran-resend-api-key --data-file=- --replication-policy=automatic
+
+PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format='value(projectNumber)')
+gcloud secrets add-iam-policy-binding taran-resend-api-key \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor" --quiet
+```
+
+Then add the secret and env vars to Cloud Run:
 
 ```bash
 gcloud run services update mailbrief \
   --region <your-region> \
-  --update-env-vars "\
-TARAN_RESEND_API_KEY=<your-resend-api-key>,\
-TARAN_EMAIL_FROM=digest@<yourdomain.com>,\
-TARAN_BASE_URL=https://<your-cloud-run-url>"
+  --update-env-vars "TARAN_EMAIL_FROM=digest@<yourdomain.com>,TARAN_BASE_URL=https://<your-cloud-run-url>" \
+  --update-secrets "TARAN_RESEND_API_KEY=taran-resend-api-key:latest"
 ```
-
-> **Warning:** `--set-env-vars` **replaces all** environment variables. Always use `--update-env-vars` when adding new variables to an existing deployment.
 
 ---
 
