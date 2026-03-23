@@ -80,8 +80,33 @@ func (r *AccountRepo) ListByUser(ctx context.Context, userID string) ([]domain.E
 }
 
 func (r *AccountRepo) Delete(ctx context.Context, userID, id string) error {
-	tag, err := r.pool.Exec(ctx,
-		`UPDATE email_account SET is_active = false, updated_at = NOW() WHERE id = $1 AND user_id = $2 AND is_active = true`,
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Delete orphaned digests — digests where ALL items came from this account's emails.
+	// After the CASCADE delete of emails (and their digest_items), these digests would
+	// have zero items. Clean them up first while we can still identify them.
+	_, err = tx.Exec(ctx, `
+		DELETE FROM digest WHERE user_id = $1 AND id IN (
+			SELECT d.id FROM digest d
+			WHERE d.user_id = $1
+			AND NOT EXISTS (
+				SELECT 1 FROM digest_item di
+				JOIN email e ON e.id = di.email_id
+				WHERE di.digest_id = d.id AND e.email_account_id != $2
+			)
+		)`, userID, id)
+	if err != nil {
+		return fmt.Errorf("delete orphaned digests: %w", err)
+	}
+
+	// Hard-delete the account — CASCADE deletes all emails, which cascades to
+	// extractions, feedback, attachments, labels, and remaining digest_items.
+	tag, err := tx.Exec(ctx,
+		`DELETE FROM email_account WHERE id = $1 AND user_id = $2`,
 		id, userID,
 	)
 	if err != nil {
@@ -90,5 +115,6 @@ func (r *AccountRepo) Delete(ctx context.Context, userID, id string) error {
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("account not found")
 	}
-	return nil
+
+	return tx.Commit(ctx)
 }

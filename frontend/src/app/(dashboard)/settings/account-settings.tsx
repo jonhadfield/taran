@@ -107,7 +107,7 @@ export function AccountSettings({
               <span className="font-medium">
                 {deleteTarget?.EmailAddress}
               </span>
-              ? This inbox will stop receiving emails.
+              ? This will permanently delete all emails, extractions, and digests associated with this inbox. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

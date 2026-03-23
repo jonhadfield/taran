@@ -52,6 +52,17 @@ func validateUsername(username string) error {
 func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 
+	// Enforce single-inbox limit
+	existing, err := h.Accounts.ListByUser(r.Context(), userID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to check existing accounts")
+		return
+	}
+	if len(existing) > 0 {
+		WriteError(w, http.StatusConflict, "you already have an inbox")
+		return
+	}
+
 	var req createAccountRequest
 	if err := LimitedJSONDecoder(r).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
@@ -72,12 +83,12 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	emailAddress := req.Username + "@" + h.EmailDomain
 
-	existing, err := h.Accounts.GetByEmailAddress(r.Context(), emailAddress)
+	taken, err := h.Accounts.GetByEmailAddress(r.Context(), emailAddress)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to check username availability")
 		return
 	}
-	if existing != nil {
+	if taken != nil {
 		WriteError(w, http.StatusConflict, "username is already taken")
 		return
 	}
