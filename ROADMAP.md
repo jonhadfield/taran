@@ -46,6 +46,7 @@
 - **Digest Diff Highlighting** — Inline visual diffs: new topics get sparkle icon + green ring, new-sender emails get green left border + badge
 - **Empty State Illustrations** — Custom SVG illustrations for inbox, digests, senders, dashboard, search, and subscriptions empty states
 - **Seed Script** — `make seed` populates local dev with 30 emails, 2 digests, 3 labels for realistic testing
+- **E2E Tests with Playwright** — Workflow tests for inbox, digests, command palette, onboarding; CI job with PostgreSQL + backend
 
 ## Not Started
 
@@ -140,12 +141,6 @@
 - **Scope**: Backend middleware, separate token buckets by auth type
 
 ### Developer Experience
-
-#### E2E Tests with Playwright
-- **Effort**: High
-- **Impact**: High
-- **Description**: Test the full login → forward email → view inbox → generate digest flow in a real browser. Run in CI against a test database.
-- **Scope**: Playwright test suite, CI configuration, test fixtures
 
 #### OpenAPI Spec
 - **Effort**: Medium

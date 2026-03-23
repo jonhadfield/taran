@@ -62,3 +62,80 @@ jobs:
           DATABASE_URL: postgresql://localhost/ci
           BACKEND_URL: http://localhost:8080
           API_KEY: ci-test-key
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [backend]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: taran
+          POSTGRES_PASSWORD: taran
+          POSTGRES_DB: taran
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://taran:taran@localhost:5432/taran?sslmode=disable
+      E2E_DATABASE_URL: postgresql://taran:taran@localhost:5432/taran?sslmode=disable
+      BETTER_AUTH_SECRET: ci-test-secret
+      BETTER_AUTH_URL: http://localhost:3002
+      BACKEND_URL: http://localhost:8080
+      API_KEY: ci-test-key
+      TARAN_HOST: 0.0.0.0
+      TARAN_DB_URL: postgresql://taran:taran@localhost:5432/taran?sslmode=disable
+      TARAN_WEBHOOK_SECRET: ci-webhook-secret
+      TARAN_API_KEY: ci-test-key
+      TARAN_LLM_PROVIDER: anthropic
+      TARAN_ANTHROPIC_API_KEY: sk-ant-dummy
+      TARAN_ANTHROPIC_MODEL: claude-haiku-4-5-20251001
+      TARAN_EMAIL_DOMAIN: mailbrief.io
+      TARAN_ADMIN_EMAILS: test@example.com
+      TARAN_ALLOWED_ORIGINS: http://localhost:3002
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build and start backend
+        run: |
+          cd backend
+          go build -o taran ./cmd/taran
+          ./taran &
+          sleep 3
+          curl -sf http://localhost:8080/health || exit 1
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Install Playwright browsers
+        run: cd frontend && npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: cd frontend && npm run test:e2e
+        env:
+          NEXT_PUBLIC_APP_URL: http://localhost:3002
+          NEXT_PUBLIC_EMAIL_DOMAIN: mailbrief.io
+
+      - name: Upload test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/test-results/
+          retention-days: 7

@@ -1,26 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { loginAsTestUser, cleanupTestUser } from "./auth-helper";
-import pg from "pg";
-
-const DB_URL = process.env.DATABASE_URL || "postgresql://taran:taran@localhost:5432/taran?sslmode=disable";
+import { createEmailAccount } from "./fixtures";
 
 let userId: string;
-
-async function createEmailAccount(userId: string): Promise<string> {
-  const client = new pg.Client(DB_URL);
-  await client.connect();
-  try {
-    const accountId = crypto.randomUUID();
-    await client.query(
-      `INSERT INTO email_account (id, user_id, email_address, display_name, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, true, NOW(), NOW())`,
-      [accountId, userId, `test-${accountId.slice(0, 8)}@mailbrief.io`, "Test Inbox"]
-    );
-    return accountId;
-  } finally {
-    await client.end();
-  }
-}
 
 test.describe("Dashboard", () => {
   test.afterEach(async () => {

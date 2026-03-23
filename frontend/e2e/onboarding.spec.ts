@@ -27,7 +27,7 @@ test.describe("Onboarding flow", () => {
     await page.goto("/onboarding");
 
     // Click through step 1
-    await page.getByRole("button", { name: /get started|next|continue/i }).click();
+    await page.getByRole("button", { name: /get started/i, exact: false }).first().click();
 
     // Step 2 should show a username input
     await expect(page.getByPlaceholder(/username/i)).toBeVisible({ timeout: 5000 });

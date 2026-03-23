@@ -1,24 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { loginAsTestUser, cleanupTestUser } from "./auth-helper";
-import pg from "pg";
-
-const DB_URL = process.env.DATABASE_URL || "postgresql://taran:taran@localhost:5432/taran?sslmode=disable";
+import { createEmailAccount } from "./fixtures";
 
 let userId: string;
-
-async function createEmailAccount(userId: string): Promise<void> {
-  const client = new pg.Client(DB_URL);
-  await client.connect();
-  try {
-    await client.query(
-      `INSERT INTO email_account (id, user_id, email_address, display_name, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, true, NOW(), NOW())`,
-      [crypto.randomUUID(), userId, `test-${userId.slice(0, 8)}@mailbrief.io`, "Test Inbox"]
-    );
-  } finally {
-    await client.end();
-  }
-}
 
 test.describe("Settings page", () => {
   test.afterEach(async () => {
@@ -36,11 +20,11 @@ test.describe("Settings page", () => {
 
     await expect(page.getByRole("heading", { name: /Settings/i })).toBeVisible({ timeout: 10000 });
 
-    // Check group headers
-    await expect(page.getByText("General")).toBeVisible();
-    await expect(page.getByText("Digest")).toBeVisible();
-    await expect(page.getByText("Organisation")).toBeVisible();
-    await expect(page.getByText("Advanced")).toBeVisible();
+    // Check group headers (use role heading to avoid matching sidebar/card text)
+    await expect(page.getByRole("heading", { name: "General" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Digest" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Organisation" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Advanced" })).toBeVisible();
   });
 
   test("settings nav pill bar is visible", async ({ context, page }) => {
@@ -63,6 +47,6 @@ test.describe("Settings page", () => {
 
     await page.goto("/settings");
 
-    await expect(page.getByText(/Accent Color|Appearance/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Accent Color")).toBeVisible({ timeout: 10000 });
   });
 });
