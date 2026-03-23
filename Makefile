@@ -1,7 +1,7 @@
 .PHONY: start stop restart \
        start-backend stop-backend restart-backend build-backend build-backend-linux \
        start-frontend stop-frontend restart-frontend \
-       db stop-db
+       db stop-db seed
 
 ROOT_DIR      := $(CURDIR)
 BACKEND_PORT  := 8080
@@ -89,3 +89,9 @@ db:
 
 stop-db:
 	cd $(ROOT_DIR)/backend && docker compose down
+
+# --- Seed ---
+
+seed:
+	@cd $(ROOT_DIR)/backend && go run ./cmd/seed/
+	@echo "Database seeded"
