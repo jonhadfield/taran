@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiGet } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -14,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { UsernameForm } from "@/components/username-form";
 import { CopyButton } from "../settings/copy-button";
 import { Mail, ArrowRight, Check } from "lucide-react";
-import type { EmailAccount, ListResponse } from "@/types/api";
 import { APP_NAME } from "@/lib/config";
 import { ForwardingGuide } from "@/components/forwarding-guide";
 
@@ -32,15 +30,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [emailAddress, setEmailAddress] = useState("");
 
-  const handleInboxCreated = async () => {
-    try {
-      const res = await apiGet<ListResponse<EmailAccount>>("accounts");
-      if (res.data && res.data.length > 0) {
-        setEmailAddress(res.data[0].EmailAddress);
-      }
-    } catch {
-      // Continue anyway
-    }
+  const handleInboxCreated = (createdEmailAddress: string) => {
+    setEmailAddress(createdEmailAddress);
     setStep(3);
   };
 

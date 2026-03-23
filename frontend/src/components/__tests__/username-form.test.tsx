@@ -94,7 +94,7 @@ describe("UsernameForm", () => {
 
   it("submits and calls onSuccess", async () => {
     mockApiGet.mockResolvedValue({ available: true });
-    mockApiPost.mockResolvedValue({ ID: "1", Username: "newuser" });
+    mockApiPost.mockResolvedValue({ ID: "1", Username: "newuser", EmailAddress: "newuser@mailbrief.io" });
     const { input, onSuccess } = setup();
 
     await typeAndDebounce(input, "newuser");
@@ -107,7 +107,7 @@ describe("UsernameForm", () => {
     });
 
     expect(mockApiPost).toHaveBeenCalledWith("accounts", { Username: "newuser" });
-    expect(onSuccess).toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalledWith("newuser@mailbrief.io");
   });
 
   it("handles 409 conflict by marking username as taken", async () => {

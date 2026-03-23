@@ -11,7 +11,7 @@ import type { EmailAccount } from "@/types/api";
 const EMAIL_DOMAIN = process.env.NEXT_PUBLIC_EMAIL_DOMAIN || "mailbrief.io";
 
 interface UsernameFormProps {
-  onSuccess: () => void;
+  onSuccess: (emailAddress: string) => void;
 }
 
 export function UsernameForm({ onSuccess }: UsernameFormProps) {
@@ -37,9 +37,11 @@ export function UsernameForm({ onSuccess }: UsernameFormProps) {
       );
       setAvailable(res.available);
       setReason(res.reason || "");
-    } catch {
+      setError("");
+    } catch (err) {
       setAvailable(null);
       setReason("");
+      setError(err instanceof Error ? err.message : "Unable to check availability — is the backend running?");
     } finally {
       setChecking(false);
     }
@@ -65,10 +67,10 @@ export function UsernameForm({ onSuccess }: UsernameFormProps) {
     setError("");
 
     try {
-      await apiPost<EmailAccount>("accounts", {
+      const account = await apiPost<EmailAccount>("accounts", {
         Username: username.toLowerCase().trim(),
       });
-      onSuccess();
+      onSuccess(account.EmailAddress);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setAvailable(false);
