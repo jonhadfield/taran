@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderInfo, SenderSuggestion } from "@/types/api";
-import { Users, Loader2, X, MailX } from "lucide-react";
+import { Loader2, X, MailX } from "lucide-react";
+import { EmptyState, SendersIllustration } from "@/components/empty-state";
 import Link from "next/link";
 import { SenderSparkline } from "./sender-sparkline";
 
@@ -257,13 +258,11 @@ export default function SendersPage() {
           Loading senders...
         </div>
       ) : senders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Users className="size-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium">No senders yet</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Senders will appear here once you receive emails.
-          </p>
-        </div>
+        <EmptyState
+          icon={<SendersIllustration />}
+          title="No senders yet"
+          description="Senders will appear here once you receive emails."
+        />
       ) : (
         <div className="divide-y rounded-lg border">
           {filteredSenders.map((sender) => {

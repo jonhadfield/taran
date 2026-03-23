@@ -44,16 +44,10 @@
 - **Server-Sent Events** — Real-time push replacing 60s polling; SSE broker in Go backend, auto-reconnecting EventSource on frontend
 - **Onboarding Checklist** — Persistent dashboard checklist (create inbox, receive email, generate digest, configure settings) with progress bar, dismissible
 - **Digest Diff Highlighting** — Inline visual diffs: new topics get sparkle icon + green ring, new-sender emails get green left border + badge
+- **Empty State Illustrations** — Custom SVG illustrations for inbox, digests, senders, dashboard, search, and subscriptions empty states
+- **Seed Script** — `make seed` populates local dev with 30 emails, 2 digests, 3 labels for realistic testing
 
 ## Not Started
-
-### UI/UX
-
-#### Empty State Illustrations
-- **Effort**: Low
-- **Impact**: Low
-- **Description**: Replace generic icons with more engaging illustrations or animated SVGs for zero-state inbox, digests, and senders pages.
-- **Scope**: Frontend design assets
 
 ### Features
 
@@ -152,12 +146,6 @@
 - **Impact**: High
 - **Description**: Test the full login → forward email → view inbox → generate digest flow in a real browser. Run in CI against a test database.
 - **Scope**: Playwright test suite, CI configuration, test fixtures
-
-#### Seed Script
-- **Effort**: Low
-- **Impact**: Medium
-- **Description**: Populate local dev with realistic test data — users, emails, extractions, digests, labels — so developers can work on the UI without manual setup.
-- **Scope**: Backend CLI command or script
 
 #### OpenAPI Spec
 - **Effort**: Medium

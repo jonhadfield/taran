@@ -9,7 +9,8 @@ import { usePolling } from "@/hooks/use-polling";
 import type { Email, Label, SavedSearch, ListResponse } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Inbox, Search, X, SlidersHorizontal, Paperclip, Calendar, ArrowUpDown, Tag, Bookmark, BookmarkPlus, Trash2 } from "lucide-react";
+import { EmptyState, InboxIllustration, SearchIllustration } from "@/components/empty-state";
+import { Search, X, SlidersHorizontal, Paperclip, Calendar, ArrowUpDown, Tag, Bookmark, BookmarkPlus, Trash2 } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import Link from "next/link";
 import { InboxFilters } from "./inbox-filters";
@@ -746,41 +747,30 @@ export function InboxList({
       />
 
       {emails.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div>
           {debouncedSearch ? (
-            <>
-              <Search className="size-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">
-                No results for &ldquo;{debouncedSearch}&rdquo;
-              </h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                Try a different search term or adjust your filters.
-              </p>
+            <EmptyState
+              icon={<SearchIllustration />}
+              title={`No results for \u201c${debouncedSearch}\u201d`}
+              description="Try a different search term or adjust your filters."
+            >
               <Button
                 variant="outline"
-                className="mt-4"
                 onClick={() => { setSearchInput(""); setSearchFilters({ hasAttachment: false, since: "", before: "" }); setActiveCategory(""); setActiveTopic(""); }}
               >
                 Clear search
               </Button>
-            </>
+            </EmptyState>
           ) : (
-            <>
-              <Inbox className="size-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">
-                {filter === "all" ? "No emails yet" : `No ${filter} emails`}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                {filter === "all"
-                  ? "Forward your newsletters to your inbox to get started:"
-                  : "Nothing to show for this filter."}
-              </p>
+            <EmptyState
+              icon={<InboxIllustration />}
+              title={filter === "all" ? "No emails yet" : `No ${filter} emails`}
+              description={filter === "all" ? "Forward your newsletters to your inbox to get started:" : "Nothing to show for this filter."}
+            >
               {filter === "all" && emailAddress && (
-                <div className="mt-3">
-                  <CopyEmailAddress emailAddress={emailAddress} />
-                </div>
+                <CopyEmailAddress emailAddress={emailAddress} />
               )}
-            </>
+            </EmptyState>
           )}
         </div>
       ) : (

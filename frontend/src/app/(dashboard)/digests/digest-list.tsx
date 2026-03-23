@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Digest, ListResponse } from "@/types/api";
-import { BookOpen, Mail, MailX } from "lucide-react";
+import { Mail, MailX } from "lucide-react";
+import { EmptyState, DigestIllustration } from "@/components/empty-state";
 import Link from "next/link";
 
 const PAGE_SIZE = 50;
@@ -30,12 +31,12 @@ export function DigestList({ initialDigests, initialTotal }: DigestListProps) {
     <>
       {digests.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <BookOpen className="size-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No digests yet</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Once you start receiving emails, digests will be generated automatically.
-            </p>
+          <CardContent>
+            <EmptyState
+              icon={<DigestIllustration />}
+              title="No digests yet"
+              description="Once you start receiving emails, digests will be generated automatically."
+            />
           </CardContent>
         </Card>
       ) : (

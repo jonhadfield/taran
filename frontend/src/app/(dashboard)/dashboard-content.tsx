@@ -7,6 +7,7 @@ import type { DashboardData, WeekCount, TopicCount, CategoryCount, HeatmapCell }
 import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, Loader2, AlertCircle, BarChart3, Tag, CheckSquare, PieChart, Clock } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { EmptyState, DashboardIllustration } from "@/components/empty-state";
 import Link from "next/link";
 
 interface DashboardContentProps {
@@ -467,17 +468,14 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
       {/* Empty state */}
       {emails.length === 0 && digests.length === 0 && (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Mail className="size-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No emails yet</h3>
-            <p className="text-sm text-muted-foreground mt-2">
-              Forward your newsletters to your inbox to get started:
-            </p>
-            {emailAddress && (
-              <div className="mt-3">
-                <CopyEmailAddress emailAddress={emailAddress} />
-              </div>
-            )}
+          <CardContent>
+            <EmptyState
+              icon={<DashboardIllustration />}
+              title="No emails yet"
+              description="Forward your newsletters to your inbox to get started:"
+            >
+              {emailAddress && <CopyEmailAddress emailAddress={emailAddress} />}
+            </EmptyState>
           </CardContent>
         </Card>
       )}
