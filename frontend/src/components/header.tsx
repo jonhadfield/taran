@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,6 +23,7 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { permission, requestPermission } = useEmailNotifications();
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -58,7 +60,7 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
       </div>
 
       <div className="flex items-center gap-1">
-        {permission !== "unsupported" && (
+        {mounted && permission !== "unsupported" && (
           <Button
             variant="ghost"
             size="icon"
