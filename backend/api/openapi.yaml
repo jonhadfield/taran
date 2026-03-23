@@ -55,6 +55,8 @@ tags:
     description: Bring-your-own-key LLM provider management
   - name: Export
     description: Data export
+  - name: Events
+    description: Real-time Server-Sent Events stream
   - name: Invites
     description: Invite management (admin)
   - name: Waitlist
@@ -1567,6 +1569,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/WaitlistRequest"
 
+  # ── Events (SSE) ──────────────────────────────────────────────────
+  /api/events:
+    get:
+      operationId: streamEvents
+      summary: Stream real-time events
+      description: |
+        Server-Sent Events (SSE) stream that pushes real-time notifications
+        to connected clients. Events are scoped to the authenticated user.
+
+        The stream sends a keepalive comment (`: keepalive`) every 30 seconds
+        to prevent connection timeouts. Clients should auto-reconnect on
+        disconnect with exponential backoff.
+
+        Event format: `data: {"type":"email_processed","emailId":"..."}\n\n`
+      tags: [Events]
+      responses:
+        "200":
+          description: SSE event stream opened successfully.
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SSEEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   # ── Admin ───────────────────────────────────────────────────────────
   /api/admin/stats:
     get:
@@ -2960,3 +2987,18 @@ components:
             $ref: "#/components/schemas/WaitlistRequest"
         total:
           type: integer
+
+    SSEEvent:
+      type: object
+      description: A real-time event pushed via Server-Sent Events.
+      required: [type, emailId]
+      properties:
+        type:
+          type: string
+          description: The event type.
+          enum: [email_processed]
+          example: email_processed
+        emailId:
+          type: string
+          description: The ID of the email that was processed.
+          example: "550e8400-e29b-41d4-a716-446655440000"
