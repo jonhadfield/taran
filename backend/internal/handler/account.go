@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
@@ -141,7 +142,12 @@ func (h *AccountHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	if err := h.Accounts.Delete(r.Context(), userID, id); err != nil {
-		WriteError(w, http.StatusInternalServerError, "failed to delete account")
+		slog.Error("failed to delete account", "accountID", id, "userID", userID, "error", err)
+		if err.Error() == "account not found" {
+			WriteError(w, http.StatusNotFound, "account not found")
+		} else {
+			WriteError(w, http.StatusInternalServerError, "failed to delete account")
+		}
 		return
 	}
 
