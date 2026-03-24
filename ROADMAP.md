@@ -50,6 +50,10 @@
 - **Per-User Rate Limiting** — Per-user token bucket (5 req/s, 20 burst) after auth, in addition to existing per-IP limiter
 - **Weekly Activity Summary Email** — Sunday email with email count, top senders, category breakdown, action items; opt-in via preferences
 - **Session Token Rotation** — Tokens rotate every hour; backend generates new token, proxy sets new cookie with HMAC signature
+- **Content Security Policy Headers** — CSP headers on all responses, special handling for /docs CDN scripts
+- **Split Rate Limiting** — Separate rate limits for API (10 req/s) vs webhook/cron (50 req/s) traffic
+- **OpenAPI Spec** — Full OpenAPI 3.1 spec covering all 59 endpoints, served at /docs via Scalar UI
+- **Slack/Webhook Integration** — POST digest summaries to user-configured webhook URLs; settings UI with URL input
 
 ## Not Started
 
@@ -60,12 +64,6 @@
 - **Impact**: Medium
 - **Description**: Move beyond detailed/concise to user-defined digest formats. Let users choose what sections appear (e.g., only action items and links, or summaries only), reorder sections, and set content density per section.
 - **Scope**: Backend template schema and LLM prompt customization, frontend template builder UI
-
-#### Slack/Webhook Integration
-- **Effort**: Medium
-- **Impact**: Medium
-- **Description**: Push digest summaries to Slack channels or arbitrary webhook URLs. Users configure destination in settings.
-- **Scope**: Backend webhook dispatcher, Slack formatting, frontend config UI
 
 #### Email Rules Engine
 - **Effort**: High
@@ -111,29 +109,6 @@
 - **Impact**: Low
 - **Description**: Track admin actions (invite, retry, batch operations) for accountability and debugging.
 - **Scope**: Backend audit table, middleware, admin UI log viewer
-
-### Security
-
-#### Content Security Policy Headers
-- **Effort**: Low
-- **Impact**: High
-- **Description**: Add CSP headers to prevent XSS beyond the current HTML sanitisation. Restrict script sources, style sources, and frame ancestors.
-- **Scope**: Backend security middleware
-
-
-#### Per-Key API Rate Limiting
-- **Effort**: Low
-- **Impact**: Medium
-- **Description**: Separate rate limits for webhook traffic vs user API traffic. Webhook bursts (email flood) shouldn't block user API requests.
-- **Scope**: Backend middleware, separate token buckets by auth type
-
-### Developer Experience
-
-#### OpenAPI Spec
-- **Effort**: Medium
-- **Impact**: Medium
-- **Description**: Hand-written OpenAPI 3.1 spec (the standard formerly known as Swagger) served at `/docs` via Scalar UI. Swagger is the old name — OpenAPI is the spec, Swagger/Scalar/Redoc are UIs that render it. For a plain `net/http` backend, a hand-written YAML spec is cleaner than annotation-based generation (swaggo/swag).
-- **Scope**: Backend YAML spec, `/docs` HTML endpoint, Dockerfile update
 
 ## Future Considerations
 

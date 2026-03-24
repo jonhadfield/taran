@@ -46,6 +46,8 @@ type updatePreferenceRequest struct {
 	QuietHoursEnabled  *bool     `json:"QuietHoursEnabled"`
 	QuietHoursStart    *int      `json:"QuietHoursStart"`
 	QuietHoursEnd      *int      `json:"QuietHoursEnd"`
+	DigestWebhook      *bool     `json:"DigestWebhook"`
+	WebhookURL         *string   `json:"WebhookURL"`
 }
 
 func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -167,6 +169,18 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate webhook URL
+	if req.WebhookURL != nil && *req.WebhookURL != "" {
+		if len(*req.WebhookURL) > 2048 {
+			WriteError(w, http.StatusBadRequest, "webhook URL must be under 2048 characters")
+			return
+		}
+		if !strings.HasPrefix(*req.WebhookURL, "https://") && !strings.HasPrefix(*req.WebhookURL, "http://") {
+			WriteError(w, http.StatusBadRequest, "webhook URL must start with http:// or https://")
+			return
+		}
+	}
+
 	// Load existing preference and merge
 	existing, err := h.Preferences.Get(r.Context(), userID)
 	if err != nil {
@@ -218,6 +232,12 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.QuietHoursEnd != nil {
 		existing.QuietHoursEnd = *req.QuietHoursEnd
+	}
+	if req.DigestWebhook != nil {
+		existing.DigestWebhook = *req.DigestWebhook
+	}
+	if req.WebhookURL != nil {
+		existing.WebhookURL = *req.WebhookURL
 	}
 
 	if err := h.Preferences.Upsert(r.Context(), existing); err != nil {

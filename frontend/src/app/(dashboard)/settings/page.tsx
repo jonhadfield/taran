@@ -96,6 +96,8 @@ export default function SettingsPage() {
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
   const [quietHoursStart, setQuietHoursStart] = useState(22);
   const [quietHoursEnd, setQuietHoursEnd] = useState(7);
+  const [digestWebhook, setDigestWebhook] = useState(false);
+  const [webhookURL, setWebhookURL] = useState("");
   const [prefLoading, setPrefLoading] = useState(true);
   const [prefSaving, setPrefSaving] = useState(false);
 
@@ -132,6 +134,8 @@ export default function SettingsPage() {
       setQuietHoursEnabled(pref.QuietHoursEnabled ?? false);
       setQuietHoursStart(pref.QuietHoursStart ?? 22);
       setQuietHoursEnd(pref.QuietHoursEnd ?? 7);
+      setDigestWebhook(pref.DigestWebhook ?? false);
+      setWebhookURL(pref.WebhookURL ?? "");
       if (pref.ColorTheme) {
         setColorTheme(pref.ColorTheme as Parameters<typeof setColorTheme>[0]);
       }
@@ -147,7 +151,7 @@ export default function SettingsPage() {
     fetchPreferences();
   }, [fetchAccounts, fetchPreferences]);
 
-  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme" | "ExcludedCategories" | "DailyTokenLimit" | "QuietHoursEnabled" | "QuietHoursStart" | "QuietHoursEnd">>) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme" | "ExcludedCategories" | "DailyTokenLimit" | "QuietHoursEnabled" | "QuietHoursStart" | "QuietHoursEnd" | "DigestWebhook" | "WebhookURL">>) => {
     setPrefSaving(true);
     try {
       const updated = await apiPatch<UserPreference>("preferences", updates);
@@ -165,6 +169,8 @@ export default function SettingsPage() {
       setQuietHoursEnabled(updated.QuietHoursEnabled ?? false);
       setQuietHoursStart(updated.QuietHoursStart ?? 22);
       setQuietHoursEnd(updated.QuietHoursEnd ?? 7);
+      setDigestWebhook(updated.DigestWebhook ?? false);
+      setWebhookURL(updated.WebhookURL ?? "");
       toast.success("Preferences saved");
     } catch {
       toast.error("Failed to save preferences");
@@ -263,6 +269,18 @@ export default function SettingsPage() {
             onTimezoneChange={(value) => {
               setDigestTimezone(value);
               updatePreference({ DigestTimezone: value });
+            }}
+            digestWebhook={digestWebhook}
+            webhookURL={webhookURL}
+            onToggleDigestWebhook={(checked) => {
+              setDigestWebhook(checked);
+              updatePreference({ DigestWebhook: checked });
+            }}
+            onWebhookURLChange={(value) => {
+              setWebhookURL(value);
+            }}
+            onWebhookURLSave={() => {
+              updatePreference({ WebhookURL: webhookURL });
             }}
           />
         </section>

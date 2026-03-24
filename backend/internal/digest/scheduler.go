@@ -11,6 +11,7 @@ import (
 	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/hadfielj/taran/backend/internal/mailer"
+	"github.com/hadfielj/taran/backend/internal/webhook"
 )
 
 const retryDelay = 5 * time.Minute
@@ -200,14 +201,11 @@ func (s *Scheduler) generateAndSendForUser(ctx context.Context, userID string, p
 		return true, false, false
 	}
 
-	if s.mailer == nil || !pref.DigestEmail {
-		return true, true, false
-	}
+	wantEmail := pref.DigestEmail && s.mailer != nil
+	wantWebhook := pref.DigestWebhook && pref.WebhookURL != ""
 
-	email, err := s.sessions.GetUserEmail(ctx, userID)
-	if err != nil {
-		slog.Error("failed to get user email", "userID", userID, "error", err)
-		return false, true, false
+	if !wantEmail && !wantWebhook {
+		return true, true, false
 	}
 
 	// Auto-generate share token for "view in browser" link
@@ -225,21 +223,48 @@ func (s *Scheduler) generateAndSendForUser(ctx context.Context, userID string, p
 		}
 	}
 
-	var unsubURL string
-	if s.baseURL != "" && s.unsubscribeSecret != "" {
-		unsubURL = mailer.GenerateUnsubscribeURL(s.baseURL, userID, s.unsubscribeSecret)
+	var viewURL string
+	if s.baseURL != "" && digest.ShareToken != nil {
+		viewURL = s.baseURL + "/shared/" + *digest.ShareToken
 	}
 
-	if err := s.mailer.SendDigest(ctx, email, "", digest, unsubURL); err != nil {
-		slog.Error("failed to send digest email", "userID", userID, "error", err)
-		return false, true, false
+	sent := false
+
+	// Email delivery
+	if wantEmail {
+		email, err := s.sessions.GetUserEmail(ctx, userID)
+		if err != nil {
+			slog.Error("failed to get user email", "userID", userID, "error", err)
+		} else {
+			var unsubURL string
+			if s.baseURL != "" && s.unsubscribeSecret != "" {
+				unsubURL = mailer.GenerateUnsubscribeURL(s.baseURL, userID, s.unsubscribeSecret)
+			}
+			if err := s.mailer.SendDigest(ctx, email, "", digest, unsubURL); err != nil {
+				slog.Error("failed to send digest email", "userID", userID, "error", err)
+			} else {
+				sent = true
+			}
+		}
 	}
 
-	now := time.Now()
-	if err := s.digests.SetSentAt(ctx, digest.ID, now); err != nil {
-		slog.Error("failed to set digest sent_at", "digestID", digest.ID, "error", err)
+	// Webhook delivery
+	if wantWebhook {
+		if err := webhook.SendDigest(ctx, pref.WebhookURL, digest, viewURL); err != nil {
+			slog.Error("failed to send digest webhook", "userID", userID, "url", pref.WebhookURL, "error", err)
+		} else {
+			sent = true
+		}
 	}
-	return true, true, true
+
+	if sent {
+		now := time.Now()
+		if err := s.digests.SetSentAt(ctx, digest.ID, now); err != nil {
+			slog.Error("failed to set digest sent_at", "digestID", digest.ID, "error", err)
+		}
+	}
+
+	return true, true, sent
 }
 
 func (s *Scheduler) retryFailedDigests(failures []failedUser, originalNowUTC time.Time) {

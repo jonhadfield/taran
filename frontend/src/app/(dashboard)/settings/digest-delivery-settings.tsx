@@ -8,8 +8,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
   const hour = i % 12 || 12;
@@ -41,6 +43,11 @@ interface DigestDeliverySettingsProps {
   onHourChange: (value: number) => void;
   onDayChange: (value: number) => void;
   onTimezoneChange: (value: string) => void;
+  digestWebhook: boolean;
+  webhookURL: string;
+  onToggleDigestWebhook: (checked: boolean) => void;
+  onWebhookURLChange: (value: string) => void;
+  onWebhookURLSave: () => void;
 }
 
 export function DigestDeliverySettings({
@@ -57,6 +64,11 @@ export function DigestDeliverySettings({
   onHourChange,
   onDayChange,
   onTimezoneChange,
+  digestWebhook,
+  webhookURL,
+  onToggleDigestWebhook,
+  onWebhookURLChange,
+  onWebhookURLSave,
 }: DigestDeliverySettingsProps) {
   return (
     <Card>
@@ -155,6 +167,50 @@ export function DigestDeliverySettings({
                 ))}
               </select>
             </div>
+          </div>
+        )}
+        <Separator className="my-2" />
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="digest-webhook" className="flex flex-col items-start gap-1">
+            <span>Webhook delivery</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              POST digest summaries to a URL (Slack, Zapier, etc.)
+            </span>
+          </Label>
+          <Switch
+            id="digest-webhook"
+            checked={digestWebhook}
+            onCheckedChange={onToggleDigestWebhook}
+            disabled={prefLoading || prefSaving}
+          />
+        </div>
+
+        {digestWebhook && (
+          <div className="space-y-2 border-t pt-4">
+            <Label htmlFor="webhook-url">Webhook URL</Label>
+            <div className="flex gap-2">
+              <Input
+                id="webhook-url"
+                type="url"
+                placeholder="https://hooks.slack.com/services/..."
+                value={webhookURL}
+                onChange={(e) => onWebhookURLChange(e.target.value)}
+                disabled={prefSaving}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={onWebhookURLSave}
+                disabled={prefSaving || !webhookURL}
+              >
+                Save
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Digest summaries will be POSTed as JSON with title, summary, highlights, and a link to view the full digest.
+            </p>
           </div>
         )}
       </CardContent>

@@ -165,6 +165,8 @@ type UserPreference struct {
 	QuietHoursStart      int // 0-23, hour in DigestTimezone
 	QuietHoursEnd        int // 0-23, hour in DigestTimezone
 	WeeklySummary        bool // opt-in for weekly activity summary email
+	DigestWebhook        bool   // enable webhook delivery for digests
+	WebhookURL           string // URL to POST digest summaries to
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 }

@@ -139,6 +139,9 @@ export interface UserPreference {
   QuietHoursEnabled: boolean;
   QuietHoursStart: number;
   QuietHoursEnd: number;
+  WeeklySummary: boolean;
+  DigestWebhook: boolean;
+  WebhookURL: string;
   CreatedAt: string;
   UpdatedAt: string;
 }
