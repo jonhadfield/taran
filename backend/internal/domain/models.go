@@ -113,6 +113,17 @@ type WeeklySummary struct {
 	CreatedAt   time.Time
 }
 
+type AuditEntry struct {
+	ID        string    `json:"ID"`
+	UserID    string    `json:"UserID"`
+	UserEmail string    `json:"UserEmail"`
+	Action    string    `json:"Action"`
+	Target    string    `json:"Target,omitempty"`
+	Detail    string    `json:"Detail,omitempty"`
+	IPAddress string    `json:"IPAddress,omitempty"`
+	CreatedAt time.Time `json:"CreatedAt"`
+}
+
 type DigestItem struct {
 	ID           string
 	DigestID     string

@@ -55,6 +55,8 @@
 - **OpenAPI Spec** — Full OpenAPI 3.1 spec covering all 59 endpoints, served at /docs via Scalar UI
 - **Slack/Webhook Integration** — POST digest summaries to user-configured webhook URLs; settings UI with URL input
 - **Digest PDF Export** — Download any digest as a formatted PDF (title, summary, highlights, topics, included emails)
+- **DB Connection Pool Tuning** — Configured pgx pool: 10 max / 2 min conns, 30m lifetime, 5m idle, 30s health check
+- **Audit Log** — Middleware auto-logs admin write operations; table + admin UI with scrollable log viewer
 
 ## Not Started
 
@@ -94,17 +96,6 @@
 - **Description**: If Cloud Run is temporarily down, the Cloudflare email worker currently rejects the email. A retry queue in the worker (using Durable Objects or Queues) would buffer and retry.
 - **Scope**: Cloudflare Worker rewrite, queue configuration
 
-#### Database Connection Pool Tuning
-- **Effort**: Low
-- **Impact**: Low
-- **Description**: Configure pgx pool size based on Cloud Run instance count and concurrency settings.
-- **Scope**: Backend config, pool configuration
-
-#### Audit Log
-- **Effort**: Medium
-- **Impact**: Low
-- **Description**: Track admin actions (invite, retry, batch operations) for accountability and debugging.
-- **Scope**: Backend audit table, middleware, admin UI log viewer
 
 ## Future Considerations
 

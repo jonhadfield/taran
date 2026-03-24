@@ -220,6 +220,7 @@ func main() {
 		TokenUsage:  tokenUsageRepo,
 		Preferences: preferenceRepo,
 	}
+	auditRepo := database.NewAuditRepo(pool)
 	adminStatsHandler := &handler.AdminStatsHandler{
 		Pool:        pool,
 		LLMProvider: provider.Name(),
@@ -227,6 +228,7 @@ func main() {
 		TokenUsage:  tokenUsageRepo,
 		Preferences: preferenceRepo,
 		AppSettings: appSettingRepo,
+		AuditLog:    auditRepo,
 	}
 	inviteHandler := &handler.InviteHandler{
 		Invites:     inviteRepo,
@@ -316,6 +318,7 @@ func main() {
 		SavedSearchHandler:   savedSearchHandler,
 		EventsHandler:        &handler.EventsHandler{Broker: sseBroker},
 		UserRateLimiter:      server.NewUserRateLimiter(5, 20), // 5 req/s, 20 burst per user
+		AuditRepo:            auditRepo,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewSplitRateLimiter(

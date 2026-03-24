@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hadfielj/taran/backend/internal/auth"
+	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/handler"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -41,6 +42,7 @@ type RouterDeps struct {
 	SavedSearchHandler   *handler.SavedSearchHandler
 	EventsHandler        *handler.EventsHandler
 	UserRateLimiter      *UserRateLimiter
+	AuditRepo            *database.AuditRepo
 }
 
 func NewRouter(deps RouterDeps) *http.ServeMux {
@@ -151,7 +153,13 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 		admin.HandleFunc("POST /api/admin/webhooks/{id}/replay", deps.AdminWebhookHandler.Replay)
 		admin.HandleFunc("GET /api/admin/pipeline", deps.AdminWebhookHandler.PipelineHealth)
 	}
-	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(admin))
+	admin.HandleFunc("GET /api/admin/audit-log", deps.AdminStatsHandler.GetAuditLog)
+
+	var adminHandler http.Handler = admin
+	if deps.AuditRepo != nil {
+		adminHandler = AuditMiddleware(deps.AuditRepo)(admin)
+	}
+	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(adminHandler))
 
 	var authedHandler http.Handler = api
 	if deps.UserRateLimiter != nil {

@@ -18,6 +18,7 @@ type AdminStatsHandler struct {
 	TokenUsage  database.TokenUsageRepository
 	Preferences database.PreferenceRepository
 	AppSettings *database.AppSettingRepo
+	AuditLog    *database.AuditRepo
 }
 
 func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -325,4 +326,23 @@ func (h *AdminStatsHandler) SetUserTokenLimit(w http.ResponseWriter, r *http.Req
 		"UserID":            userID,
 		"MonthlyTokenLimit": req.MonthlyTokenLimit,
 	})
+}
+
+func (h *AdminStatsHandler) GetAuditLog(w http.ResponseWriter, r *http.Request) {
+	if h.AuditLog == nil {
+		WriteJSON(w, http.StatusOK, ListResponse[domain.AuditEntry]{Data: []domain.AuditEntry{}, Total: 0})
+		return
+	}
+
+	entries, err := h.AuditLog.List(r.Context(), 100)
+	if err != nil {
+		slog.Error("failed to list audit log", "error", err)
+		WriteError(w, http.StatusInternalServerError, "failed to list audit log")
+		return
+	}
+	if entries == nil {
+		entries = []domain.AuditEntry{}
+	}
+
+	WriteJSON(w, http.StatusOK, ListResponse[domain.AuditEntry]{Data: entries, Total: len(entries)})
 }

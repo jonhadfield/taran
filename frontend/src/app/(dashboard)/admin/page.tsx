@@ -5,6 +5,7 @@ import { AdminUsers } from "./admin-users";
 import { AdminFailedEmails } from "./admin-failed-emails";
 import { InviteForm } from "./invite-form";
 import { WaitlistPanel } from "./waitlist-panel";
+import { AuditLog } from "./audit-log";
 
 export default async function AdminPage() {
   const admin = await isAdmin();
@@ -18,6 +19,8 @@ export default async function AdminPage() {
       <AdminFailedEmails />
       <h2 className="text-xl font-bold pt-4">Users</h2>
       <AdminUsers />
+      <h2 className="text-xl font-bold pt-4">Audit Log</h2>
+      <AuditLog />
       <h2 className="text-xl font-bold pt-4">Waitlist</h2>
       <WaitlistPanel />
       <h2 className="text-xl font-bold pt-4">Invitations</h2>
