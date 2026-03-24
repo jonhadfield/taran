@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hadfielj/taran/backend/internal/auth"
 	"golang.org/x/time/rate"
 )
 
@@ -107,6 +108,79 @@ func (sl *SplitRateLimiter) Middleware(next http.Handler) http.Handler {
 		} else {
 			sl.api.Middleware(next).ServeHTTP(w, r)
 		}
+	})
+}
+
+// UserRateLimiter applies per-user rate limits using the authenticated user ID
+// from the request context. Runs after auth middleware.
+type UserRateLimiter struct {
+	mu       sync.Mutex
+	clients  map[string]*clientEntry
+	rate     rate.Limit
+	burst    int
+	cleanTTL time.Duration
+}
+
+// NewUserRateLimiter creates a per-user rate limiter.
+func NewUserRateLimiter(rps float64, burst int) *UserRateLimiter {
+	rl := &UserRateLimiter{
+		clients:  make(map[string]*clientEntry),
+		rate:     rate.Limit(rps),
+		burst:    burst,
+		cleanTTL: 3 * time.Minute,
+	}
+	go rl.cleanup()
+	return rl
+}
+
+func (rl *UserRateLimiter) getLimiter(userID string) *rate.Limiter {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	entry, ok := rl.clients[userID]
+	if !ok {
+		entry = &clientEntry{
+			limiter: rate.NewLimiter(rl.rate, rl.burst),
+		}
+		rl.clients[userID] = entry
+	}
+	entry.lastSeen = time.Now()
+	return entry.limiter
+}
+
+func (rl *UserRateLimiter) cleanup() {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		rl.mu.Lock()
+		cutoff := time.Now().Add(-rl.cleanTTL)
+		for id, entry := range rl.clients {
+			if entry.lastSeen.Before(cutoff) {
+				delete(rl.clients, id)
+			}
+		}
+		rl.mu.Unlock()
+	}
+}
+
+// Middleware returns an HTTP middleware that rate-limits by authenticated user ID.
+// If no user ID is in context (unauthenticated), the request passes through.
+func (rl *UserRateLimiter) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID := auth.UserIDFromContext(r.Context())
+		if userID == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		limiter := rl.getLimiter(userID)
+		if !limiter.Allow() {
+			slog.Warn("per-user rate limit exceeded", "userID", userID, "path", r.URL.Path)
+			http.Error(w, `{"error":"rate limit exceeded"}`, http.StatusTooManyRequests)
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 

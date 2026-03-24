@@ -40,6 +40,7 @@ type RouterDeps struct {
 	LabelHandler         *handler.LabelHandler
 	SavedSearchHandler   *handler.SavedSearchHandler
 	EventsHandler        *handler.EventsHandler
+	UserRateLimiter      *UserRateLimiter
 }
 
 func NewRouter(deps RouterDeps) *http.ServeMux {
@@ -152,7 +153,12 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	}
 	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(admin))
 
-	authedAPI := publicPathSkip(auth.APIKeyAuth(deps.APIKey, deps.SessionAuth.Middleware(api)), api)
+	var authedHandler http.Handler = api
+	if deps.UserRateLimiter != nil {
+		// Chain: SessionAuth (sets userID) → UserRateLimiter (checks userID) → handler
+		authedHandler = deps.UserRateLimiter.Middleware(api)
+	}
+	authedAPI := publicPathSkip(auth.APIKeyAuth(deps.APIKey, deps.SessionAuth.Middleware(authedHandler)), api)
 	mux.Handle("/api/", authedAPI)
 
 	return mux

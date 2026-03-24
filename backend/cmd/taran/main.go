@@ -266,8 +266,20 @@ func main() {
 	savedSearchHandler := &handler.SavedSearchHandler{
 		SavedSearches: savedSearchRepo,
 	}
+	weeklySummaryRepo := database.NewWeeklySummaryRepo(pool)
+	weeklySummaryRunner := &digest.WeeklySummaryRunner{
+		Emails:      emailRepo,
+		Extractions: extractionRepo,
+		Preferences: preferenceRepo,
+		Sessions:    sessionRepo,
+		Summaries:   weeklySummaryRepo,
+		Mailer:      m,
+		BaseURL:     cfg.Server.BaseURL,
+		UnsubSecret: cfg.Server.UnsubscribeSecret,
+	}
 	cronHandler := &handler.CronHandler{
-		Scheduler: sched,
+		Scheduler:           sched,
+		WeeklySummaryRunner: weeklySummaryRunner,
 	}
 	sessionAuth := &auth.SessionAuth{
 		Sessions:    sessionRepo,
@@ -303,6 +315,7 @@ func main() {
 		LabelHandler:         labelHandler,
 		SavedSearchHandler:   savedSearchHandler,
 		EventsHandler:        &handler.EventsHandler{Broker: sseBroker},
+		UserRateLimiter:      server.NewUserRateLimiter(5, 20), // 5 req/s, 20 burst per user
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewSplitRateLimiter(
