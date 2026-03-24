@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { usePolling } from "@/hooks/use-polling";
 import { apiPatch } from "@/lib/api";
+import { formatShortDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ function formatTokens(n: number): string {
 
 function formatWeek(dateStr: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatShortDate(d);
 }
 
 function MiniBarChart({ data, formatValue }: { data: { label: string; value: number }[]; formatValue?: (n: number) => string }) {

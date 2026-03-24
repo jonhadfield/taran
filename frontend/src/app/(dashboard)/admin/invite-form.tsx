@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Invite, ListResponse } from "@/types/api";
 import { Send, CheckCircle2, Clock } from "lucide-react";
+import { formatShortDate } from "@/lib/utils";
 
 export function InviteForm() {
   const [email, setEmail] = useState("");
@@ -105,7 +106,7 @@ export function InviteForm() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Invited by {invite.InvitedBy} on{" "}
-                      {new Date(invite.CreatedAt).toLocaleDateString()}
+                      {formatShortDate(invite.CreatedAt)}
                     </p>
                   </div>
                   {invite.AcceptedAt ? (

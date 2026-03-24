@@ -19,6 +19,7 @@ import { BulkActionBar } from "./bulk-action-bar";
 import { EmailPreview } from "./email-preview";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useEventSource } from "@/hooks/use-event-source";
+import { formatShortDate } from "@/lib/utils";
 
 const avatarColors = [
   "bg-blue-500",
@@ -829,7 +830,7 @@ export function InboxList({
                         {senderName}
                       </span>
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(email.ReceivedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        {formatShortDate(email.ReceivedAt)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">

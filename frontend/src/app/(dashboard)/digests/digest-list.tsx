@@ -9,6 +9,7 @@ import type { Digest, ListResponse } from "@/types/api";
 import { Mail, MailX } from "lucide-react";
 import { EmptyState, DigestIllustration } from "@/components/empty-state";
 import Link from "next/link";
+import { formatShortDate } from "@/lib/utils";
 
 const PAGE_SIZE = 50;
 
@@ -47,8 +48,8 @@ export function DigestList({ initialDigests, initialTotal }: DigestListProps) {
                 <CardContent className="p-4 sm:p-6 space-y-3">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                     <span>
-                      {new Date(digest.PeriodStart).toLocaleDateString("en-US", { month: "short", day: "numeric" })} &ndash;{" "}
-                      {new Date(digest.PeriodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      {formatShortDate(digest.PeriodStart)} &ndash;{" "}
+                      {formatShortDate(digest.PeriodEnd)}
                     </span>
                     <span>&middot;</span>
                     <span>{digest.EmailCount} emails</span>

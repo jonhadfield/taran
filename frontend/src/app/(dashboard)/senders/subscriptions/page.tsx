@@ -8,6 +8,7 @@ import { EmptyState, SubscriptionIllustration } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { formatShortDate } from "@/lib/utils";
 import Link from "next/link";
 
 const avatarColors = [
@@ -268,7 +269,7 @@ function SubscriptionRow({
         <p className="text-xs text-muted-foreground">
           {sub.EmailCount} email{sub.EmailCount !== 1 ? "s" : ""}
           {" \u00b7 "}
-          Last: {new Date(sub.LastSeen).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          Last: {formatShortDate(sub.LastSeen)}
         </p>
       </div>
 

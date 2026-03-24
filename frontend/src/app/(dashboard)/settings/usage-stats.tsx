@@ -65,7 +65,7 @@ export function UsageStatsCard() {
     : 0;
 
   const periodLabel = stats.PeriodStart
-    ? new Date(stats.PeriodStart).toLocaleDateString("en-US", {
+    ? new Date(stats.PeriodStart).toLocaleDateString("en-GB", {
         month: "long",
         year: "numeric",
       })

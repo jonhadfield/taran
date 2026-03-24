@@ -14,6 +14,7 @@ import { UnsubscribeButton } from "./unsubscribe-button";
 import { EmailThread } from "./email-thread";
 import { EmailContentCard } from "./email-content-card";
 import sanitizeHtml from "sanitize-html";
+import { formatDateTime } from "@/lib/utils";
 
 function estimateReadingTime(text: string): string {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
@@ -67,7 +68,7 @@ export default async function EmailDetailPage({
               To: {email.ToAddress}
             </p>
             <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-              <span>{new Date(email.ReceivedAt).toLocaleString()}</span>
+              <span>{formatDateTime(email.ReceivedAt)}</span>
               {email.TextBody && (
                 <span className="inline-flex items-center gap-1 text-xs">
                   <Clock className="size-3" />

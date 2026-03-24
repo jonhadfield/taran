@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { FailedEmail, ListResponse, PipelineHealth } from "@/types/api";
+import { formatDateTime } from "@/lib/utils";
 import {
   AlertTriangle,
   RefreshCw,
@@ -187,9 +188,9 @@ export function AdminFailedEmails() {
                     <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
                       <p>ID: <span className="font-mono">{email.ID}</span></p>
                       <p>To: {email.ToAddress}</p>
-                      <p>Received: {new Date(email.ReceivedAt).toLocaleString()}</p>
+                      <p>Received: {formatDateTime(email.ReceivedAt)}</p>
                       <p>Retries: {email.RetryCount}</p>
-                      <p>Updated: {new Date(email.UpdatedAt).toLocaleString()}</p>
+                      <p>Updated: {formatDateTime(email.UpdatedAt)}</p>
                     </div>
                   )}
                 </div>

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Eye, X, ArrowRight } from "lucide-react";
 import type { Digest, DigestPreview } from "@/types/api";
+import { formatShortDate } from "@/lib/utils";
 
 export function GenerateDigestButton() {
   const router = useRouter();
@@ -62,8 +63,8 @@ export function GenerateDigestButton() {
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span>
-              {new Date(preview.PeriodStart).toLocaleDateString()} &ndash;{" "}
-              {new Date(preview.PeriodEnd).toLocaleDateString()}
+              {formatShortDate(preview.PeriodStart)} &ndash;{" "}
+              {formatShortDate(preview.PeriodEnd)}
             </span>
             <Badge variant="secondary">{preview.EmailCount} emails</Badge>
             <Badge variant="outline">{preview.PeriodType}</Badge>
@@ -86,7 +87,7 @@ export function GenerateDigestButton() {
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(item.ReceivedAt).toLocaleDateString()}
+                    {formatShortDate(item.ReceivedAt)}
                   </span>
                 </div>
               </div>

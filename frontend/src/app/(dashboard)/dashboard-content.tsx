@@ -9,6 +9,7 @@ import { CopyEmailAddress } from "@/components/copy-email-address";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { EmptyState, DashboardIllustration } from "@/components/empty-state";
 import Link from "next/link";
+import { formatShortDate } from "@/lib/utils";
 
 interface DashboardContentProps {
   initialData: DashboardData;
@@ -28,10 +29,7 @@ function WeeklyChart({ data }: { data: WeekCount[] }) {
       >
         {data.map((week, i) => {
           const pct = Math.max(4, (week.Count / max) * 100);
-          const label = new Date(week.Week).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          });
+          const label = formatShortDate(week.Week);
           return (
             <div key={i} className="group relative flex flex-col items-center justify-end gap-1 min-w-0">
               <div className="absolute -top-7 left-1/2 -translate-x-1/2 hidden group-hover:block z-10 whitespace-nowrap rounded bg-popover border px-2 py-1 text-xs shadow-md">
@@ -53,10 +51,7 @@ function WeeklyChart({ data }: { data: WeekCount[] }) {
         style={{ gridTemplateColumns: `repeat(${data.length}, 1fr)` }}
       >
         {data.map((week, i) => {
-          const label = new Date(week.Week).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          });
+          const label = formatShortDate(week.Week);
           return (
             <span key={i} className="text-[10px] text-muted-foreground truncate text-center hidden @sm:block">
               {label}
@@ -457,7 +452,7 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
                   </p>
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {new Date(email.ReceivedAt).toLocaleDateString()}
+                  {formatShortDate(email.ReceivedAt)}
                 </span>
               </Link>
             ))}

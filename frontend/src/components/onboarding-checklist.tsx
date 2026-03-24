@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, Circle, Mail, BookOpen, Settings, X, ExternalLink } from "lucide-react";
@@ -27,12 +27,14 @@ export function OnboardingChecklist({
   hasEmails,
   hasDigest,
 }: OnboardingChecklistProps) {
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("onboarding-checklist-dismissed") === "1";
-  });
+  const wasDismissed = useSyncExternalStore(
+    (cb) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); },
+    () => localStorage.getItem("onboarding-checklist-dismissed") === "1",
+    () => false,
+  );
+  const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed) return null;
+  if (wasDismissed || dismissed) return null;
 
   const items: ChecklistItem[] = [
     {

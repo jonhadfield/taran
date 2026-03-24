@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -39,6 +39,7 @@ export function CommandPalette({ isAdmin }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -149,8 +150,8 @@ export function CommandPalette({ isAdmin }: CommandPaletteProps) {
               runCommand(() => setTheme(theme === "dark" ? "light" : "dark"))
             }
           >
-            {theme === "dark" ? <Sun /> : <Moon />}
-            <span>Toggle {theme === "dark" ? "Light" : "Dark"} Mode</span>
+            {mounted && theme === "dark" ? <Sun /> : <Moon />}
+            <span>Toggle {mounted && theme === "dark" ? "Light" : "Dark"} Mode</span>
           </CommandItem>
         </CommandGroup>
       </CommandList>

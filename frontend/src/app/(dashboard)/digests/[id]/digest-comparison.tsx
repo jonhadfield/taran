@@ -6,6 +6,7 @@ import type { Digest, ListResponse } from "@/types/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowUp, ArrowDown, Plus, Minus, TrendingUp, Users, Hash } from "lucide-react";
+import { formatShortDate } from "@/lib/utils";
 
 interface DigestComparisonProps {
   currentDigest: Digest;
@@ -105,8 +106,8 @@ export function DigestComparison({ currentDigest }: DigestComparisonProps) {
           Changes from Previous Digest
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Compared to {new Date(prevDigest.PeriodStart).toLocaleDateString()} &ndash;{" "}
-          {new Date(prevDigest.PeriodEnd).toLocaleDateString()}
+          Compared to {formatShortDate(prevDigest.PeriodStart)} &ndash;{" "}
+          {formatShortDate(prevDigest.PeriodEnd)}
         </p>
       </CardHeader>
       <CardContent className="space-y-5">

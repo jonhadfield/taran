@@ -13,6 +13,7 @@ import { DigestFeedbackButtons } from "./digest-feedback-buttons";
 import { DigestComparison } from "./digest-comparison";
 import { HighlightedTopics, HighlightedItems } from "./digest-highlights";
 import { isAdmin } from "@/lib/admin";
+import { formatShortDate, formatDateTime } from "@/lib/utils";
 
 export default async function DigestDetailPage({
   params,
@@ -55,8 +56,8 @@ export default async function DigestDetailPage({
         <DigestFeedbackButtons digestId={digest.ID} />
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>
-            {new Date(digest.PeriodStart).toLocaleDateString()} &ndash;{" "}
-            {new Date(digest.PeriodEnd).toLocaleDateString()}
+            {formatShortDate(digest.PeriodStart)} &ndash;{" "}
+            {formatShortDate(digest.PeriodEnd)}
           </span>
           <Badge variant="secondary">{digest.EmailCount} emails</Badge>
         </div>
@@ -64,7 +65,7 @@ export default async function DigestDetailPage({
           {digest.SentAt ? (
             <>
               <Mail className="size-4 text-green-600" />
-              <span>Emailed on {new Date(digest.SentAt).toLocaleString()}</span>
+              <span>Emailed on {formatDateTime(digest.SentAt)}</span>
             </>
           ) : prefs?.DigestEmail ? (
             <>

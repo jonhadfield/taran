@@ -10,6 +10,7 @@ import Link from "next/link";
 import { EmailActions } from "./[id]/actions";
 import { EmailLabels } from "./[id]/email-labels";
 import { FeedbackButtons } from "./[id]/feedback-buttons";
+import { formatDateTime } from "@/lib/utils";
 
 function estimateReadingTime(text: string): string {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
@@ -122,7 +123,7 @@ export function EmailPreview({ id, onDeleted }: EmailPreviewProps) {
             )}
           </p>
           <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-            <span>{new Date(email.ReceivedAt).toLocaleString()}</span>
+            <span>{formatDateTime(email.ReceivedAt)}</span>
             {email.TextBody && (
               <span className="inline-flex items-center gap-1 text-xs">
                 <Clock className="size-3" />

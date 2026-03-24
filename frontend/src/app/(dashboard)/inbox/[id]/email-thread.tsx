@@ -5,6 +5,7 @@ import { apiGet } from "@/lib/api";
 import type { ThreadEmail } from "@/types/api";
 import Link from "next/link";
 import { MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
+import { formatShortDate } from "@/lib/utils";
 
 interface EmailThreadProps {
   emailId: string;
@@ -67,7 +68,7 @@ export function EmailThread({ emailId, threadCount }: EmailThreadProps) {
                         </p>
                       </div>
                       <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                        {new Date(msg.ReceivedAt).toLocaleDateString()}
+                        {formatShortDate(msg.ReceivedAt)}
                       </span>
                     </div>
                   ) : (
@@ -89,7 +90,7 @@ export function EmailThread({ emailId, threadCount }: EmailThreadProps) {
                         )}
                       </div>
                       <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                        {new Date(msg.ReceivedAt).toLocaleDateString()}
+                        {formatShortDate(msg.ReceivedAt)}
                       </span>
                     </Link>
                   )}

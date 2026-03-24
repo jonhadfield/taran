@@ -12,6 +12,7 @@ import {
 import type { WaitlistRequest, ListResponse } from "@/types/api";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatShortDate } from "@/lib/utils";
 
 export function WaitlistPanel() {
   const [requests, setRequests] = useState<WaitlistRequest[]>([]);
@@ -71,7 +72,7 @@ export function WaitlistPanel() {
                 <p className="text-sm font-medium truncate">{req.Email}</p>
                 <p className="text-xs text-muted-foreground">
                   Requested on{" "}
-                  {new Date(req.CreatedAt).toLocaleDateString()}
+                  {formatShortDate(req.CreatedAt)}
                 </p>
               </div>
               <Button

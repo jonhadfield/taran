@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderDetail, WeekCount, Email, ListResponse } from "@/types/api";
 import { Loader2, Mail, Calendar, BarChart3, Clock, TrendingUp, ExternalLink } from "lucide-react";
+import { formatShortDate } from "@/lib/utils";
 
 const STATUS_OPTIONS = [
   { value: "normal", label: "Normal" },
@@ -61,10 +62,7 @@ function VolumeChart({ data }: { data: WeekCount[] }) {
         {data.map((wc, i) => (
           <div key={i} className="text-center">
             <span className="text-[9px] text-muted-foreground">
-              {new Date(wc.Week).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              })}
+              {formatShortDate(wc.Week)}
             </span>
           </div>
         ))}
@@ -192,7 +190,7 @@ export default function SenderDetailPage() {
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="size-3.5" />
-              First seen {new Date(detail.FirstSeen).toLocaleDateString()}
+              First seen {formatShortDate(detail.FirstSeen)}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="size-3.5" />
@@ -201,7 +199,7 @@ export default function SenderDetailPage() {
                 ? "today"
                 : daysSinceLast === 1
                   ? "yesterday"
-                  : `${new Date(detail.LastSeen).toLocaleDateString()}`}
+                  : `${formatShortDate(detail.LastSeen)}`}
             </span>
             {avgPerWeek > 0 && (
               <span className="flex items-center gap-1">
@@ -300,7 +298,7 @@ export default function SenderDetailPage() {
                   </p>
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                  {new Date(email.ReceivedAt).toLocaleDateString()}
+                  {formatShortDate(email.ReceivedAt)}
                 </span>
               </Link>
             ))}

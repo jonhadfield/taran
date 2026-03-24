@@ -5,6 +5,7 @@ import type { Digest } from "@/types/api";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { APP_NAME } from "@/lib/config";
+import { formatShortDate } from "@/lib/utils";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 
@@ -40,8 +41,8 @@ export default async function SharedDigestPage({
             <h1 className="text-2xl font-bold">{digest.Title}</h1>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span>
-                {new Date(digest.PeriodStart).toLocaleDateString()} &ndash;{" "}
-                {new Date(digest.PeriodEnd).toLocaleDateString()}
+                {formatShortDate(digest.PeriodStart)} &ndash;{" "}
+                {formatShortDate(digest.PeriodEnd)}
               </span>
               <Badge variant="secondary">{digest.EmailCount} emails</Badge>
             </div>
