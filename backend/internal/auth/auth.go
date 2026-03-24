@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hadfielj/taran/backend/internal/database"
 )
 
@@ -16,6 +18,9 @@ type contextKey string
 const (
 	UserIDKey    contextKey = "userID"
 	UserEmailKey contextKey = "userEmail"
+
+	// tokenRotationAge is how long a token can be used before being rotated.
+	tokenRotationAge = 1 * time.Hour
 )
 
 func UserIDFromContext(ctx context.Context) string {
@@ -75,6 +80,17 @@ func (a *SessionAuth) Middleware(next http.Handler) http.Handler {
 		if session.ExpiresAt.Before(time.Now()) {
 			writeAuthError(w, http.StatusUnauthorized, "session expired")
 			return
+		}
+
+		// Token rotation: if the token hasn't been updated in over an hour,
+		// generate a new one and signal the frontend to swap the cookie.
+		if time.Since(session.UpdatedAt) > tokenRotationAge {
+			newToken := uuid.New().String()
+			if err := a.Sessions.RotateToken(r.Context(), token, newToken); err != nil {
+				slog.Warn("token rotation failed", "error", err)
+			} else {
+				w.Header().Set("X-Session-Token-Rotated", newToken)
+			}
 		}
 
 		ctx := context.WithValue(r.Context(), UserIDKey, session.UserID)

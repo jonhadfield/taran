@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { createHmac } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
@@ -11,6 +12,7 @@ function requireEnv(name: string): string {
 }
 
 const API_KEY = requireEnv("API_KEY");
+const AUTH_SECRET = process.env.BETTER_AUTH_SECRET || "";
 
 async function proxyRequest(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
@@ -77,10 +79,29 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
     if (lastModified) responseHeaders["Last-Modified"] = lastModified;
   }
 
-  return new NextResponse(data, {
+  const nextResponse = new NextResponse(data, {
     status: response.status,
     headers: responseHeaders,
   });
+
+  // Handle session token rotation from the backend
+  const rotatedToken = response.headers.get("X-Session-Token-Rotated");
+  if (rotatedToken && AUTH_SECRET) {
+    const signature = createHmac("sha256", AUTH_SECRET).update(rotatedToken).digest("hex");
+    const cookieValue = `${rotatedToken}.${signature}`;
+    const isSecure = request.url.startsWith("https://");
+    const cookieName = isSecure ? "__Secure-better-auth.session_token" : "better-auth.session_token";
+
+    nextResponse.cookies.set(cookieName, cookieValue, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isSecure,
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+  }
+
+  return nextResponse;
 }
 
 export const GET = proxyRequest;

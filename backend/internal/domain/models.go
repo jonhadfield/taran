@@ -175,6 +175,7 @@ type Session struct {
 	UserEmail string
 	Token     string
 	ExpiresAt time.Time
+	UpdatedAt time.Time
 }
 
 type SenderPreference struct {

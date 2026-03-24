@@ -535,6 +535,10 @@ func (m *MockSessionRepo) GetUserEmail(ctx context.Context, userID string) (stri
 	return "test@example.com", nil
 }
 
+func (m *MockSessionRepo) RotateToken(_ context.Context, _, _ string) error {
+	return nil
+}
+
 // MockPreferenceRepo implements database.PreferenceRepository for testing.
 type MockPreferenceRepo struct {
 	GetFn    func(ctx context.Context, userID string) (*domain.UserPreference, error)

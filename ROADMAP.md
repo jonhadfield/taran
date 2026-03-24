@@ -49,6 +49,7 @@
 - **E2E Tests with Playwright** — Workflow tests for inbox, digests, command palette, onboarding; CI job with PostgreSQL + backend
 - **Per-User Rate Limiting** — Per-user token bucket (5 req/s, 20 burst) after auth, in addition to existing per-IP limiter
 - **Weekly Activity Summary Email** — Sunday email with email count, top senders, category breakdown, action items; opt-in via preferences
+- **Session Token Rotation** — Tokens rotate every hour; backend generates new token, proxy sets new cookie with HMAC signature
 
 ## Not Started
 
@@ -119,11 +120,6 @@
 - **Description**: Add CSP headers to prevent XSS beyond the current HTML sanitisation. Restrict script sources, style sources, and frame ancestors.
 - **Scope**: Backend security middleware
 
-#### Session Token Rotation
-- **Effort**: Medium
-- **Impact**: Medium
-- **Description**: Rotate session tokens periodically (e.g., every 24 hours) to limit the window of a stolen token. On rotation, the old token is invalidated and a new one is issued transparently.
-- **Scope**: Backend session middleware, Better Auth configuration, cookie refresh logic
 
 #### Per-Key API Rate Limiting
 - **Effort**: Low

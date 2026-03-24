@@ -95,6 +95,7 @@ type PreferenceRepository interface {
 type SessionRepository interface {
 	GetByToken(ctx context.Context, token string) (*domain.Session, error)
 	GetUserEmail(ctx context.Context, userID string) (string, error)
+	RotateToken(ctx context.Context, oldToken, newToken string) error
 }
 
 type InviteRepository interface {
