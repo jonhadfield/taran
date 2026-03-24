@@ -47,6 +47,8 @@
 - **Empty State Illustrations** — Custom SVG illustrations for inbox, digests, senders, dashboard, search, and subscriptions empty states
 - **Seed Script** — `make seed` populates local dev with 30 emails, 2 digests, 3 labels for realistic testing
 - **E2E Tests with Playwright** — Workflow tests for inbox, digests, command palette, onboarding; CI job with PostgreSQL + backend
+- **Per-User Rate Limiting** — Per-user token bucket (5 req/s, 20 burst) after auth, in addition to existing per-IP limiter
+- **Weekly Activity Summary Email** — Sunday email with email count, top senders, category breakdown, action items; opt-in via preferences
 
 ## Not Started
 
@@ -57,12 +59,6 @@
 - **Impact**: Medium
 - **Description**: Move beyond detailed/concise to user-defined digest formats. Let users choose what sections appear (e.g., only action items and links, or summaries only), reorder sections, and set content density per section.
 - **Scope**: Backend template schema and LLM prompt customization, frontend template builder UI
-
-#### Weekly Activity Summary Email
-- **Effort**: Medium
-- **Impact**: Medium
-- **Description**: Lighter than digest — email counts, top senders, action items pending, trends vs previous week. Sent weekly regardless of digest schedule.
-- **Scope**: Backend summary generator, Resend HTML template, user preference toggle
 
 #### Slack/Webhook Integration
 - **Effort**: Medium
@@ -96,11 +92,6 @@
 - **Description**: Encrypt existing plaintext email bodies. Currently only new emails are encrypted at rest; a background job would migrate historical data.
 - **Scope**: Backend migration worker, progress tracking, graceful batching
 
-#### Per-User Rate Limiting
-- **Effort**: Medium
-- **Impact**: Medium
-- **Description**: Current rate limiter is global. Per-user limits would prevent one heavy user from starving others.
-- **Scope**: Backend middleware, token bucket per user ID
 
 #### Cloudflare Worker Retry Queue
 - **Effort**: Medium

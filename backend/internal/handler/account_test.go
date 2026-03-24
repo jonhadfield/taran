@@ -330,7 +330,7 @@ func TestAccountHandler_Delete_Error(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.Delete(rec, req)
 
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
 }

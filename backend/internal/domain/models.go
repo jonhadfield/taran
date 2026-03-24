@@ -100,6 +100,19 @@ type DigestEmailSummary struct {
 	Category    string
 }
 
+type WeeklySummary struct {
+	ID          string
+	UserID      string
+	PeriodStart time.Time
+	PeriodEnd   time.Time
+	EmailCount  int
+	TopSenders  []SenderCount
+	Categories  map[string]int
+	ActionItems int
+	SentAt      *time.Time
+	CreatedAt   time.Time
+}
+
 type DigestItem struct {
 	ID           string
 	DigestID     string
@@ -151,6 +164,7 @@ type UserPreference struct {
 	QuietHoursEnabled    bool
 	QuietHoursStart      int // 0-23, hour in DigestTimezone
 	QuietHoursEnd        int // 0-23, hour in DigestTimezone
+	WeeklySummary        bool // opt-in for weekly activity summary email
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 }

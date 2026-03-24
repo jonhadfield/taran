@@ -587,6 +587,10 @@ func (m *MockMailer) SendTokenWarning(ctx context.Context, toEmail string, usage
 	return nil
 }
 
+func (m *MockMailer) SendWeeklySummary(_ context.Context, _ string, _ *domain.WeeklySummary, _ string) error {
+	return nil
+}
+
 // MockSenderPreferenceRepo implements database.SenderPreferenceRepository for testing.
 type MockSenderPreferenceRepo struct {
 	UpsertFn              func(ctx context.Context, pref *domain.SenderPreference) error
