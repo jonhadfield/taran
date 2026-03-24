@@ -54,6 +54,7 @@
 - **Split Rate Limiting** — Separate rate limits for API (10 req/s) vs webhook/cron (50 req/s) traffic
 - **OpenAPI Spec** — Full OpenAPI 3.1 spec covering all 59 endpoints, served at /docs via Scalar UI
 - **Slack/Webhook Integration** — POST digest summaries to user-configured webhook URLs; settings UI with URL input
+- **Digest PDF Export** — Download any digest as a formatted PDF (title, summary, highlights, topics, included emails)
 
 ## Not Started
 
@@ -71,11 +72,6 @@
 - **Description**: "If sender matches X, auto-label Y and skip digest" — more powerful than current auto-archive. Condition-action pairs with AND/OR logic.
 - **Scope**: Backend rules table, evaluation in worker pipeline, frontend rule builder
 
-#### Digest PDF Export
-- **Effort**: Low
-- **Impact**: Low
-- **Description**: Download digests as formatted PDFs for offline reading or sharing.
-- **Scope**: Backend PDF generation endpoint, frontend download button
 
 #### Multi-Inbox
 - **Effort**: High

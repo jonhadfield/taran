@@ -12,6 +12,7 @@ import { DeleteDigestButton } from "./delete-button";
 import { DigestFeedbackButtons } from "./digest-feedback-buttons";
 import { DigestComparison } from "./digest-comparison";
 import { HighlightedTopics, HighlightedItems } from "./digest-highlights";
+import { DownloadPdfButton } from "./download-pdf-button";
 import { isAdmin } from "@/lib/admin";
 import { formatShortDate, formatDateTime } from "@/lib/utils";
 
@@ -50,6 +51,7 @@ export default async function DigestDetailPage({
               <SendEmailButton digestId={digest.ID} alreadySent={!!digest.SentAt} />
             )}
             <ShareButton digestId={digest.ID} initialToken={digest.ShareToken} />
+            <DownloadPdfButton digest={digest} />
             <DeleteDigestButton digestId={digest.ID} />
           </div>
         </div>
