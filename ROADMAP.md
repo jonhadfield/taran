@@ -58,44 +58,28 @@
 - **DB Connection Pool Tuning** — Configured pgx pool: 10 max / 2 min conns, 30m lifetime, 5m idle, 30s health check
 - **Audit Log** — Middleware auto-logs admin write operations; table + admin UI with scrollable log viewer
 
+- **Keyboard Shortcut Help Overlay** — `?` key shows all shortcuts in a modal (inbox navigation, actions, command palette)
+- **Favicon Unread Badge** — Unread email count rendered as a red badge on the browser tab favicon
+- **Weekly Summary Settings Toggle** — UI toggle in delivery settings for the weekly activity summary preference
+- **Webhook Test Button** — "Send test" button in settings with backend endpoint to verify webhook URL
+- **Test Results Gitignore** — Added `test-results/` and `playwright-report/` to `.gitignore`
+- **Preference Handler WeeklySummary** — Added WeeklySummary to the PATCH /api/preferences update request
+
 ## Not Started
 
+### Polish
+- **SSE Reconnection Indicator** — Subtle toast/banner when SSE connection drops and reconnects
+- **Global Error Boundary** — React error boundary with recovery UI instead of blank crash pages
+- **Orphaned Digest Cleanup** — Background job to delete digests with zero remaining items
+
 ### Features
+- **Custom Digest Templates** — User-defined digest formats: choose sections, reorder, set density
+- **Email Rules Engine** — Condition-action pairs ("if sender matches X, auto-label Y and skip digest")
+- **Multi-Inbox** — Multiple inboxes per user with separate digest schedules and preferences
 
-#### Custom Digest Templates
-- **Effort**: High
-- **Impact**: Medium
-- **Description**: Move beyond detailed/concise to user-defined digest formats. Let users choose what sections appear (e.g., only action items and links, or summaries only), reorder sections, and set content density per section.
-- **Scope**: Backend template schema and LLM prompt customization, frontend template builder UI
-
-#### Email Rules Engine
-- **Effort**: High
-- **Impact**: Medium
-- **Description**: "If sender matches X, auto-label Y and skip digest" — more powerful than current auto-archive. Condition-action pairs with AND/OR logic.
-- **Scope**: Backend rules table, evaluation in worker pipeline, frontend rule builder
-
-
-#### Multi-Inbox
-- **Effort**: High
-- **Impact**: Medium
-- **Description**: Let users create multiple inboxes (e.g., work vs personal newsletters) with separate digest schedules and preferences.
-- **Scope**: Backend inbox scoping, frontend inbox switcher, per-inbox settings
-
-### Backend / Infrastructure
-
-#### Background Encryption Migration
-- **Effort**: Low
-- **Impact**: Medium
-- **Description**: Encrypt existing plaintext email bodies. Currently only new emails are encrypted at rest; a background job would migrate historical data.
-- **Scope**: Backend migration worker, progress tracking, graceful batching
-
-
-#### Cloudflare Worker Retry Queue
-- **Effort**: Medium
-- **Impact**: Medium
-- **Description**: If Cloud Run is temporarily down, the Cloudflare email worker currently rejects the email. A retry queue in the worker (using Durable Objects or Queues) would buffer and retry.
-- **Scope**: Cloudflare Worker rewrite, queue configuration
-
+### Infrastructure
+- **Background Encryption Migration** — Encrypt existing plaintext email bodies (only new emails are encrypted)
+- **Cloudflare Worker Retry Queue** — Buffer emails when Cloud Run is down using Durable Objects or Queues
 
 ## Future Considerations
 

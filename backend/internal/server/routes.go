@@ -89,6 +89,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/accounts/check-username", deps.AccountHandler.CheckUsername)
 	api.HandleFunc("GET /api/preferences", deps.PreferenceHandler.Get)
 	api.HandleFunc("PATCH /api/preferences", deps.PreferenceHandler.Update)
+	api.HandleFunc("POST /api/preferences/test-webhook", deps.PreferenceHandler.TestWebhook)
 	api.HandleFunc("GET /api/senders", deps.SenderHandler.List)
 	api.HandleFunc("GET /api/senders/detail", deps.SenderHandler.GetDetail)
 	api.HandleFunc("GET /api/senders/suggestions", deps.SenderHandler.Suggestions)

@@ -9,6 +9,7 @@ import type { ColorTheme } from "@/components/color-theme-provider";
 import { isAdmin } from "@/lib/admin";
 import { serverFetch } from "@/lib/server-api";
 import { CommandPalette } from "@/components/command-palette";
+import { KeyboardHelp } from "@/components/keyboard-help";
 import type { AccessCheck } from "@/types/api";
 
 const VALID_COLOR_THEMES = new Set(["neutral", "blue", "rose", "green", "violet", "amber"]);
@@ -51,6 +52,7 @@ export default async function DashboardLayout({
           <main className="@container p-4 lg:p-6">{children}</main>
         </div>
         <CommandPalette isAdmin={admin} />
+        <KeyboardHelp />
         <Toaster />
       </div>
     </ColorThemeProvider>

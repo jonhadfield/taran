@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import { toast } from "sonner";
+import { apiPost } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -48,6 +51,8 @@ interface DigestDeliverySettingsProps {
   onToggleDigestWebhook: (checked: boolean) => void;
   onWebhookURLChange: (value: string) => void;
   onWebhookURLSave: () => void;
+  weeklySummary: boolean;
+  onToggleWeeklySummary: (checked: boolean) => void;
 }
 
 export function DigestDeliverySettings({
@@ -69,6 +74,8 @@ export function DigestDeliverySettings({
   onToggleDigestWebhook,
   onWebhookURLChange,
   onWebhookURLSave,
+  weeklySummary,
+  onToggleWeeklySummary,
 }: DigestDeliverySettingsProps) {
   return (
     <Card>
@@ -208,12 +215,58 @@ export function DigestDeliverySettings({
                 Save
               </Button>
             </div>
+            <WebhookTestButton disabled={prefSaving || !webhookURL} />
             <p className="text-xs text-muted-foreground">
               Digest summaries will be POSTed as JSON with title, summary, highlights, and a link to view the full digest.
             </p>
           </div>
         )}
+
+        <Separator className="my-2" />
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="weekly-summary" className="flex flex-col items-start gap-1">
+            <span>Weekly activity summary</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              Receive a weekly email with email counts, top senders, and trends
+            </span>
+          </Label>
+          <Switch
+            id="weekly-summary"
+            checked={weeklySummary}
+            onCheckedChange={onToggleWeeklySummary}
+            disabled={prefLoading || prefSaving}
+          />
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+function WebhookTestButton({ disabled }: { disabled: boolean }) {
+  const [testing, setTesting] = useState(false);
+
+  async function handleTest() {
+    setTesting(true);
+    try {
+      await apiPost("preferences/test-webhook", {});
+      toast.success("Test webhook sent successfully");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Webhook test failed");
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={handleTest}
+      disabled={disabled || testing}
+    >
+      {testing ? "Sending..." : "Send test"}
+    </Button>
   );
 }

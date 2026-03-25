@@ -7,6 +7,7 @@ import type { DashboardData, WeekCount, TopicCount, CategoryCount, HeatmapCell }
 import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, Loader2, AlertCircle, BarChart3, Tag, CheckSquare, PieChart, Clock } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { FaviconBadge } from "@/components/favicon-badge";
 import { EmptyState, DashboardIllustration } from "@/components/empty-state";
 import Link from "next/link";
 import { formatShortDate } from "@/lib/utils";
@@ -208,6 +209,7 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
 
   return (
     <div className="space-y-8">
+      <FaviconBadge count={unreadCount} />
       <h1 className="text-2xl font-bold text-balance">Dashboard</h1>
 
       {/* Stat cards */}

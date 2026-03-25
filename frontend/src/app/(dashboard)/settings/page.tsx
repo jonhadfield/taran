@@ -98,6 +98,7 @@ export default function SettingsPage() {
   const [quietHoursEnd, setQuietHoursEnd] = useState(7);
   const [digestWebhook, setDigestWebhook] = useState(false);
   const [webhookURL, setWebhookURL] = useState("");
+  const [weeklySummary, setWeeklySummary] = useState(true);
   const [prefLoading, setPrefLoading] = useState(true);
   const [prefSaving, setPrefSaving] = useState(false);
 
@@ -136,6 +137,7 @@ export default function SettingsPage() {
       setQuietHoursEnd(pref.QuietHoursEnd ?? 7);
       setDigestWebhook(pref.DigestWebhook ?? false);
       setWebhookURL(pref.WebhookURL ?? "");
+      setWeeklySummary(pref.WeeklySummary ?? true);
       if (pref.ColorTheme) {
         setColorTheme(pref.ColorTheme as Parameters<typeof setColorTheme>[0]);
       }
@@ -151,7 +153,7 @@ export default function SettingsPage() {
     fetchPreferences();
   }, [fetchAccounts, fetchPreferences]);
 
-  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme" | "ExcludedCategories" | "DailyTokenLimit" | "QuietHoursEnabled" | "QuietHoursStart" | "QuietHoursEnd" | "DigestWebhook" | "WebhookURL">>) => {
+  const updatePreference = async (updates: Partial<Pick<UserPreference, "DigestEmail" | "DigestFrequency" | "DigestHour" | "DigestDay" | "DigestTimezone" | "TopicLimit" | "DigestStyle" | "InterestKeywords" | "ExclusionKeywords" | "ColorTheme" | "ExcludedCategories" | "DailyTokenLimit" | "QuietHoursEnabled" | "QuietHoursStart" | "QuietHoursEnd" | "DigestWebhook" | "WebhookURL" | "WeeklySummary">>) => {
     setPrefSaving(true);
     try {
       const updated = await apiPatch<UserPreference>("preferences", updates);
@@ -171,6 +173,7 @@ export default function SettingsPage() {
       setQuietHoursEnd(updated.QuietHoursEnd ?? 7);
       setDigestWebhook(updated.DigestWebhook ?? false);
       setWebhookURL(updated.WebhookURL ?? "");
+      setWeeklySummary(updated.WeeklySummary ?? true);
       toast.success("Preferences saved");
     } catch {
       toast.error("Failed to save preferences");
@@ -281,6 +284,11 @@ export default function SettingsPage() {
             }}
             onWebhookURLSave={() => {
               updatePreference({ WebhookURL: webhookURL });
+            }}
+            weeklySummary={weeklySummary}
+            onToggleWeeklySummary={(checked) => {
+              setWeeklySummary(checked);
+              updatePreference({ WeeklySummary: checked });
             }}
           />
         </section>

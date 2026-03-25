@@ -10,7 +10,9 @@ import (
 
 	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/database"
+	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/hadfielj/taran/backend/internal/mailer"
+	"github.com/hadfielj/taran/backend/internal/webhook"
 )
 
 type PreferenceHandler struct {
@@ -48,6 +50,7 @@ type updatePreferenceRequest struct {
 	QuietHoursEnd      *int      `json:"QuietHoursEnd"`
 	DigestWebhook      *bool     `json:"DigestWebhook"`
 	WebhookURL         *string   `json:"WebhookURL"`
+	WeeklySummary      *bool     `json:"WeeklySummary"`
 }
 
 func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -239,6 +242,9 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.WebhookURL != nil {
 		existing.WebhookURL = *req.WebhookURL
 	}
+	if req.WeeklySummary != nil {
+		existing.WeeklySummary = *req.WeeklySummary
+	}
 
 	if err := h.Preferences.Upsert(r.Context(), existing); err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to update preferences")
@@ -322,6 +328,34 @@ func validateKeywords(keywords []string) ([]string, error) {
 		}
 	}
 	return cleaned, nil
+}
+
+func (h *PreferenceHandler) TestWebhook(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	pref, err := h.Preferences.Get(r.Context(), userID)
+	if err != nil || pref.WebhookURL == "" {
+		WriteError(w, http.StatusBadRequest, "no webhook URL configured")
+		return
+	}
+
+	testDigest := &domain.Digest{
+		ID:          "test-" + fmt.Sprintf("%d", time.Now().Unix()),
+		Title:       "Test Webhook — MailBrief",
+		Summary:     "This is a test webhook delivery to verify your endpoint is working correctly.",
+		Highlights:  []string{"Webhook connection verified", "Your URL is receiving events"},
+		TopTopics:   []string{"Test"},
+		EmailCount:  0,
+		PeriodStart: time.Now().Add(-24 * time.Hour),
+		PeriodEnd:   time.Now(),
+	}
+
+	if err := webhook.SendDigest(r.Context(), pref.WebhookURL, testDigest, ""); err != nil {
+		slog.Warn("webhook test failed", "userID", userID, "url", pref.WebhookURL, "error", err)
+		WriteError(w, http.StatusBadGateway, fmt.Sprintf("webhook test failed: %v", err))
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "sent"})
 }
 
 func unsubscribeHTML(message string) string {
