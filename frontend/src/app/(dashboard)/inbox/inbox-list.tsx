@@ -180,9 +180,18 @@ export function InboxList({
   );
 
   // Real-time updates via SSE — triggers immediate refresh when an email is processed
-  useEventSource(useCallback(() => {
+  const sseStatus = useEventSource(useCallback(() => {
     refresh();
   }, [refresh]));
+
+  // Show toast on SSE reconnection
+  const prevSSEStatus = useRef(sseStatus);
+  useEffect(() => {
+    if (prevSSEStatus.current === "reconnecting" && sseStatus === "connected") {
+      toast.success("Reconnected to live updates");
+    }
+    prevSSEStatus.current = sseStatus;
+  }, [sseStatus]);
 
   const emails = useMemo(() => res.data || [], [res.data]);
   const total = res.total;

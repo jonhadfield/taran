@@ -471,6 +471,10 @@ func (m *MockDigestRepo) ListUnsent(ctx context.Context, olderThan time.Time, li
 	return nil, nil
 }
 
+func (m *MockDigestRepo) DeleteOrphaned(_ context.Context) (int, error) {
+	return 0, nil
+}
+
 // MockAccountRepo implements database.AccountRepository for testing.
 type MockAccountRepo struct {
 	GetByEmailAddressFn func(ctx context.Context, emailAddress string) (*domain.EmailAccount, error)

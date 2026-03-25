@@ -42,6 +42,7 @@ type Processor struct {
 	Sessions         database.SessionRepository
 	AutoArchiveRules database.AutoArchiveRuleRepository
 	SSEBroker        *sse.Broker
+	Digests          database.DigestRepository
 }
 
 func NewProcessor(
@@ -128,6 +129,7 @@ func (p *Processor) sweeper(ctx context.Context) {
 			p.sweepPending(ctx)
 			p.sweepRetryable(ctx)
 			p.sweepAutoArchive(ctx)
+			p.sweepOrphanedDigests(ctx)
 		}
 	}
 }
@@ -488,5 +490,19 @@ func (p *Processor) sweepAutoArchive(ctx context.Context) {
 	}
 	if archived > 0 {
 		slog.Info("auto-archive sweep complete", "archived", archived)
+	}
+}
+
+func (p *Processor) sweepOrphanedDigests(ctx context.Context) {
+	if p.Digests == nil {
+		return
+	}
+	deleted, err := p.Digests.DeleteOrphaned(ctx)
+	if err != nil {
+		slog.Error("orphaned digest sweep failed", "error", err)
+		return
+	}
+	if deleted > 0 {
+		slog.Info("orphaned digest sweep complete", "deleted", deleted)
 	}
 }

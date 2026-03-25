@@ -308,3 +308,18 @@ func scanDigest(row scannable) (*domain.Digest, error) {
 
 	return &d, nil
 }
+
+// DeleteOrphaned removes digests that have no remaining digest_items.
+func (r *DigestRepo) DeleteOrphaned(ctx context.Context) (int, error) {
+	tag, err := r.pool.Exec(ctx, `
+		DELETE FROM digest WHERE id IN (
+			SELECT d.id FROM digest d
+			LEFT JOIN digest_item di ON di.digest_id = d.id
+			GROUP BY d.id
+			HAVING COUNT(di.id) = 0
+		)`)
+	if err != nil {
+		return 0, fmt.Errorf("delete orphaned digests: %w", err)
+	}
+	return int(tag.RowsAffected()), nil
+}

@@ -65,12 +65,11 @@
 - **Test Results Gitignore** — Added `test-results/` and `playwright-report/` to `.gitignore`
 - **Preference Handler WeeklySummary** — Added WeeklySummary to the PATCH /api/preferences update request
 
-## Not Started
+- **SSE Reconnection Indicator** — Toast notification on SSE reconnection with status tracking in useEventSource hook
+- **Error Boundary** — Dashboard error.tsx with "Try Again" and "Dashboard" recovery buttons
+- **Orphaned Digest Cleanup** — Sweeper deletes digests with zero remaining items every 5 minutes
 
-### Polish
-- **SSE Reconnection Indicator** — Subtle toast/banner when SSE connection drops and reconnects
-- **Global Error Boundary** — React error boundary with recovery UI instead of blank crash pages
-- **Orphaned Digest Cleanup** — Background job to delete digests with zero remaining items
+## Not Started
 
 ### Features
 - **Custom Digest Templates** — User-defined digest formats: choose sections, reorder, set density

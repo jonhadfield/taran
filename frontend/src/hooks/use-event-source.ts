@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export interface SSEEvent {
   type: string;
   emailId: string;
 }
 
-export function useEventSource(onEvent: (event: SSEEvent) => void): void {
+export type SSEStatus = "connecting" | "connected" | "reconnecting";
+
+export function useEventSource(onEvent: (event: SSEEvent) => void): SSEStatus {
   const onEventRef = useRef(onEvent);
+  const [status, setStatus] = useState<SSEStatus>("connecting");
 
   useEffect(() => {
     onEventRef.current = onEvent;
@@ -19,9 +22,14 @@ export function useEventSource(onEvent: (event: SSEEvent) => void): void {
     let retryDelay = 1000;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let unmounted = false;
+    let wasConnected = false;
 
     function connect() {
       if (unmounted) return;
+
+      if (wasConnected) {
+        setStatus("reconnecting");
+      }
 
       es = new EventSource("/api/events");
 
@@ -35,14 +43,16 @@ export function useEventSource(onEvent: (event: SSEEvent) => void): void {
       };
 
       es.onopen = () => {
-        retryDelay = 1000; // Reset backoff on successful connection
+        retryDelay = 1000;
+        wasConnected = true;
+        if (!unmounted) setStatus("connected");
       };
 
       es.onerror = () => {
         es?.close();
         if (unmounted) return;
 
-        // Reconnect with exponential backoff (max 30s)
+        setStatus("reconnecting");
         retryTimer = setTimeout(connect, retryDelay);
         retryDelay = Math.min(retryDelay * 2, 30000);
       };
@@ -56,4 +66,6 @@ export function useEventSource(onEvent: (event: SSEEvent) => void): void {
       if (retryTimer) clearTimeout(retryTimer);
     };
   }, []);
+
+  return status;
 }

@@ -18,7 +18,12 @@ export default function DashboardError({
         <p className="text-sm text-muted-foreground mt-1 mb-4">
           Failed to load this page. Please try again.
         </p>
-        <Button onClick={reset}>Try Again</Button>
+        <div className="flex gap-2">
+          <Button onClick={reset}>Try Again</Button>
+          <Button variant="outline" onClick={() => window.location.href = "/"}>
+            Dashboard
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

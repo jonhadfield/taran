@@ -154,6 +154,7 @@ func main() {
 	// Auto-archive rule repo
 	autoArchiveRepo := database.NewAutoArchiveRuleRepo(pool)
 	proc.AutoArchiveRules = autoArchiveRepo
+	proc.Digests = digestRepo
 
 	// Handlers
 	webhookHandler := &handler.WebhookHandler{
