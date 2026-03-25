@@ -185,7 +185,7 @@ MailBrief stores everything -- user accounts, emails, digests, settings -- in a 
 1. Go to [console.neon.tech](https://console.neon.tech) and sign in.
 2. Click **New Project**.
 3. Give your project a name: `mailbrief`.
-4. Choose a region close to where your users will be (e.g., `US East` for North America).
+4. Choose a region close to where you plan to deploy the backend. For example, if you plan to use `europe-west2` (London) for Cloud Run, choose the `EU West` Neon region. If you plan to use `us-central1`, choose `US East`. Having the database and backend in the same region keeps things fast.
 5. Click **Create Project**.
 
 ### Get Your Connection String
@@ -270,16 +270,20 @@ echo -n "<your-unsubscribe-secret>" | gcloud secrets create taran-unsubscribe-se
 echo -n "<your-encryption-key>" | gcloud secrets create taran-encryption-key --data-file=- --replication-policy=automatic
 ```
 
-Then grant the Cloud Run service account permission to read them:
+Next, you need to give Cloud Run permission to read these secrets. This step looks technical, but you only need to do it once:
 
 ```bash
+# First, find your project number (Google Cloud uses this to identify your project internally)
 PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format='value(projectNumber)')
 SA="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 
+# Then grant read access for each secret. This loop runs the same command 6 times, once per secret:
 for SECRET in taran-db-url taran-webhook-secret taran-api-key taran-anthropic-api-key taran-unsubscribe-secret taran-encryption-key; do
   gcloud secrets add-iam-policy-binding "$SECRET" --member="$SA" --role="roles/secretmanager.secretAccessor" --quiet
 done
 ```
+
+> **What does this do?** Cloud Run needs explicit permission to read each secret. Without this, the backend would start but crash with "permission denied" errors when trying to load its configuration.
 
 ### Step 5: Initial Deploy to Cloud Run
 
@@ -358,30 +362,19 @@ Service URL: https://mailbrief-abc123-nw.a.run.app
 
 ### Step 7: Set Up Continuous Deployment
 
-Instead of manually deploying each time you update the code, set up a Cloud Build trigger so the backend auto-deploys on every push to `main`:
+Instead of manually deploying each time you update the code, you can set up automatic deployments. The simplest way is through Cloud Run's built-in feature:
 
-1. Go to [console.cloud.google.com](https://console.cloud.google.com) > **Cloud Build** > **Triggers**.
-2. Click **Create Trigger**.
-3. Configure:
-   - **Name**: `mailbrief-deploy`
-   - **Event**: Push to a branch
-   - **Source**: Connect your GitHub repository (`taran`)
-   - **Branch**: `^main$`
-4. Under **Build configuration**, select **Dockerfile** and set:
-   - **Dockerfile directory**: `backend`
-5. Add a build step to deploy:
-   - **Image**: `gcr.io/<your-project-id>/mailbrief:$COMMIT_SHA`
-   - **Deploy step**: `gcloud run deploy mailbrief --region <your-region> --image gcr.io/<your-project-id>/mailbrief:$COMMIT_SHA`
-6. Click **Create**.
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) > **Cloud Run**.
+2. Click on your `mailbrief` service.
+3. Click **Set up continuous deployment** (or **Edit & deploy new revision** > **Source repository**).
+4. Connect your GitHub account when prompted and select the `taran` repository.
+5. Set the **Branch** to `main`.
+6. Set the **Dockerfile** path to `backend/Dockerfile`.
+7. Click **Save**.
 
-Alternatively, use Cloud Run's built-in continuous deployment:
-1. Go to **Cloud Run** > your `mailbrief` service.
-2. Click **Set up continuous deployment**.
-3. Connect your GitHub repository and select the `main` branch.
-4. Set the Dockerfile path to `backend/Dockerfile`.
-5. Cloud Run will automatically build and deploy on every push.
+That is it. Every time you push code to the `main` branch on GitHub, Cloud Run will automatically build a new Docker image and deploy it. Your environment variables and secrets are preserved across deploys — you do not need to set them again.
 
-After this, every push to `main` will trigger a build and deploy automatically. Existing environment variables are preserved across deploys.
+> **How do you know it worked?** After pushing a commit, go to Cloud Run > your service > **Revisions** tab. You should see a new revision being created. It usually takes 2 to 3 minutes to build and deploy.
 
 ### Step 8: Test the Health Endpoint
 
@@ -493,7 +486,7 @@ Add each of the following variables. For each one, set it for all environments (
 | `NEXT_PUBLIC_EMAIL_DOMAIN` | `<yourdomain.com>` | Shown to users as their email domain |
 | `ADMIN_EMAILS` | `<your-personal-email>` | Email addresses that get admin access |
 
-> **Important:** `API_KEY` in the frontend must be exactly the same value as `TARAN_API_KEY` in the backend. If they do not match, the frontend will not be able to communicate with the backend.
+> **Very important: `API_KEY` must match exactly.** The `API_KEY` you set in Vercel must be the exact same value you stored as `taran-api-key` in Secret Manager (Part 4, Step 4). This is how the frontend proves to the backend that requests are legitimate. If these do not match, every API call will fail with "unauthorized" and the app will appear broken.
 
 ### Step 6: Deploy
 
@@ -559,6 +552,32 @@ https://yourdomain.com
 ```
 
 You should see the MailBrief login page. If you see a browser security warning about the certificate, wait a few more minutes and try again.
+
+### Step 5: Set Up API Subdomain (Optional but Recommended)
+
+If you want a clean URL for your backend API (like `api.yourdomain.com` instead of the long Cloud Run URL), add a DNS record in Cloudflare:
+
+1. Go to Cloudflare > your domain > **DNS** > **Records**.
+2. Add a CNAME record:
+   - **Type**: `CNAME`
+   - **Name**: `api`
+   - **Target**: Your Cloud Run URL without the `https://` (e.g., `mailbrief-abc123-nw.a.run.app`)
+   - **Proxy status**: Turn the orange cloud **off** (grey cloud, DNS only)
+3. In Google Cloud, map the custom domain:
+   ```bash
+   gcloud run domain-mappings create --service mailbrief --domain api.yourdomain.com --region <your-region>
+   ```
+
+Then update `TARAN_BASE_URL` to use your custom domain:
+```bash
+gcloud run services update mailbrief \
+  --region <your-region> \
+  --update-env-vars "TARAN_BASE_URL=https://api.yourdomain.com"
+```
+
+And use `https://api.yourdomain.com` as the `BACKEND_URL` in Vercel (Part 5, Step 5) instead of the raw Cloud Run URL.
+
+> **Is this required?** No. The raw Cloud Run URL works fine. But a custom subdomain is cleaner and will not change if you redeploy to a different Cloud Run region later.
 
 ---
 
@@ -843,6 +862,19 @@ After a few seconds, go to the **Digests** page in MailBrief. You should see a g
 If email sending is configured (Part 7), the digest should also arrive in your real email inbox. Check the email account you signed up with.
 
 **If the email does not arrive:** Check your spam folder. Also check the Cloud Run logs for any Resend API errors.
+
+### Congratulations!
+
+If all tests pass, your MailBrief deployment is fully operational. Here is what you have built:
+
+- A **website** where users sign in with Google or GitHub
+- A **managed email inbox** where each user gets their own address
+- An **AI engine** that reads incoming emails and extracts summaries, topics, and action items
+- A **digest system** that generates daily or weekly briefings
+- **Email delivery** that sends digests to your real inbox
+- **Automatic deployment** — push code to GitHub and both frontend and backend update themselves
+
+You can now start subscribing newsletters to your new inbox address and watch the digests roll in.
 
 ---
 
