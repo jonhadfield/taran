@@ -42,6 +42,10 @@ func SendDigest(ctx context.Context, webhookURL string, digest *domain.Digest, v
 		ViewURL:     viewURL,
 	}
 
+	if err := ValidateExternalURL(webhookURL); err != nil {
+		return fmt.Errorf("webhook URL blocked: %w", err)
+	}
+
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("marshal webhook payload: %w", err)

@@ -286,6 +286,7 @@ func main() {
 	}
 	sessionAuth := &auth.SessionAuth{
 		Sessions:    sessionRepo,
+		Invites:     inviteRepo,
 		AdminEmails: cfg.AdminEmails,
 	}
 

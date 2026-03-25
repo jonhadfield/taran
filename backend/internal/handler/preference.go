@@ -178,8 +178,8 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, http.StatusBadRequest, "webhook URL must be under 2048 characters")
 			return
 		}
-		if !strings.HasPrefix(*req.WebhookURL, "https://") && !strings.HasPrefix(*req.WebhookURL, "http://") {
-			WriteError(w, http.StatusBadRequest, "webhook URL must start with http:// or https://")
+		if err := webhook.ValidateExternalURL(*req.WebhookURL); err != nil {
+			WriteError(w, http.StatusBadRequest, "webhook URL must be a public HTTP/HTTPS URL")
 			return
 		}
 	}
@@ -351,7 +351,7 @@ func (h *PreferenceHandler) TestWebhook(w http.ResponseWriter, r *http.Request) 
 
 	if err := webhook.SendDigest(r.Context(), pref.WebhookURL, testDigest, ""); err != nil {
 		slog.Warn("webhook test failed", "userID", userID, "url", pref.WebhookURL, "error", err)
-		WriteError(w, http.StatusBadGateway, fmt.Sprintf("webhook test failed: %v", err))
+		WriteError(w, http.StatusBadGateway, "webhook test failed — check the URL is correct and reachable")
 		return
 	}
 

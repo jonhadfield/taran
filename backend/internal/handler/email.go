@@ -10,6 +10,7 @@ import (
 	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/domain"
+	"github.com/hadfielj/taran/backend/internal/webhook"
 )
 
 type EmailProcessor interface {
@@ -355,11 +356,17 @@ func (h *EmailHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
 
 	// Prefer HTTP one-click unsubscribe (RFC 8058)
 	if email.UnsubscribeURL != "" {
+		// SSRF protection: validate URL before making outbound request
+		if err := webhook.ValidateExternalURL(email.UnsubscribeURL); err != nil {
+			slog.Warn("unsubscribe URL blocked by SSRF filter", "url", email.UnsubscribeURL, "error", err)
+			WriteJSON(w, http.StatusOK, map[string]string{"status": "redirect", "url": email.UnsubscribeURL})
+			return
+		}
+
 		req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, email.UnsubscribeURL,
 			strings.NewReader("List-Unsubscribe=One-Click"))
 		if err != nil {
 			slog.Error("failed to create unsubscribe request", "url", email.UnsubscribeURL, "error", err)
-			// Fall back to redirect
 			WriteJSON(w, http.StatusOK, map[string]string{"status": "redirect", "url": email.UnsubscribeURL})
 			return
 		}
@@ -382,7 +389,6 @@ func (h *EmailHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Server rejected the POST — fall back to redirect
 		slog.Warn("one-click unsubscribe returned non-success", "status", resp.StatusCode, "url", email.UnsubscribeURL)
 		WriteJSON(w, http.StatusOK, map[string]string{"status": "redirect", "url": email.UnsubscribeURL})
 		return
@@ -470,6 +476,12 @@ func (h *EmailHandler) BatchUnsubscribe(w http.ResponseWriter, r *http.Request) 
 
 		// Try one-click unsubscribe
 		if sub.UnsubscribeURL != "" {
+			// SSRF protection
+			if err := webhook.ValidateExternalURL(sub.UnsubscribeURL); err != nil {
+				slog.Warn("batch unsubscribe URL blocked by SSRF filter", "address", addr, "url", sub.UnsubscribeURL, "error", err)
+				results = append(results, map[string]string{"address": addr, "status": "redirect", "url": sub.UnsubscribeURL})
+				continue
+			}
 			httpReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, sub.UnsubscribeURL,
 				strings.NewReader("List-Unsubscribe=One-Click"))
 			if err == nil {

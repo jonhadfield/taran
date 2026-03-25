@@ -58,7 +58,12 @@ export default function SubscriptionsPage() {
       );
       const result = results?.[0];
       if (result?.status === "redirect" && result.url) {
-        window.open(result.url, "_blank", "noopener,noreferrer");
+        try {
+          const parsed = new URL(result.url);
+          if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+            window.open(result.url, "_blank", "noopener,noreferrer");
+          }
+        } catch { /* invalid URL — ignore */ }
         toast.success("Opened unsubscribe page in new tab");
       } else if (result?.status === "unsubscribed") {
         toast.success("Unsubscribed successfully");
@@ -92,7 +97,14 @@ export default function SubscriptionsPage() {
       const redirects = results?.filter((r) => r.status === "redirect") || [];
       if (redirects.length > 0 && redirects.length <= 3) {
         for (const r of redirects) {
-          if (r.url) window.open(r.url, "_blank", "noopener,noreferrer");
+          if (r.url) {
+            try {
+              const parsed = new URL(r.url);
+              if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+                window.open(r.url, "_blank", "noopener,noreferrer");
+              }
+            } catch { /* invalid URL — skip */ }
+          }
         }
       }
       toast.success(`Unsubscribed from ${selectedAddresses.size} sender${selectedAddresses.size > 1 ? "s" : ""}`);
@@ -274,7 +286,12 @@ function SubscriptionRow({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        {sub.UnsubscribeURL && !isUnsubscribed && (
+        {sub.UnsubscribeURL && !isUnsubscribed && (() => {
+          try {
+            const u = new URL(sub.UnsubscribeURL);
+            if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+          } catch { return null; }
+          return (
           <a
             href={sub.UnsubscribeURL}
             target="_blank"
@@ -284,7 +301,8 @@ function SubscriptionRow({
           >
             <ExternalLink className="size-4" />
           </a>
-        )}
+          );
+        })()}
         {!isUnsubscribed && (
           <Button
             variant="outline"

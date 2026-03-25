@@ -24,8 +24,14 @@ export function UnsubscribeButton({ emailId }: UnsubscribeButtonProps) {
         toast.success("Successfully unsubscribed");
         setDone(true);
       } else if (res.status === "redirect" && res.url) {
-        window.open(res.url, "_blank", "noopener,noreferrer");
-        toast.info("Unsubscribe page opened in a new tab");
+        try {
+          const parsed = new URL(res.url);
+          if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("invalid");
+          window.open(res.url, "_blank", "noopener,noreferrer");
+          toast.info("Unsubscribe page opened in a new tab");
+        } catch {
+          toast.error("Invalid unsubscribe URL");
+        }
         setDone(true);
       } else if (res.status === "mailto" && res.address) {
         window.location.href = `mailto:${res.address}?subject=unsubscribe`;

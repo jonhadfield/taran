@@ -60,6 +60,7 @@ func WebhookAuth(secret string, next http.Handler) http.Handler {
 // SessionAuth validates Better Auth session tokens for API endpoints.
 type SessionAuth struct {
 	Sessions    database.SessionRepository
+	Invites     database.InviteRepository
 	AdminEmails []string
 }
 
@@ -95,6 +96,13 @@ func (a *SessionAuth) Middleware(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), UserIDKey, session.UserID)
 		ctx = context.WithValue(ctx, UserEmailKey, session.UserEmail)
+
+		// Invite gate: enforce on backend (not just frontend)
+		if a.Invites != nil && !a.isAllowed(r.Context(), session.UserEmail) {
+			writeAuthError(w, http.StatusForbidden, "not invited")
+			return
+		}
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -111,6 +119,20 @@ func (a *SessionAuth) AdminOnly(next http.Handler) http.Handler {
 		}
 		writeAuthError(w, http.StatusForbidden, "admin access required")
 	})
+}
+
+func (a *SessionAuth) isAllowed(ctx context.Context, email string) bool {
+	email = strings.ToLower(email)
+	for _, admin := range a.AdminEmails {
+		if email == admin {
+			return true
+		}
+	}
+	if a.Invites != nil {
+		invite, _ := a.Invites.GetByEmail(ctx, email)
+		return invite != nil
+	}
+	return false
 }
 
 func extractToken(r *http.Request) string {
