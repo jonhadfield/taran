@@ -20,12 +20,14 @@ interface OnboardingChecklistProps {
   emailAddress: string;
   hasEmails: boolean;
   hasDigest: boolean;
+  hasConfiguredPreferences: boolean;
 }
 
 export function OnboardingChecklist({
   emailAddress,
   hasEmails,
   hasDigest,
+  hasConfiguredPreferences,
 }: OnboardingChecklistProps) {
   const wasDismissed = useSyncExternalStore(
     (cb) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); },
@@ -66,14 +68,14 @@ export function OnboardingChecklist({
       id: "settings",
       label: "Configure your preferences",
       description: "Set your digest schedule, timezone, and notification preferences.",
-      done: false, // Always shown as a suggestion until dismissed
+      done: hasConfiguredPreferences,
       href: "/settings",
       icon: <Settings className="size-4" />,
     },
   ];
 
   const completedCount = items.filter((i) => i.done).length;
-  const allDone = completedCount >= 3; // 3 of 4 (settings is always "todo" until dismissed)
+  const allDone = completedCount === items.length;
 
   const handleDismiss = () => {
     localStorage.setItem("onboarding-checklist-dismissed", "1");

@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePolling } from "@/hooks/use-polling";
+import { apiGet } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { DashboardData, WeekCount, TopicCount, CategoryCount, HeatmapCell } from "@/types/api";
+import type { DashboardData, UserPreference, WeekCount, TopicCount, CategoryCount, HeatmapCell } from "@/types/api";
 import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, Loader2, AlertCircle, BarChart3, Tag, CheckSquare, PieChart, Clock } from "lucide-react";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
@@ -191,6 +193,19 @@ function ArrivalHeatmap({ cells }: { cells: HeatmapCell[] }) {
 
 export function DashboardContent({ initialData, emailAddress }: DashboardContentProps) {
   const { data } = usePolling<DashboardData>("dashboard", initialData);
+  const [hasConfiguredPrefs, setHasConfiguredPrefs] = useState(false);
+
+  useEffect(() => {
+    apiGet<UserPreference>("preferences")
+      .then((pref) => {
+        // Consider preferences "configured" if the user has enabled any delivery
+        // method or changed the timezone from UTC (the default)
+        if (pref.DigestEmail || pref.DigestWebhook || pref.WeeklySummary === false || pref.DigestTimezone !== "UTC") {
+          setHasConfiguredPrefs(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const emails = data.emails || [];
   const digests = data.digests || [];
@@ -281,6 +296,7 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
         emailAddress={emailAddress}
         hasEmails={stats.TotalEmails > 0}
         hasDigest={digests.length > 0}
+        hasConfiguredPreferences={hasConfiguredPrefs}
       />
 
       {/* Processing status */}
