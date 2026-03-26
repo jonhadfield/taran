@@ -97,8 +97,14 @@ func (a *SessionAuth) Middleware(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), UserIDKey, session.UserID)
 		ctx = context.WithValue(ctx, UserEmailKey, session.UserEmail)
 
-		// Invite gate: enforce on backend (not just frontend)
-		if a.Invites != nil && !a.isAllowed(r.Context(), session.UserEmail) {
+		// Invite gate: enforce on backend (not just frontend).
+		// Exempt paths that uninvited users need access to.
+		path := r.URL.Path
+		inviteExempt := path == "/api/access" ||
+			path == "/api/waitlist" ||
+			path == "/api/accounts" ||
+			strings.HasPrefix(path, "/api/public/")
+		if a.Invites != nil && !inviteExempt && !a.isAllowed(r.Context(), session.UserEmail) {
 			writeAuthError(w, http.StatusForbidden, "not invited")
 			return
 		}
