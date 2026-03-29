@@ -20,16 +20,16 @@ test.describe("Account deletion", () => {
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: /Settings/i })).toBeVisible({ timeout: 10000 });
 
-    // Find and click delete button on the account
-    const deleteButton = page.getByRole("button", { name: /Delete/i }).first();
-    await deleteButton.scrollIntoViewIfNeeded();
-    await deleteButton.click();
+    // The account email should be visible
+    await expect(page.getByText(account.emailAddress)).toBeVisible({ timeout: 10000 });
 
-    // Confirmation dialog should appear with warning about permanent deletion
+    // Click the trash icon button in the accounts section
+    const accountSection = page.locator("#accounts");
+    await accountSection.getByRole("button").filter({ has: page.locator("svg") }).first().click();
+
+    // Confirmation dialog should appear
     await expect(page.getByText(/permanently delete/i)).toBeVisible({ timeout: 5000 });
     await expect(page.getByText(/cannot be undone/i)).toBeVisible();
-
-    // Cancel button should be available
     await expect(page.getByRole("button", { name: /Cancel/i })).toBeVisible();
   });
 
@@ -41,19 +41,18 @@ test.describe("Account deletion", () => {
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: /Settings/i })).toBeVisible({ timeout: 10000 });
 
-    // Delete the account
-    const deleteButton = page.getByRole("button", { name: /Delete/i }).first();
-    await deleteButton.scrollIntoViewIfNeeded();
-    await deleteButton.click();
+    // Click the trash icon
+    const accountSection = page.locator("#accounts");
+    await accountSection.getByRole("button").filter({ has: page.locator("svg") }).first().click();
 
-    // Confirm deletion
-    const confirmDelete = page.getByRole("button", { name: /Delete/i }).last();
-    await confirmDelete.click();
+    // Confirm deletion in the dialog
+    await expect(page.getByText(/permanently delete/i)).toBeVisible({ timeout: 5000 });
+    await page.getByRole("button", { name: /Delete/i }).click();
 
     // Should show success toast
     await expect(page.getByText("Inbox deleted")).toBeVisible({ timeout: 10000 });
 
-    // Navigate to dashboard — should redirect to onboarding since no account exists
+    // Navigate to dashboard — should redirect to onboarding
     await page.goto("/");
     await expect(page).toHaveURL(/\/onboarding/, { timeout: 10000 });
   });
