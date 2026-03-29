@@ -8,7 +8,11 @@ export function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard API not available (headless browser, insecure context)
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

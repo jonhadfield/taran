@@ -43,7 +43,11 @@ export function ShareButton({ digestId, initialToken }: ShareButtonProps) {
 
   const handleCopy = async () => {
     if (!shareUrl) return;
-    await navigator.clipboard.writeText(shareUrl);
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      // Clipboard API not available
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
