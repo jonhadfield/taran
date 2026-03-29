@@ -5,9 +5,8 @@ export async function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
   const { pathname } = request.nextUrl;
 
-  if (sessionCookie && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
+  // Don't redirect from /login to / based on cookie alone — the cookie may be
+  // expired or rotated. Let the login page check session validity client-side.
 
   if (sessionCookie && pathname === "/not-invited") {
     // Allow authenticated users to see the not-invited page
