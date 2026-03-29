@@ -1,8 +1,8 @@
-# MailBrief
+# Taran
 
-**Your newsletters, summarised.** MailBrief is an AI-powered email digest dashboard. Sign up, get a managed inbox, forward your newsletters, and receive daily AI-generated summaries — key points, action items, topics, and sentiment — without reading every email.
+**Your newsletters, summarised.** Taran is an open-source, self-hosted AI-powered email digest platform. Users sign up, get a managed inbox, forward their newsletters, and receive daily AI-generated summaries — key points, action items, topics, and sentiment — without reading every email.
 
-**Live at [mailbrief.io](https://mailbrief.io)**
+**Demo instance: [mailbrief.io](https://mailbrief.io)**
 
 ---
 
