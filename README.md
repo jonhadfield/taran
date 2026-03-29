@@ -166,6 +166,24 @@ Frontend at `http://localhost:3002`, backend API at `http://localhost:8080`.
 
 For a complete step-by-step deployment guide, see **[INSTALL.md](INSTALL.md)**.
 
+## Running Costs
+
+Every service used has a free tier sufficient for personal use. A single-user deployment typically costs under $5/month, with AI usage being the main variable.
+
+| Service | Free Tier | Typical Cost |
+|---------|-----------|-------------|
+| **Vercel** | Hobby plan (free) | $0 |
+| **Google Cloud Run** | 2M requests/month, 360K GB-seconds | $0 for light usage |
+| **Google Cloud Scheduler** | 3 free jobs | $0 |
+| **Google Secret Manager** | 10K access operations/month | $0 |
+| **Neon PostgreSQL** | 0.5 GB storage, 190 compute hours | $0 for small databases |
+| **Cloudflare** | Workers free tier, email routing free | $0 + domain (~$10/year) |
+| **Resend** | 3,000 emails/month | $0 for personal use |
+| **Anthropic Claude** | Pay per token | ~$1–5/month depending on email volume |
+| **OpenAI** (optional fallback) | Pay per token | ~$1–3/month if used |
+
+The only unavoidable cost is a domain name (~$10/year) and AI API usage. Everything else runs within free tiers for a personal deployment.
+
 ## License
 
 [MIT License](LICENSE)
