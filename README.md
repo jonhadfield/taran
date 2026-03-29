@@ -10,7 +10,7 @@
 
 ```
 1. Sign up via Google or GitHub OAuth
-2. Get a managed inbox (you@mail.mailbrief.io)
+2. Get a managed inbox (you@mailbrief.io)
 3. Forward your newsletters to that address
 4. AI extracts key points, topics, action items, and sentiment from each email
 5. Open your dashboard to read a pre-computed daily digest
