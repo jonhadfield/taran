@@ -11,28 +11,27 @@ test.describe("Label management", () => {
     }
   });
 
-  test("create a new label", async ({ context, page }) => {
+  test("create a new label via settings", async ({ context, page }) => {
     const user = await loginAsTestUser(context);
     userId = user.id;
     await createEmailAccount(userId);
 
-    await page.goto("/settings#labels");
+    await page.goto("/settings");
     await expect(page.getByRole("heading", { name: /Settings/i })).toBeVisible({ timeout: 10000 });
 
-    // Click create label button
-    const createButton = page.getByRole("button", { name: /Create/i });
-    await createButton.scrollIntoViewIfNeeded();
-    await createButton.click();
+    // Click "New Label" button
+    const newLabelButton = page.getByRole("button", { name: /New Label/i });
+    await newLabelButton.scrollIntoViewIfNeeded();
+    await newLabelButton.click();
 
     // Fill in label name
-    const nameInput = page.getByPlaceholder(/Label name/i);
-    await expect(nameInput).toBeVisible({ timeout: 5000 });
-    await nameInput.fill("Important");
+    await expect(page.getByPlaceholder("Label name")).toBeVisible({ timeout: 5000 });
+    await page.getByPlaceholder("Label name").fill("Important");
 
-    // Save
-    await page.getByRole("button", { name: /Save/i }).click();
+    // Submit with Enter
+    await page.getByPlaceholder("Label name").press("Enter");
 
-    // Label should now appear in the list
+    // Label should appear in the list
     await expect(page.getByText("Important")).toBeVisible({ timeout: 5000 });
   });
 });

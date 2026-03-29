@@ -52,8 +52,10 @@ test.describe("Inbox detail page", () => {
     await page.goto(`/inbox/${email.emailId}`);
 
     await expect(page.getByText("Was this useful?")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole("button", { name: /Yes/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /No/i })).toBeVisible();
+    // Scope feedback buttons to the area near "Was this useful?"
+    const feedbackArea = page.locator("div").filter({ hasText: "Was this useful?" }).last();
+    await expect(feedbackArea.getByRole("button", { name: "Yes" })).toBeVisible();
+    await expect(feedbackArea.getByRole("button", { name: "No" })).toBeVisible();
   });
 
   test("delete button shows confirmation dialog", async ({ context, page }) => {
