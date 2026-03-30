@@ -328,6 +328,39 @@ func (h *AdminStatsHandler) SetUserTokenLimit(w http.ResponseWriter, r *http.Req
 	})
 }
 
+func (h *AdminStatsHandler) GetWaitlistEnabled(w http.ResponseWriter, r *http.Request) {
+	enabled := false
+	if h.AppSettings != nil {
+		enabled, _ = h.AppSettings.GetBool(r.Context(), "waitlist_enabled", false)
+	}
+	WriteJSON(w, http.StatusOK, map[string]bool{"waitlistEnabled": enabled})
+}
+
+func (h *AdminStatsHandler) SetWaitlistEnabled(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		WaitlistEnabled bool `json:"WaitlistEnabled"`
+	}
+	if err := LimitedJSONDecoder(r).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	value := "false"
+	if req.WaitlistEnabled {
+		value = "true"
+	}
+
+	if err := h.AppSettings.Set(r.Context(), "waitlist_enabled", value); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to update waitlist setting")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]any{
+		"status":          "updated",
+		"WaitlistEnabled": req.WaitlistEnabled,
+	})
+}
+
 func (h *AdminStatsHandler) GetAuditLog(w http.ResponseWriter, r *http.Request) {
 	if h.AuditLog == nil {
 		WriteJSON(w, http.StatusOK, ListResponse[domain.AuditEntry]{Data: []domain.AuditEntry{}, Total: 0})

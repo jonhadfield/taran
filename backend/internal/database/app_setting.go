@@ -40,6 +40,17 @@ func (r *AppSettingRepo) Set(ctx context.Context, key, value string) error {
 	return nil
 }
 
+func (r *AppSettingRepo) GetBool(ctx context.Context, key string, fallback bool) (bool, error) {
+	v, err := r.Get(ctx, key)
+	if err != nil {
+		return fallback, err
+	}
+	if v == "" {
+		return fallback, nil
+	}
+	return v == "true" || v == "1", nil
+}
+
 func (r *AppSettingRepo) GetInt(ctx context.Context, key string, fallback int) (int, error) {
 	v, err := r.Get(ctx, key)
 	if err != nil {

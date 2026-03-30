@@ -237,9 +237,10 @@ func main() {
 		Mailer:      m,
 	}
 	waitlistHandler := &handler.WaitlistHandler{
-		Waitlist: waitlistRepo,
-		Invites:  inviteRepo,
-		Mailer:   m,
+		Waitlist:    waitlistRepo,
+		Invites:     inviteRepo,
+		Mailer:      m,
+		AppSettings: appSettingRepo,
 	}
 	exportHandler := &handler.ExportHandler{
 		Emails:  emailRepo,

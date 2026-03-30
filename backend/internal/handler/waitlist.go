@@ -14,12 +14,32 @@ import (
 )
 
 type WaitlistHandler struct {
-	Waitlist database.WaitlistRepository
-	Invites  database.InviteRepository
-	Mailer   mailer.Mailer // may be nil
+	Waitlist     database.WaitlistRepository
+	Invites      database.InviteRepository
+	Mailer       mailer.Mailer // may be nil
+	AppSettings  *database.AppSettingRepo
+}
+
+// Status returns whether the waitlist is open for requests.
+// This endpoint is public (no auth required).
+func (h *WaitlistHandler) Status(w http.ResponseWriter, r *http.Request) {
+	enabled := false
+	if h.AppSettings != nil {
+		enabled, _ = h.AppSettings.GetBool(r.Context(), "waitlist_enabled", false)
+	}
+	WriteJSON(w, http.StatusOK, map[string]bool{"waitlistEnabled": enabled})
 }
 
 func (h *WaitlistHandler) Submit(w http.ResponseWriter, r *http.Request) {
+	// Check if waitlist is enabled
+	if h.AppSettings != nil {
+		enabled, _ := h.AppSettings.GetBool(r.Context(), "waitlist_enabled", false)
+		if !enabled {
+			WriteError(w, http.StatusForbidden, "waitlist is not currently open")
+			return
+		}
+	}
+
 	email := strings.ToLower(auth.UserEmailFromContext(r.Context()))
 	if email == "" {
 		WriteError(w, http.StatusBadRequest, "could not determine user email")

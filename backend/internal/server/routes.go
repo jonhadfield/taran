@@ -67,6 +67,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	// Public endpoints (no auth — skipped by publicPathAuth wrapper below)
 	api.HandleFunc("GET /api/public/digests/{token}", deps.DigestHandler.GetPublic)
 	api.HandleFunc("POST /api/public/unsubscribe", deps.PreferenceHandler.Unsubscribe)
+	api.HandleFunc("GET /api/public/waitlist-status", deps.WaitlistHandler.Status)
 	api.HandleFunc("GET /api/dashboard", deps.DashboardHandler.Get)
 	api.HandleFunc("GET /api/emails", deps.EmailHandler.List)
 	api.HandleFunc("PATCH /api/emails/batch", deps.EmailHandler.BatchUpdateState)
@@ -148,6 +149,8 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	admin.HandleFunc("POST /api/admin/waitlist/{id}/approve", deps.WaitlistHandler.Approve)
 	admin.HandleFunc("PATCH /api/admin/users/{id}/token-limit", deps.AdminStatsHandler.SetUserTokenLimit)
 	admin.HandleFunc("PATCH /api/admin/settings/token-limit", deps.AdminStatsHandler.SetDefaultTokenLimit)
+	admin.HandleFunc("GET /api/admin/settings/waitlist", deps.AdminStatsHandler.GetWaitlistEnabled)
+	admin.HandleFunc("PATCH /api/admin/settings/waitlist", deps.AdminStatsHandler.SetWaitlistEnabled)
 	if deps.AdminWebhookHandler != nil {
 		admin.HandleFunc("GET /api/admin/emails/failed", deps.AdminWebhookHandler.ListFailed)
 		admin.HandleFunc("POST /api/admin/emails/{id}/retry", deps.AdminWebhookHandler.RetryOne)
