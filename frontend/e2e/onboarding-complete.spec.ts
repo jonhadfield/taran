@@ -19,8 +19,9 @@ test.describe("Onboarding complete flow", () => {
     // Should redirect to onboarding
     await expect(page).toHaveURL(/\/onboarding/, { timeout: 10000 });
 
-    // Step 1: Get Started
+    // Step 1: Get Started — wait for hydration before clicking
     await expect(page.getByText("Welcome to")).toBeVisible({ timeout: 10000 });
+    await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Get Started/i }).first().click();
 
     // Step 2: Username form
@@ -38,7 +39,7 @@ test.describe("Onboarding complete flow", () => {
 
     // Step 3: Success — should show the email address
     await expect(page.getByText("Your inbox is ready")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(`${username}@`)).toBeVisible();
+    await expect(page.getByText(`${username}@`).first()).toBeVisible();
 
     // Click to go to dashboard
     await page.getByRole("button", { name: /Go to Dashboard/i }).click();

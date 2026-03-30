@@ -24,8 +24,8 @@ test.describe("Subscriptions page", () => {
 
     await page.goto("/senders/subscriptions");
 
-    // Page should load (may show "No subscriptions" if unsubscribe URL isn't set)
-    await expect(page.getByRole("heading", { name: /Subscriptions/i }).or(page.getByText(/No subscriptions/i))).toBeVisible({ timeout: 10000 });
+    // Page should load (may show heading or empty state)
+    await expect(page.getByRole("heading", { name: "Manage Subscriptions" })).toBeVisible({ timeout: 10000 });
   });
 
   test("empty subscriptions shows illustration", async ({ context, page }) => {
