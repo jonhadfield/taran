@@ -29,6 +29,7 @@ import { LabelSettings } from "./label-settings";
 import { DailyLimitSettings } from "./daily-limit-settings";
 import { useColorTheme } from "@/components/color-theme-provider";
 import { SettingsNav, type SettingsSection } from "./settings-nav";
+import { NewsletterSuggestions } from "@/components/newsletter-suggestions";
 
 const COMMON_TIMEZONES = [
   "America/New_York",
@@ -58,6 +59,7 @@ function detectTimezone(): string {
 
 const SECTIONS: SettingsSection[] = [
   { id: "accounts", label: "Accounts", group: "General" },
+  { id: "newsletters", label: "Newsletters", group: "General" },
   { id: "appearance", label: "Appearance", group: "General" },
   { id: "delivery", label: "Delivery", group: "Digest" },
   { id: "quiet-hours", label: "Quiet Hours", group: "Digest" },
@@ -197,7 +199,7 @@ export default function SettingsPage() {
   // Filter sections: hide "Forwarding" if no accounts yet
   const visibleSections = accounts.length > 0
     ? SECTIONS
-    : SECTIONS.filter((s) => s.id !== "forwarding");
+    : SECTIONS.filter((s) => s.id !== "forwarding" && s.id !== "newsletters");
 
   return (
     <div className="max-w-2xl">
@@ -221,6 +223,12 @@ export default function SettingsPage() {
             onDelete={handleDelete}
           />
         </section>
+
+        {accounts.length > 0 && (
+          <section id="newsletters" className="scroll-mt-24">
+            <NewsletterSuggestions emailAddress={accounts[0]?.EmailAddress} />
+          </section>
+        )}
 
         <section id="appearance" className="scroll-mt-24">
           <ThemeColorSettings
