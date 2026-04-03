@@ -26,7 +26,7 @@ export default function LoginPage() {
             AI-powered digests of your newsletters, delivered daily.
           </p>
           <p className="text-sm font-medium text-muted-foreground/80">
-            Currently invite-only
+            Currently invite-only &mdash; sign in below to join the waitlist
           </p>
         </div>
 

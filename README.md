@@ -184,6 +184,10 @@ Every service used has a free tier sufficient for personal use. A single-user de
 
 The only unavoidable cost is a domain name (~$10/year) and AI API usage. Everything else runs within free tiers for a personal deployment.
 
+## Known Issues
+
+- **Reply-to-confirm newsletters not supported.** Taran uses email forwarding via Cloudflare Email Workers — there is no outbound sending from managed inboxes. Newsletters that require you to reply to confirm your subscription cannot be activated through your Taran address. As a workaround, subscribe with your personal email first, confirm, then update the delivery address to your Taran inbox.
+
 ## License
 
 [MIT License](LICENSE)
