@@ -23,7 +23,7 @@ export default function LoginPage() {
           />
           <h1 className="text-4xl font-bold tracking-tight">{APP_NAME}</h1>
           <p className="text-lg text-muted-foreground">
-            AI-powered digests of your newsletters, delivered daily.
+            Open-source, AI-powered newsletter digests.
           </p>
           <p className="text-sm font-medium text-muted-foreground/80">
             Currently invite-only &mdash; sign in below to join the waitlist

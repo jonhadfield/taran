@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/sidebar";
-import { Menu, LogOut, Sun, Moon, Bell, BellOff, BellRing } from "lucide-react";
+import { Menu, LogOut, Sun, Moon, Bell, BellOff, BellRing, Github, Bug } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
 import { cn } from "@/lib/utils";
@@ -60,6 +60,19 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
       </div>
 
       <div className="flex items-center gap-1">
+        <a
+          href="https://github.com/jonhadfield/taran"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="View on GitHub"
+        >
+          <Button variant="ghost" size="icon" asChild>
+            <span>
+              <Github className="size-4" />
+              <span className="sr-only">View on GitHub</span>
+            </span>
+          </Button>
+        </a>
         {mounted && permission !== "unsupported" && (
           <Button
             variant="ghost"
@@ -117,6 +130,16 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
               <p className="text-sm font-medium">{user?.name || "User"}</p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
+            <DropdownMenuItem asChild>
+              <a
+                href="https://github.com/jonhadfield/taran/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Bug className="mr-2 size-4" />
+                Report an issue
+              </a>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 size-4" />
               Sign out
