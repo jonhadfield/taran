@@ -19,6 +19,7 @@ type RateLimiter struct {
 	rate     rate.Limit
 	burst    int
 	cleanTTL time.Duration
+	stop     chan struct{}
 }
 
 type clientEntry struct {
@@ -34,9 +35,15 @@ func NewRateLimiter(rps float64, burst int) *RateLimiter {
 		rate:     rate.Limit(rps),
 		burst:    burst,
 		cleanTTL: 3 * time.Minute,
+		stop:     make(chan struct{}),
 	}
 	go rl.cleanup()
 	return rl
+}
+
+// Stop terminates the background cleanup goroutine.
+func (rl *RateLimiter) Stop() {
+	close(rl.stop)
 }
 
 func (rl *RateLimiter) getLimiter(ip string) *rate.Limiter {
@@ -57,15 +64,20 @@ func (rl *RateLimiter) getLimiter(ip string) *rate.Limiter {
 func (rl *RateLimiter) cleanup() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	for range ticker.C {
-		rl.mu.Lock()
-		cutoff := time.Now().Add(-rl.cleanTTL)
-		for ip, entry := range rl.clients {
-			if entry.lastSeen.Before(cutoff) {
-				delete(rl.clients, ip)
+	for {
+		select {
+		case <-ticker.C:
+			rl.mu.Lock()
+			cutoff := time.Now().Add(-rl.cleanTTL)
+			for ip, entry := range rl.clients {
+				if entry.lastSeen.Before(cutoff) {
+					delete(rl.clients, ip)
+				}
 			}
+			rl.mu.Unlock()
+		case <-rl.stop:
+			return
 		}
-		rl.mu.Unlock()
 	}
 }
 
@@ -119,6 +131,7 @@ type UserRateLimiter struct {
 	rate     rate.Limit
 	burst    int
 	cleanTTL time.Duration
+	stop     chan struct{}
 }
 
 // NewUserRateLimiter creates a per-user rate limiter.
@@ -128,9 +141,15 @@ func NewUserRateLimiter(rps float64, burst int) *UserRateLimiter {
 		rate:     rate.Limit(rps),
 		burst:    burst,
 		cleanTTL: 3 * time.Minute,
+		stop:     make(chan struct{}),
 	}
 	go rl.cleanup()
 	return rl
+}
+
+// Stop terminates the background cleanup goroutine.
+func (rl *UserRateLimiter) Stop() {
+	close(rl.stop)
 }
 
 func (rl *UserRateLimiter) getLimiter(userID string) *rate.Limiter {
@@ -151,15 +170,20 @@ func (rl *UserRateLimiter) getLimiter(userID string) *rate.Limiter {
 func (rl *UserRateLimiter) cleanup() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	for range ticker.C {
-		rl.mu.Lock()
-		cutoff := time.Now().Add(-rl.cleanTTL)
-		for id, entry := range rl.clients {
-			if entry.lastSeen.Before(cutoff) {
-				delete(rl.clients, id)
+	for {
+		select {
+		case <-ticker.C:
+			rl.mu.Lock()
+			cutoff := time.Now().Add(-rl.cleanTTL)
+			for id, entry := range rl.clients {
+				if entry.lastSeen.Before(cutoff) {
+					delete(rl.clients, id)
+				}
 			}
+			rl.mu.Unlock()
+		case <-rl.stop:
+			return
 		}
-		rl.mu.Unlock()
 	}
 }
 

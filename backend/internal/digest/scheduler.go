@@ -26,6 +26,7 @@ type Scheduler struct {
 	mailer            mailer.Mailer
 	baseURL           string
 	unsubscribeSecret string
+	retryTimer        *time.Timer
 }
 
 func NewScheduler(generator *Generator, emails database.EmailRepository, digests database.DigestRepository, preferences database.PreferenceRepository, sessions database.SessionRepository, m mailer.Mailer, baseURL, unsubscribeSecret string) *Scheduler {
@@ -38,6 +39,14 @@ func NewScheduler(generator *Generator, emails database.EmailRepository, digests
 		mailer:            m,
 		baseURL:           baseURL,
 		unsubscribeSecret: unsubscribeSecret,
+	}
+}
+
+// Stop cancels any pending retry timer. Call during graceful shutdown
+// to prevent the retry goroutine from firing after resources are released.
+func (s *Scheduler) Stop() {
+	if s.retryTimer != nil {
+		s.retryTimer.Stop()
 	}
 }
 
@@ -181,7 +190,7 @@ func (s *Scheduler) generateDigests() {
 
 	if len(failures) > 0 {
 		slog.Info("scheduling retry for failed digests", "count", len(failures), "delay", retryDelay)
-		time.AfterFunc(retryDelay, func() {
+		s.retryTimer = time.AfterFunc(retryDelay, func() {
 			s.retryFailedDigests(failures, nowUTC)
 		})
 	}

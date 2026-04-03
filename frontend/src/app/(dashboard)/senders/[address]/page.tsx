@@ -7,32 +7,7 @@ import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderDetail, WeekCount, Email, ListResponse } from "@/types/api";
 import { Loader2, Mail, Calendar, BarChart3, Clock, TrendingUp, ExternalLink } from "lucide-react";
 import { formatShortDate } from "@/lib/utils";
-
-const STATUS_OPTIONS = [
-  { value: "normal", label: "Normal" },
-  { value: "favorite", label: "Favorite" },
-  { value: "muted", label: "Muted" },
-  { value: "blocked", label: "Blocked" },
-];
-
-const CATEGORY_OPTIONS = [
-  { value: "", label: "Auto" },
-  { value: "newsletter", label: "Newsletter" },
-  { value: "personal", label: "Personal" },
-  { value: "transactional", label: "Transactional" },
-  { value: "marketing", label: "Marketing" },
-  { value: "notification", label: "Notification" },
-  { value: "other", label: "Other" },
-];
-
-const CATEGORY_COLORS: Record<string, string> = {
-  newsletter: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  personal: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  transactional: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
-  marketing: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  notification: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  other: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
+import { STATUS_OPTIONS, CATEGORY_OPTIONS, CATEGORY_COLORS } from "@/lib/category-constants";
 
 function VolumeChart({ data }: { data: WeekCount[] }) {
   if (data.length === 0) return null;

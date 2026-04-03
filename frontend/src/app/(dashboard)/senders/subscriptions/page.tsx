@@ -10,22 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { formatShortDate } from "@/lib/utils";
 import Link from "next/link";
-
-const avatarColors = [
-  "bg-blue-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-purple-500",
-  "bg-cyan-500",
-  "bg-indigo-500",
-  "bg-pink-500",
-];
-
-function getAvatarColor(name: string) {
-  const charCode = name.charCodeAt(0) || 0;
-  return avatarColors[charCode % avatarColors.length];
-}
+import { getAvatarColor } from "@/lib/avatar-colors";
 
 export default function SubscriptionsPage() {
   const [subs, setSubs] = useState<SubscriptionInfo[]>([]);

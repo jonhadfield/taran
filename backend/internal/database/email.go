@@ -482,14 +482,14 @@ func (r *EmailRepo) ListActiveUserIDs(ctx context.Context, from, to time.Time) (
 }
 
 func (r *EmailRepo) CountByPeriod(ctx context.Context, userID string, from, to time.Time) (int, error) {
-	var count int
+	var count int64
 	err := r.pool.QueryRow(ctx,
 		"SELECT COUNT(*) FROM email WHERE user_id = $1 AND received_at >= $2 AND received_at < $3 AND status = 'processed'",
 		userID, from, to).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count by period: %w", err)
 	}
-	return count, nil
+	return int(count), nil
 }
 
 func (r *EmailRepo) TopSenders(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error) {
@@ -588,11 +588,32 @@ func (r *EmailRepo) CountByStatus(ctx context.Context, userID string) (map[domai
 	counts := make(map[domain.EmailStatus]int)
 	for rows.Next() {
 		var status domain.EmailStatus
-		var count int
+		var count int64
 		if err := rows.Scan(&status, &count); err != nil {
 			return nil, fmt.Errorf("scan status count: %w", err)
 		}
-		counts[status] = count
+		counts[status] = int(count)
+	}
+	return counts, nil
+}
+
+// CountByStatusAll returns email counts grouped by status across all users.
+func (r *EmailRepo) CountByStatusAll(ctx context.Context) (map[domain.EmailStatus]int, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT status, COUNT(*) FROM email GROUP BY status`)
+	if err != nil {
+		return nil, fmt.Errorf("count by status all: %w", err)
+	}
+	defer rows.Close()
+
+	counts := make(map[domain.EmailStatus]int)
+	for rows.Next() {
+		var status domain.EmailStatus
+		var count int64
+		if err := rows.Scan(&status, &count); err != nil {
+			return nil, fmt.Errorf("scan status count: %w", err)
+		}
+		counts[status] = int(count)
 	}
 	return counts, nil
 }

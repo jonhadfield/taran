@@ -27,6 +27,7 @@ type EmailRepository interface {
 	TopSenders(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
 	ListSenders(ctx context.Context, userID string) ([]domain.SenderInfo, error)
 	CountByStatus(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
+	CountByStatusAll(ctx context.Context) (map[domain.EmailStatus]int, error)
 	CountBySenderWeek(ctx context.Context, userID, fromAddress string, weeks int) ([]domain.WeekCount, error)
 	GetSenderDetail(ctx context.Context, userID, fromAddress string) (*domain.SenderDetail, error)
 	ListRetryable(ctx context.Context, maxRetries, limit int) ([]domain.Email, error)

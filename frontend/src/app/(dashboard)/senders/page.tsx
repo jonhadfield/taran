@@ -8,48 +8,8 @@ import { toast } from "sonner";
 import { EmptyState, SendersIllustration } from "@/components/empty-state";
 import Link from "next/link";
 import { SenderSparkline } from "./sender-sparkline";
-
-const avatarColors = [
-  "bg-blue-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-purple-500",
-  "bg-cyan-500",
-  "bg-indigo-500",
-  "bg-pink-500",
-];
-
-function getAvatarColor(name: string) {
-  const charCode = name.charCodeAt(0) || 0;
-  return avatarColors[charCode % avatarColors.length];
-}
-
-const STATUS_OPTIONS = [
-  { value: "normal", label: "Normal" },
-  { value: "favorite", label: "Favorite" },
-  { value: "muted", label: "Muted" },
-  { value: "blocked", label: "Blocked" },
-];
-
-const CATEGORY_OPTIONS = [
-  { value: "", label: "Auto" },
-  { value: "newsletter", label: "Newsletter" },
-  { value: "personal", label: "Personal" },
-  { value: "transactional", label: "Transactional" },
-  { value: "marketing", label: "Marketing" },
-  { value: "notification", label: "Notification" },
-  { value: "other", label: "Other" },
-];
-
-const CATEGORY_COLORS: Record<string, string> = {
-  newsletter: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  personal: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  transactional: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
-  marketing: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  notification: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  other: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
+import { getAvatarColor } from "@/lib/avatar-colors";
+import { STATUS_OPTIONS, CATEGORY_OPTIONS, CATEGORY_COLORS } from "@/lib/category-constants";
 
 const ALL_CATEGORIES = ["newsletter", "personal", "transactional", "marketing", "notification", "other"];
 

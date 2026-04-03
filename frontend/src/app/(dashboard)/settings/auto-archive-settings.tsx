@@ -14,15 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Trash2, Plus } from "lucide-react";
 import type { AutoArchiveRule } from "@/types/api";
-
-const CATEGORY_OPTIONS = [
-  { value: "newsletter", label: "Newsletter" },
-  { value: "personal", label: "Personal" },
-  { value: "transactional", label: "Transactional" },
-  { value: "marketing", label: "Marketing" },
-  { value: "notification", label: "Notification" },
-  { value: "other", label: "Other" },
-];
+import { CATEGORY_OPTIONS_NO_AUTO } from "@/lib/category-constants";
 
 export function AutoArchiveSettings() {
   const [rules, setRules] = useState<AutoArchiveRule[]>([]);
@@ -163,7 +155,7 @@ export function AutoArchiveSettings() {
                       onChange={(e) => setRuleValue(e.target.value)}
                       className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
-                      {CATEGORY_OPTIONS.map((opt) => (
+                      {CATEGORY_OPTIONS_NO_AUTO.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>

@@ -15,8 +15,6 @@ export function ShareButton({ digestId, initialToken }: ShareButtonProps) {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const shareUrl = token ? `${window.location.origin}/shared/${token}` : null;
-
   const handleShare = async () => {
     setLoading(true);
     try {
@@ -42,7 +40,8 @@ export function ShareButton({ digestId, initialToken }: ShareButtonProps) {
   };
 
   const handleCopy = async () => {
-    if (!shareUrl) return;
+    if (!token) return;
+    const shareUrl = `${window.location.origin}/shared/${token}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
     } catch {

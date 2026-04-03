@@ -204,10 +204,9 @@ func (h *AdminWebhookHandler) PipelineHealth(w http.ResponseWriter, r *http.Requ
 		Payloads   int `json:"payloads"`
 	}
 
-	// Use ListFailedAll to get failed+processing count
-	_, failedTotal, err := h.Emails.ListFailedAll(r.Context(), 1, 0)
+	statusCounts, err := h.Emails.CountByStatusAll(r.Context())
 	if err != nil {
-		slog.Error("pipeline health: failed to count failed emails", "error", err)
+		slog.Error("pipeline health: failed to count emails by status", "error", err)
 		WriteError(w, http.StatusInternalServerError, "failed to get pipeline health")
 		return
 	}
@@ -219,11 +218,14 @@ func (h *AdminWebhookHandler) PipelineHealth(w http.ResponseWriter, r *http.Requ
 	}
 
 	resp := pipelineResponse{
-		Failed:   failedTotal,
-		Payloads: payloadCount,
+		Pending:    statusCounts[domain.EmailStatusPending],
+		Processing: statusCounts[domain.EmailStatusProcessing],
+		Processed:  statusCounts[domain.EmailStatusProcessed],
+		Failed:     statusCounts[domain.EmailStatusFailed],
+		Skipped:    statusCounts[domain.EmailStatusSkipped],
+		Payloads:   payloadCount,
 	}
 
-	// Process email via worker synchronously — use Processor interface
 	WriteJSON(w, http.StatusOK, resp)
 }
 

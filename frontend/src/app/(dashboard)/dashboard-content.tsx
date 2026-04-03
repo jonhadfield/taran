@@ -14,6 +14,7 @@ import { EmptyState, DashboardIllustration } from "@/components/empty-state";
 import { WidgetErrorBoundary } from "@/components/widget-error-boundary";
 import Link from "next/link";
 import { formatShortDate } from "@/lib/utils";
+import { CATEGORY_CHART_COLORS } from "@/lib/category-constants";
 
 interface DashboardContentProps {
   initialData: DashboardData;
@@ -86,14 +87,6 @@ function TopicCloud({ topics }: { topics: TopicCount[] }) {
   );
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  newsletter: "bg-blue-500",
-  personal: "bg-green-500",
-  transactional: "bg-gray-400",
-  marketing: "bg-orange-500",
-  notification: "bg-yellow-500",
-  other: "bg-gray-300 dark:bg-gray-600",
-};
 
 function CategoryBars({ categories }: { categories: CategoryCount[] }) {
   if (categories.length === 0) return null;
@@ -115,7 +108,7 @@ function CategoryBars({ categories }: { categories: CategoryCount[] }) {
             </span>
             <div className="flex-1 h-5 bg-muted rounded-sm overflow-hidden">
               <div
-                className={`h-full rounded-sm animate-bar-grow-h ${CATEGORY_COLORS[cat.Category] || CATEGORY_COLORS.other}`}
+                className={`h-full rounded-sm animate-bar-grow-h ${CATEGORY_CHART_COLORS[cat.Category] || CATEGORY_CHART_COLORS.other}`}
                 style={{ "--bar-width": `${(cat.Count / max) * 100}%`, animationDelay: `${i * 80}ms` } as React.CSSProperties}
               />
             </div>

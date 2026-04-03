@@ -21,15 +21,15 @@ type ExportData struct {
 func (h *ExportHandler) Export(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 
-	// Fetch all emails (up to 10k)
-	emails, _, err := h.Emails.List(r.Context(), userID, domain.ListOptions{Limit: 10000})
+	// Fetch emails (up to 1k per export)
+	emails, _, err := h.Emails.List(r.Context(), userID, domain.ListOptions{Limit: 1000})
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to export emails")
 		return
 	}
 
-	// Fetch all digests (up to 10k)
-	digests, _, err := h.Digests.List(r.Context(), userID, domain.ListOptions{Limit: 10000})
+	// Fetch digests (up to 1k per export)
+	digests, _, err := h.Digests.List(r.Context(), userID, domain.ListOptions{Limit: 1000})
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to export digests")
 		return

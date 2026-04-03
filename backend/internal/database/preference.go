@@ -84,6 +84,10 @@ func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPr
 }
 
 func (r *PreferenceRepo) Upsert(ctx context.Context, pref *domain.UserPreference) error {
+	if _, err := time.LoadLocation(pref.DigestTimezone); err != nil {
+		return fmt.Errorf("invalid digest timezone %q: %w", pref.DigestTimezone, err)
+	}
+
 	interestJSON, err := json.Marshal(pref.InterestKeywords)
 	if err != nil {
 		return fmt.Errorf("marshal interest keywords: %w", err)

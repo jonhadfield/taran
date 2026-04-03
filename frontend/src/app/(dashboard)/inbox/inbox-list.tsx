@@ -21,22 +21,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { useEventSource } from "@/hooks/use-event-source";
 import { formatShortDate } from "@/lib/utils";
 import { labelColorClass } from "@/lib/constants";
-
-const avatarColors = [
-  "bg-blue-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-purple-500",
-  "bg-cyan-500",
-  "bg-indigo-500",
-  "bg-pink-500",
-];
-
-function getAvatarColor(name: string) {
-  const charCode = name.charCodeAt(0) || 0;
-  return avatarColors[charCode % avatarColors.length];
-}
+import { getAvatarColor } from "@/lib/avatar-colors";
 
 const PAGE_SIZE = 50;
 
@@ -647,8 +632,8 @@ export function InboxList({
           role="button"
           aria-pressed={activeCategory === ""}
           tabIndex={0}
-          onClick={() => setActiveCategory("")}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveCategory(""); } }}
+          onClick={() => { setActiveCategory(""); setLimit(PAGE_SIZE); }}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveCategory(""); setLimit(PAGE_SIZE); } }}
         >
           All types
         </Badge>
@@ -660,8 +645,8 @@ export function InboxList({
             role="button"
             aria-pressed={activeCategory === value}
             tabIndex={0}
-            onClick={() => setActiveCategory(activeCategory === value ? "" : value)}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveCategory(activeCategory === value ? "" : value); } }}
+            onClick={() => { setActiveCategory(activeCategory === value ? "" : value); setLimit(PAGE_SIZE); }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveCategory(activeCategory === value ? "" : value); setLimit(PAGE_SIZE); } }}
           >
             {label}
           </Badge>
@@ -677,8 +662,8 @@ export function InboxList({
             role="button"
             aria-pressed={activeLabel === ""}
             tabIndex={0}
-            onClick={() => setActiveLabel("")}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveLabel(""); } }}
+            onClick={() => { setActiveLabel(""); setLimit(PAGE_SIZE); }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveLabel(""); setLimit(PAGE_SIZE); } }}
           >
             <Tag className="size-3 mr-1" />
             All
@@ -691,8 +676,8 @@ export function InboxList({
               role="button"
               aria-pressed={activeLabel === label.ID}
               tabIndex={0}
-              onClick={() => setActiveLabel(activeLabel === label.ID ? "" : label.ID)}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveLabel(activeLabel === label.ID ? "" : label.ID); } }}
+              onClick={() => { setActiveLabel(activeLabel === label.ID ? "" : label.ID); setLimit(PAGE_SIZE); }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveLabel(activeLabel === label.ID ? "" : label.ID); setLimit(PAGE_SIZE); } }}
             >
               {label.Color && (
                 <span className={`inline-block size-2 rounded-full mr-1.5 ${labelColorClass(label.Color)}`} />
@@ -714,8 +699,8 @@ export function InboxList({
             role="button"
             aria-pressed={activeTopic === ""}
             tabIndex={0}
-            onClick={() => setActiveTopic("")}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTopic(""); } }}
+            onClick={() => { setActiveTopic(""); setLimit(PAGE_SIZE); }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTopic(""); setLimit(PAGE_SIZE); } }}
           >
             All
           </Badge>
@@ -727,8 +712,8 @@ export function InboxList({
               role="button"
               aria-pressed={activeTopic === topic}
               tabIndex={0}
-              onClick={() => setActiveTopic(activeTopic === topic ? "" : topic)}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTopic(activeTopic === topic ? "" : topic); } }}
+              onClick={() => { setActiveTopic(activeTopic === topic ? "" : topic); setLimit(PAGE_SIZE); }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTopic(activeTopic === topic ? "" : topic); setLimit(PAGE_SIZE); } }}
             >
               {topic}
             </Badge>
