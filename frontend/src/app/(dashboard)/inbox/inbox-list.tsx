@@ -300,7 +300,7 @@ export function InboxList({
           if (focusedIndex >= 0 && focusedIndex < emails.length) {
             const email = emails[focusedIndex];
             apiPatch(`emails/${email.ID}`, { IsStarred: !email.IsStarred })
-              .then(() => router.refresh())
+              .then(() => refresh())
               .catch(() => toast.error("Failed to update email"));
           }
           break;
@@ -312,7 +312,7 @@ export function InboxList({
             apiPatch(`emails/${email.ID}`, { IsArchived: !email.IsArchived })
               .then(() => {
                 toast.success(email.IsArchived ? "Unarchived" : "Archived");
-                router.refresh();
+                refresh();
               })
               .catch(() => toast.error("Failed to update email"));
           }
@@ -350,7 +350,7 @@ export function InboxList({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [emails, focusedIndex, toggleSelect, router, isDesktop]);
+  }, [emails, focusedIndex, toggleSelect, router, isDesktop, refresh]);
 
   // Scroll focused row into view
   useEffect(() => {

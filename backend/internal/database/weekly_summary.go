@@ -34,6 +34,18 @@ func (r *WeeklySummaryRepo) Create(ctx context.Context, s *domain.WeeklySummary)
 	return nil
 }
 
+func (r *WeeklySummaryRepo) ExistsForPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM weekly_summary WHERE user_id = $1 AND period_start = $2 AND period_end = $3)`,
+		userID, periodStart, periodEnd,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check weekly summary exists: %w", err)
+	}
+	return exists, nil
+}
+
 func (r *WeeklySummaryRepo) SetSentAt(ctx context.Context, id string, sentAt time.Time) error {
 	_, err := r.pool.Exec(ctx, `UPDATE weekly_summary SET sent_at = $1 WHERE id = $2`, sentAt, id)
 	if err != nil {

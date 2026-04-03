@@ -232,7 +232,6 @@ export default async function EmailDetailPage({
             allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
             allowedAttributes: {
               ...sanitizeHtml.defaults.allowedAttributes,
-              "*": ["class"],
             },
             allowedStyles: {
               "*": {

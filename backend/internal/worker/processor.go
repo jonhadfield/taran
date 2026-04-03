@@ -143,16 +143,10 @@ func (p *Processor) sweepPending(ctx context.Context) {
 	if len(pending) == 0 {
 		return
 	}
-	enqueued := 0
 	for _, e := range pending {
-		select {
-		case p.queue <- e.ID:
-			enqueued++
-		default:
-			break
-		}
+		p.Enqueue(e.ID)
 	}
-	slog.Info("sweeper: re-queued orphaned emails", "found", len(pending), "enqueued", enqueued)
+	slog.Info("sweeper: re-queued orphaned emails", "found", len(pending))
 }
 
 func (p *Processor) sweepRetryable(ctx context.Context) {
@@ -164,7 +158,6 @@ func (p *Processor) sweepRetryable(ctx context.Context) {
 	if len(retryable) == 0 {
 		return
 	}
-	enqueued := 0
 	for _, e := range retryable {
 		// Increment retry count and reset to pending before enqueuing
 		if err := p.emails.IncrementRetryCount(ctx, e.ID); err != nil {
@@ -175,14 +168,9 @@ func (p *Processor) sweepRetryable(ctx context.Context) {
 			slog.Error("sweeper: failed to reset status for retry", "emailID", e.ID, "error", err)
 			continue
 		}
-		select {
-		case p.queue <- e.ID:
-			enqueued++
-		default:
-			break
-		}
+		p.Enqueue(e.ID)
 	}
-	slog.Info("sweeper: retrying failed emails", "found", len(retryable), "enqueued", enqueued)
+	slog.Info("sweeper: retrying failed emails", "found", len(retryable))
 }
 
 func (p *Processor) processEmail(ctx context.Context, emailID string) {

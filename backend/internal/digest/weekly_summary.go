@@ -3,6 +3,7 @@ package digest
 import (
 	"context"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ import (
 
 // WeeklySummaryRunner generates and sends weekly activity summaries.
 type WeeklySummaryRunner struct {
+	mu          sync.Mutex
 	Emails      database.EmailRepository
 	Extractions database.ExtractionRepository
 	Preferences database.PreferenceRepository
@@ -25,7 +27,15 @@ type WeeklySummaryRunner struct {
 
 // Run generates weekly summaries for all eligible users.
 // Called from the same hourly cron as digests — only sends on Sundays at each user's preferred hour.
+// Uses TryLock to ensure only one run executes at a time, preventing duplicate
+// summaries from concurrent cron triggers.
 func (r *WeeklySummaryRunner) Run() {
+	if !r.mu.TryLock() {
+		slog.Info("weekly summary generation already in progress, skipping")
+		return
+	}
+	defer r.mu.Unlock()
+
 	ctx := context.Background()
 	nowUTC := time.Now().UTC()
 
@@ -53,6 +63,16 @@ func (r *WeeklySummaryRunner) Run() {
 		}
 
 		if !shouldSendWeeklySummary(pref, nowUTC) {
+			continue
+		}
+
+		// Check if a summary was already generated for this user and period
+		exists, err := r.Summaries.ExistsForPeriod(ctx, userID, periodStart, periodEnd)
+		if err != nil {
+			slog.Error("weekly summary: failed to check existing", "userID", userID, "error", err)
+			continue
+		}
+		if exists {
 			continue
 		}
 

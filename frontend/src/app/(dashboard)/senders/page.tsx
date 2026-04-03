@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderInfo, SenderSuggestion } from "@/types/api";
 import { Loader2, X, MailX } from "lucide-react";
+import { toast } from "sonner";
 import { EmptyState, SendersIllustration } from "@/components/empty-state";
 import Link from "next/link";
 import { SenderSparkline } from "./sender-sparkline";
@@ -130,19 +131,37 @@ export default function SendersPage() {
     }
   };
 
+  const [mutingAll, setMutingAll] = useState(false);
+
   const handleMuteAll = async () => {
-    for (const s of suggestions) {
-      await apiPatch("senders", { FromAddress: s.FromAddress, Status: "muted" });
+    setMutingAll(true);
+    try {
+      const results = await Promise.allSettled(
+        suggestions.map((s) =>
+          apiPatch("senders", { FromAddress: s.FromAddress, Status: "muted" }).then(() => s.FromAddress)
+        )
+      );
+      const succeeded = new Set(
+        results
+          .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+          .map((r) => r.value)
+      );
+      const failedCount = results.length - succeeded.size;
+      setSenders((prev) =>
+        prev.map((s) => {
+          if (succeeded.has(s.FromAddress)) {
+            return { ...s, Status: "muted" };
+          }
+          return s;
+        })
+      );
+      setSuggestions((prev) => prev.filter((s) => !succeeded.has(s.FromAddress)));
+      if (failedCount > 0) {
+        toast.error(`Failed to mute ${failedCount} sender${failedCount !== 1 ? "s" : ""}`);
+      }
+    } finally {
+      setMutingAll(false);
     }
-    setSenders((prev) =>
-      prev.map((s) => {
-        if (suggestions.some((sg) => sg.FromAddress === s.FromAddress)) {
-          return { ...s, Status: "muted" };
-        }
-        return s;
-      })
-    );
-    setSuggestions([]);
   };
 
   const filteredSenders = categoryFilter === "all"
@@ -236,9 +255,10 @@ export default function SendersPage() {
               {suggestions.length > 1 && (
                 <button
                   onClick={handleMuteAll}
-                  className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline"
+                  disabled={mutingAll}
+                  className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline disabled:opacity-50"
                 >
-                  Mute all {suggestions.length} senders
+                  {mutingAll ? "Muting..." : `Mute all ${suggestions.length} senders`}
                 </button>
               )}
             </div>

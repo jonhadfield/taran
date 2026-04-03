@@ -325,6 +325,12 @@ func (h *DigestHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Shared links expire after 30 days
+	if time.Since(d.CreatedAt) > 30*24*time.Hour {
+		WriteError(w, http.StatusGone, "this shared digest has expired")
+		return
+	}
+
 	// Strip sensitive fields for public view
 	d.UserID = ""
 

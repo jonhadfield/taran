@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+export const maxDuration = 300;
+
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 
 function requireEnv(name: string): string {

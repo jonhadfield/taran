@@ -32,6 +32,12 @@ func (h *EventsHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no") // Disable nginx/proxy buffering
+
+	rc := http.NewResponseController(w)
+	sseWriteDeadline := 60 * time.Second
+
+	// Extend the initial write deadline and flush headers
+	rc.SetWriteDeadline(time.Now().Add(sseWriteDeadline))
 	flusher.Flush()
 
 	events, unsubscribe := h.Broker.Subscribe(userID)
@@ -57,10 +63,12 @@ func (h *EventsHandler) Stream(w http.ResponseWriter, r *http.Request) {
 				slog.Error("SSE marshal error", "error", err)
 				continue
 			}
+			rc.SetWriteDeadline(time.Now().Add(sseWriteDeadline))
 			fmt.Fprintf(w, "data: %s\n\n", data)
 			flusher.Flush()
 
 		case <-keepalive.C:
+			rc.SetWriteDeadline(time.Now().Add(sseWriteDeadline))
 			fmt.Fprintf(w, ": keepalive\n\n")
 			flusher.Flush()
 		}
