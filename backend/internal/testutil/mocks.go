@@ -234,6 +234,10 @@ func (m *MockEmailRepo) CountByHourAndDay(ctx context.Context, userID string) ([
 	return nil, nil
 }
 
+func (m *MockEmailRepo) CountByStatusAll(ctx context.Context) (map[domain.EmailStatus]int, error) {
+	return nil, nil
+}
+
 func (m *MockEmailRepo) CountByFilter(ctx context.Context, userID string, status *domain.EmailStatus, isRead *bool) (int, error) {
 	if m.CountByFilterFn != nil {
 		return m.CountByFilterFn(ctx, userID, status, isRead)
