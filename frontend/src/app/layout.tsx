@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { APP_NAME } from "@/lib/config";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { parseColorTheme } from "@/lib/constants";
 import "./globals.css";
 
@@ -41,7 +42,9 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

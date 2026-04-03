@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
+import { DashboardShell } from "@/components/dashboard-shell";
 import { TitleUpdater } from "@/components/title-updater";
 import { Toaster } from "@/components/ui/sonner";
 import { ColorThemeProvider } from "@/components/color-theme-provider";
@@ -43,16 +42,9 @@ export default async function DashboardLayout({
     <ColorThemeProvider initialTheme={colorTheme}>
       <div className="min-h-screen">
         <TitleUpdater />
-        {/* Fixed full-height sidebar - hidden on mobile */}
-        <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-          <Sidebar isAdmin={admin} />
-        </aside>
-
-        {/* Main content area offset by sidebar width */}
-        <div className="lg:pl-64">
-          <Header isAdmin={admin} />
-          <main className="@container p-4 lg:p-6">{children}</main>
-        </div>
+        <DashboardShell isAdmin={admin}>
+          {children}
+        </DashboardShell>
         <CommandPalette isAdmin={admin} />
         <KeyboardHelp />
         <Toaster />
