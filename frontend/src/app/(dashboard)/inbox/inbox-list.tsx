@@ -22,8 +22,8 @@ import { useEventSource } from "@/hooks/use-event-source";
 import { useInboxKeyboardShortcuts } from "@/hooks/use-inbox-keyboard-shortcuts";
 import { formatShortDate, pluralize } from "@/lib/utils";
 import { labelColorClass } from "@/lib/constants";
-import { getAvatarColor } from "@/lib/avatar-colors";
 import { SenderAvatar } from "@/components/sender-avatar";
+import { CATEGORY_LABELS } from "@/lib/category-constants";
 
 const PAGE_SIZE = 50;
 
@@ -57,15 +57,6 @@ export function buildQueryString(
   if (labelId) params.push(`label=${encodeURIComponent(labelId)}`);
   return params.join("&");
 }
-
-const CATEGORY_LABELS: Record<string, string> = {
-  newsletter: "Newsletters",
-  personal: "Personal",
-  transactional: "Transactional",
-  marketing: "Marketing",
-  notification: "Notifications",
-  other: "Other",
-};
 
 interface InboxListProps {
   initialEmails: Email[];
@@ -468,7 +459,6 @@ export function InboxList({
             )}
             {emails.map((email, index) => {
               const senderName = email.FromName || email.FromAddress;
-              const initial = senderName.charAt(0).toUpperCase();
               const isSelected = selectedIds.has(email.ID);
               const isFocused = activeFocusIndex === index;
 

@@ -8,7 +8,7 @@ import { EmptyState, SubscriptionIllustration } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { formatShortDate, pluralize } from "@/lib/utils";
+import { formatShortDate, isSafeURL, pluralize } from "@/lib/utils";
 import Link from "next/link";
 import { SenderAvatar } from "@/components/sender-avatar";
 
@@ -43,12 +43,9 @@ export default function SubscriptionsPage() {
       );
       const result = results?.[0];
       if (result?.status === "redirect" && result.url) {
-        try {
-          const parsed = new URL(result.url);
-          if (parsed.protocol === "https:" || parsed.protocol === "http:") {
-            window.open(result.url, "_blank", "noopener,noreferrer");
-          }
-        } catch { /* invalid URL — ignore */ }
+        if (isSafeURL(result.url)) {
+          window.open(result.url, "_blank", "noopener,noreferrer");
+        }
         toast.success("Opened unsubscribe page in new tab");
       } else if (result?.status === "unsubscribed") {
         toast.success("Unsubscribed successfully");
@@ -82,13 +79,8 @@ export default function SubscriptionsPage() {
       const redirects = results?.filter((r) => r.status === "redirect") || [];
       if (redirects.length > 0 && redirects.length <= 3) {
         for (const r of redirects) {
-          if (r.url) {
-            try {
-              const parsed = new URL(r.url);
-              if (parsed.protocol === "https:" || parsed.protocol === "http:") {
-                window.open(r.url, "_blank", "noopener,noreferrer");
-              }
-            } catch { /* invalid URL — skip */ }
+          if (r.url && isSafeURL(r.url)) {
+            window.open(r.url, "_blank", "noopener,noreferrer");
           }
         }
       }
@@ -266,12 +258,7 @@ function SubscriptionRow({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        {sub.UnsubscribeURL && !isUnsubscribed && (() => {
-          try {
-            const u = new URL(sub.UnsubscribeURL);
-            if (u.protocol !== "https:" && u.protocol !== "http:") return null;
-          } catch { return null; }
-          return (
+        {sub.UnsubscribeURL && !isUnsubscribed && isSafeURL(sub.UnsubscribeURL) && (
           <a
             href={sub.UnsubscribeURL}
             target="_blank"
@@ -281,8 +268,7 @@ function SubscriptionRow({
           >
             <ExternalLink className="size-4" />
           </a>
-          );
-        })()}
+        )}
         {!isUnsubscribed && (
           <Button
             variant="outline"

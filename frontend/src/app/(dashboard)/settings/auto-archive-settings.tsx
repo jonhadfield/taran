@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Trash2, Plus } from "lucide-react";
 import type { AutoArchiveRule } from "@/types/api";
-import { pluralize } from "@/lib/utils";
+import { cn, pluralize } from "@/lib/utils";
+import { nativeSelectClassName } from "@/lib/constants";
 import { CATEGORY_OPTIONS_NO_AUTO } from "@/lib/category-constants";
 
 export function AutoArchiveSettings() {
@@ -155,7 +156,7 @@ export function AutoArchiveSettings() {
                     <select
                       value={ruleValue}
                       onChange={(e) => setRuleValue(e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className={cn(nativeSelectClassName, "flex w-full py-1 transition-colors")}
                     >
                       {CATEGORY_OPTIONS_NO_AUTO.map((opt) => (
                         <option key={opt.value} value={opt.value}>

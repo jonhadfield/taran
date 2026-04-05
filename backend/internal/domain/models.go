@@ -2,6 +2,21 @@ package domain
 
 import "time"
 
+// DefaultMonthlyTokenLimit is the fallback monthly token limit when no
+// user-specific or admin-configured value exists.
+const DefaultMonthlyTokenLimit = 500000
+
+// ValidRatings lists the accepted feedback rating values.
+var ValidRatings = map[string]bool{
+	"useful":     true,
+	"not_useful": true,
+}
+
+// IsValidRating returns true if the given rating string is an accepted value.
+func IsValidRating(rating string) bool {
+	return ValidRatings[rating]
+}
+
 // ValidCategories lists the accepted email source categories.
 // Used for validation in handlers that accept user-specified categories.
 var ValidCategories = map[string]bool{

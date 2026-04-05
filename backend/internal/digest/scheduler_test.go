@@ -180,13 +180,13 @@ func TestComputePeriod_WithTimezone(t *testing.T) {
 func TestRunNow_ConcurrentCallsOnlyOneExecutes(t *testing.T) {
 	var generateCalls atomic.Int32
 
-	s := NewScheduler(
-		&Generator{
+	s := NewScheduler(SchedulerConfig{
+		Generator: &Generator{
 			Extractions: &testutil.MockExtractionRepo{},
 			Digests:     &testutil.MockDigestRepo{},
 			Resolver:    llm.NewProviderResolver(&testutil.MockProvider{}, nil, nil, nil),
 		},
-		&testutil.MockEmailRepo{
+		Emails: &testutil.MockEmailRepo{
 			ListActiveUserIDsFn: func(_ context.Context, _, _ time.Time) ([]string, error) {
 				// Simulate slow work so concurrent calls overlap
 				time.Sleep(50 * time.Millisecond)
@@ -194,11 +194,10 @@ func TestRunNow_ConcurrentCallsOnlyOneExecutes(t *testing.T) {
 				return nil, nil
 			},
 		},
-		&testutil.MockDigestRepo{},
-		&testutil.MockPreferenceRepo{},
-		&testutil.MockSessionRepo{},
-		nil, "", "",
-	)
+		Digests:     &testutil.MockDigestRepo{},
+		Preferences: &testutil.MockPreferenceRepo{},
+		Sessions:    &testutil.MockSessionRepo{},
+	})
 
 	var wg sync.WaitGroup
 	for i := 0; i < 5; i++ {

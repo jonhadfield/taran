@@ -324,7 +324,7 @@ func (h *DigestHandler) UpsertFeedback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if body.Rating != "useful" && body.Rating != "not_useful" {
+	if !domain.IsValidRating(body.Rating) {
 		WriteError(w, http.StatusBadRequest, "rating must be 'useful' or 'not_useful'")
 		return
 	}

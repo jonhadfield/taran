@@ -16,13 +16,14 @@ import (
 )
 
 const (
-	extractMaxRetries = 3
-	extractBaseDelay  = 2 * time.Second
-	sweepInterval     = 5 * time.Minute
-	sweepBatchSize    = 100
-	startupRequeueMax = 500
-	retryMaxAttempts  = 5 // max auto-retries for failed emails (backoff: 5m, 20m, 80m, 320m, 1280m)
-	retryBatchSize    = 20
+	extractMaxRetries    = 3
+	extractBaseDelay     = 2 * time.Second
+	sweepInterval        = 5 * time.Minute
+	sweepBatchSize       = 100
+	startupRequeueMax    = 500
+	retryMaxAttempts     = 5 // max auto-retries for failed emails (backoff: 5m, 20m, 80m, 320m, 1280m)
+	retryBatchSize       = 20
+	triagePreviewMaxLen  = 1500 // max characters of content sent to triage LLM call
 )
 
 type Processor struct {
@@ -45,25 +46,29 @@ type Processor struct {
 	Digests          database.DigestRepository
 }
 
-func NewProcessor(
-	bufferSize, concurrency int,
-	emails database.EmailRepository,
-	extractions database.ExtractionRepository,
-	resolver *llm.ProviderResolver,
-	senderPrefs database.SenderPreferenceRepository,
-	tokenUsage database.TokenUsageRepository,
-	preferences database.PreferenceRepository,
-) *Processor {
+// ProcessorConfig groups the dependencies for NewProcessor.
+type ProcessorConfig struct {
+	BufferSize  int
+	Concurrency int
+	Emails      database.EmailRepository
+	Extractions database.ExtractionRepository
+	Resolver    *llm.ProviderResolver
+	SenderPrefs database.SenderPreferenceRepository
+	TokenUsage  database.TokenUsageRepository
+	Preferences database.PreferenceRepository
+}
+
+func NewProcessor(cfg ProcessorConfig) *Processor {
 	return &Processor{
-		queue:       make(chan string, bufferSize),
+		queue:       make(chan string, cfg.BufferSize),
 		done:        make(chan struct{}),
-		emails:      emails,
-		extractions: extractions,
-		resolver:    resolver,
-		senderPrefs: senderPrefs,
-		tokenUsage:  tokenUsage,
-		preferences: preferences,
-		concurrency: concurrency,
+		emails:      cfg.Emails,
+		extractions: cfg.Extractions,
+		resolver:    cfg.Resolver,
+		senderPrefs: cfg.SenderPrefs,
+		tokenUsage:  cfg.TokenUsage,
+		preferences: cfg.Preferences,
+		concurrency: cfg.Concurrency,
 	}
 }
 
@@ -300,8 +305,8 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 
 	// Triage: cheap LLM call to decide if this email is worth extracting.
 	contentPreview := content
-	if len(contentPreview) > 1500 {
-		contentPreview = contentPreview[:1500]
+	if len(contentPreview) > triagePreviewMaxLen {
+		contentPreview = contentPreview[:triagePreviewMaxLen]
 	}
 	triageResult, triageUsage, triageErr := provider.TriageEmail(ctx, em.Subject, em.FromAddress, contentPreview)
 	// Always record triage tokens when available, even if parsing failed

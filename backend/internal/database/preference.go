@@ -22,12 +22,12 @@ func NewPreferenceRepo(pool *pgxpool.Pool) *PreferenceRepo {
 
 func (r *PreferenceRepo) defaultTokenLimit(ctx context.Context) int {
 	if r.AppSettings != nil {
-		limit, err := r.AppSettings.GetInt(ctx, "default_monthly_token_limit", 500000)
+		limit, err := r.AppSettings.GetInt(ctx, "default_monthly_token_limit", domain.DefaultMonthlyTokenLimit)
 		if err == nil {
 			return limit
 		}
 	}
-	return 500000
+	return domain.DefaultMonthlyTokenLimit
 }
 
 func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPreference, error) {

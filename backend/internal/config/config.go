@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/hadfielj/taran/backend/internal/domain"
 )
 
 type Config struct {
@@ -166,7 +168,7 @@ func Load() (*Config, error) {
 			OllamaURL:                envOr("TARAN_OLLAMA_URL", "http://localhost:11434"),
 			OllamaModel:              os.Getenv("TARAN_OLLAMA_MODEL"),
 			AutoSelectedOverAnthropic: autoSelectedOverAnthropic,
-			DefaultMonthlyTokenLimit:  envInt("TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT", 500000),
+			DefaultMonthlyTokenLimit:  envInt("TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT", domain.DefaultMonthlyTokenLimit),
 			EncryptionKey:             os.Getenv("TARAN_ENCRYPTION_KEY"),
 		},
 		Email: EmailConfig{

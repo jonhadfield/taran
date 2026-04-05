@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { HOUR_OPTIONS } from "@/lib/constants";
+import { HOUR_OPTIONS, nativeSelectClassName } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 interface QuietHoursSettingsProps {
   enabled: boolean;
@@ -66,7 +67,7 @@ export function QuietHoursSettings({
                   value={start}
                   onChange={(e) => onStartChange(Number(e.target.value))}
                   disabled={prefSaving}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className={cn(nativeSelectClassName, "flex w-full py-1 transition-colors")}
                 >
                   {HOUR_OPTIONS.map(({ value, label }) => (
                     <option key={value} value={value}>{label}</option>
@@ -80,7 +81,7 @@ export function QuietHoursSettings({
                   value={end}
                   onChange={(e) => onEndChange(Number(e.target.value))}
                   disabled={prefSaving}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className={cn(nativeSelectClassName, "flex w-full py-1 transition-colors")}
                 >
                   {HOUR_OPTIONS.map(({ value, label }) => (
                     <option key={value} value={value}>{label}</option>

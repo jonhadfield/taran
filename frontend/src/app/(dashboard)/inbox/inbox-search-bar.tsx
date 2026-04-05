@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import { Search, X, SlidersHorizontal, Paperclip, Calendar, ArrowUpDown } from "lucide-react";
 import type { SavedSearch } from "@/types/api";
+import { nativeSelectClassName } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { SavedSearchDropdown } from "./saved-search-dropdown";
 
 interface SearchFilters {
@@ -81,7 +83,7 @@ export function InboxSearchBar({
           <select
             value={sort}
             onChange={(e) => { setSort(e.target.value); setLimit(pageSize); }}
-            className="h-9 rounded-md border border-input bg-transparent pl-8 pr-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring appearance-none cursor-pointer"
+            className={cn(nativeSelectClassName, "pl-8 pr-2 appearance-none cursor-pointer")}
             aria-label="Sort order"
           >
             <option value="newest">Newest</option>

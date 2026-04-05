@@ -201,17 +201,17 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
       .catch(() => {});
   }, []);
 
-  const emails = data.emails || [];
-  const digests = data.digests || [];
-  const unreadCount = data.unreadCount;
-  const stats = data.stats;
-  const weeklyHistory = data.weeklyHistory || [];
-  const topicsWithCount = data.topicsWithCount || [];
-  const categories = data.categories || [];
-  const actionItems = data.actionItems || 0;
-  const heatmap = data.heatmap || [];
+  const emails = data.Emails || [];
+  const digests = data.Digests || [];
+  const unreadCount = data.UnreadCount;
+  const stats = data.Stats;
+  const weeklyHistory = data.WeeklyHistory || [];
+  const topicsWithCount = data.TopicsWithCount || [];
+  const categories = data.Categories || [];
+  const actionItems = data.ActionItems || 0;
+  const heatmap = data.Heatmap || [];
 
-  const processing = data.processing;
+  const processing = data.Processing;
   const weekDiff = stats.EmailsThisWeek - stats.EmailsLastWeek;
   const inFlightCount = (processing?.PendingCount ?? 0) + (processing?.ProcessingCount ?? 0);
   const failedCount = processing?.FailedCount ?? 0;

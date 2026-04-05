@@ -24,17 +24,16 @@ export default async function DashboardPage() {
   }
 
   const emptyData: DashboardData = {
-    emails: [],
-    emailTotal: 0,
-    digests: [],
-    unreadCount: 0,
-    stats: { EmailsThisWeek: 0, EmailsLastWeek: 0, TotalEmails: 0, TopSenders: [] },
-    processing: { PendingCount: 0, ProcessingCount: 0, FailedCount: 0 },
-    weeklyHistory: [],
-    topicsWithCount: [],
-    categories: [],
-    actionItems: 0,
-    heatmap: [],
+    Emails: [],
+    Digests: [],
+    UnreadCount: 0,
+    Stats: { EmailsThisWeek: 0, EmailsLastWeek: 0, TotalEmails: 0, TopSenders: [] },
+    Processing: { PendingCount: 0, ProcessingCount: 0, FailedCount: 0 },
+    WeeklyHistory: [],
+    TopicsWithCount: [],
+    Categories: [],
+    ActionItems: 0,
+    Heatmap: [],
   };
 
   let initialData = emptyData;

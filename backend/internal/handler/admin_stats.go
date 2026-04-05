@@ -33,7 +33,7 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	stats.LLMModel = h.LLMModel
 
 	if h.AppSettings != nil {
-		limit, _ := h.AppSettings.GetInt(ctx, "default_monthly_token_limit", 500000)
+		limit, _ := h.AppSettings.GetInt(ctx, "default_monthly_token_limit", domain.DefaultMonthlyTokenLimit)
 		stats.DefaultMonthlyTokenLimit = limit
 	}
 
@@ -57,9 +57,9 @@ func (h *AdminStatsHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defaultLimit := 500000
+	defaultLimit := domain.DefaultMonthlyTokenLimit
 	if h.AppSettings != nil {
-		if v, err := h.AppSettings.GetInt(ctx, "default_monthly_token_limit", 500000); err == nil {
+		if v, err := h.AppSettings.GetInt(ctx, "default_monthly_token_limit", domain.DefaultMonthlyTokenLimit); err == nil {
 			defaultLimit = v
 		}
 	}

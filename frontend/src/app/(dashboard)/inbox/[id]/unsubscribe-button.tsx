@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { apiPost } from "@/lib/api";
+import { isSafeURL } from "@/lib/utils";
 import { MailX, Loader2 } from "lucide-react";
 
 interface UnsubscribeButtonProps {
@@ -24,12 +25,10 @@ export function UnsubscribeButton({ emailId }: UnsubscribeButtonProps) {
         toast.success("Successfully unsubscribed");
         setDone(true);
       } else if (res.status === "redirect" && res.url) {
-        try {
-          const parsed = new URL(res.url);
-          if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("invalid");
+        if (isSafeURL(res.url)) {
           window.open(res.url, "_blank", "noopener,noreferrer");
           toast.info("Unsubscribe page opened in a new tab");
-        } catch {
+        } else {
           toast.error("Invalid unsubscribe URL");
         }
         setDone(true);

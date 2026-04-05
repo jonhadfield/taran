@@ -27,12 +27,6 @@ export interface Email {
 
 export type EmailStatus = "pending" | "processing" | "processed" | "failed" | "skipped";
 
-export interface EmailState {
-  IsRead?: boolean;
-  IsStarred?: boolean;
-  IsArchived?: boolean;
-}
-
 export interface Extraction {
   ID: string;
   EmailID: string;
@@ -55,7 +49,7 @@ export interface Link {
   title: string;
 }
 
-export interface EmailAttachment {
+interface EmailAttachment {
   ID: string;
   EmailID: string;
   Filename: string;
@@ -65,8 +59,8 @@ export interface EmailAttachment {
 }
 
 export interface EmailResponse extends Email {
-  extraction?: Extraction;
-  attachments?: EmailAttachment[];
+  Extraction?: Extraction;
+  Attachments?: EmailAttachment[];
   ThreadCount?: number;
 }
 
@@ -219,7 +213,7 @@ export interface AdminUser {
   MonthlyTokenLimit: number;
 }
 
-export interface DailyTokenCount {
+interface DailyTokenCount {
   Date: string;
   Tokens: number;
 }
@@ -309,7 +303,7 @@ export interface DigestFeedback {
   CreatedAt: string;
 }
 
-export interface DigestPreviewItem {
+interface DigestPreviewItem {
   EmailID: string;
   Subject: string;
   FromName: string;
@@ -404,15 +398,14 @@ export interface HeatmapCell {
 }
 
 export interface DashboardData {
-  emails: Email[];
-  emailTotal: number;
-  digests: Digest[];
-  unreadCount: number;
-  stats: UserStats;
-  processing: ProcessingStats;
-  weeklyHistory: WeekCount[];
-  topicsWithCount: TopicCount[];
-  categories: CategoryCount[];
-  actionItems: number;
-  heatmap: HeatmapCell[];
+  Emails: Email[];
+  Digests: Digest[];
+  UnreadCount: number;
+  Stats: UserStats;
+  Processing: ProcessingStats;
+  WeeklyHistory: WeekCount[];
+  TopicsWithCount: TopicCount[];
+  Categories: CategoryCount[];
+  ActionItems: number;
+  Heatmap: HeatmapCell[];
 }

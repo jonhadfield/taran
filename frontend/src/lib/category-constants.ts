@@ -36,6 +36,11 @@ export const CATEGORY_COLORS: Record<string, string> = {
   other: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
+/** Human-readable labels for each category value, derived from CATEGORY_OPTIONS. */
+export const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+  CATEGORY_OPTIONS.filter((o) => o.value !== "").map((o) => [o.value, o.label]),
+);
+
 /**
  * Simpler category colors for charts/bars (solid backgrounds only).
  */

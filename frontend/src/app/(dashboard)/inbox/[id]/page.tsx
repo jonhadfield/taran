@@ -77,7 +77,7 @@ export default async function EmailDetailPage({
 
         <Separator />
 
-        {!email.extraction && (email.Status === "skipped" || email.Status === "failed") && (
+        {!email.Extraction && (email.Status === "skipped" || email.Status === "failed") && (
           <div className="flex items-start gap-3 rounded-lg border border-muted bg-muted/50 p-4">
             <Info className="size-5 shrink-0 text-muted-foreground mt-0.5" />
             <div>
@@ -102,7 +102,7 @@ export default async function EmailDetailPage({
           </div>
         )}
 
-        {email.extraction && (
+        {email.Extraction && (
           <Card className="border-t-2 border-t-indigo-500">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -111,26 +111,26 @@ export default async function EmailDetailPage({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ExtractionSummary extraction={email.extraction} />
+              <ExtractionSummary extraction={email.Extraction} />
             </CardContent>
           </Card>
         )}
 
-        {email.extraction && (
+        {email.Extraction && (
           <FeedbackButtons emailId={id} />
         )}
 
-        {email.attachments && email.attachments.length > 0 && (
+        {email.Attachments && email.Attachments.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Paperclip className="size-5" />
-                Attachments ({email.attachments.length})
+                Attachments ({email.Attachments.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {email.attachments.map((att) => (
+                {email.Attachments.map((att) => (
                   <div
                     key={att.ID}
                     className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2"

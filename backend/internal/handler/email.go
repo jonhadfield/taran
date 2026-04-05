@@ -33,8 +33,8 @@ const (
 
 type EmailResponse struct {
 	domain.Email
-	Extraction  *domain.Extraction      `json:"extraction,omitempty"`
-	Attachments []domain.EmailAttachment `json:"attachments,omitempty"`
+	Extraction  *domain.Extraction      `json:"Extraction,omitempty"`
+	Attachments []domain.EmailAttachment `json:"Attachments,omitempty"`
 	ThreadCount int                      `json:"ThreadCount,omitempty"`
 }
 
