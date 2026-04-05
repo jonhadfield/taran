@@ -1,0 +1,304 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { apiGet, apiPost } from "@/lib/api";
+import type { SubscriptionInfo } from "@/types/api";
+import { ArrowLeft, MailX, Check, Loader2, ExternalLink } from "lucide-react";
+import { EmptyState, SubscriptionIllustration } from "@/components/empty-state";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { formatShortDate, pluralize } from "@/lib/utils";
+import Link from "next/link";
+import { SenderAvatar } from "@/components/sender-avatar";
+
+export default function SubscriptionsPage() {
+  const [subs, setSubs] = useState<SubscriptionInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedAddresses, setSelectedAddresses] = useState<Set<string>>(new Set());
+  const [unsubscribing, setUnsubscribing] = useState<string | null>(null);
+  const [batchLoading, setBatchLoading] = useState(false);
+
+  const fetchSubs = useCallback(async () => {
+    try {
+      const data = await apiGet<SubscriptionInfo[]>("subscriptions");
+      setSubs(data || []);
+    } catch {
+      toast.error("Failed to load subscriptions");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSubs();
+  }, [fetchSubs]);
+
+  const handleUnsubscribe = async (fromAddress: string) => {
+    setUnsubscribing(fromAddress);
+    try {
+      const results = await apiPost<{ address: string; status: string; url?: string }[]>(
+        "subscriptions/unsubscribe",
+        { FromAddresses: [fromAddress] }
+      );
+      const result = results?.[0];
+      if (result?.status === "redirect" && result.url) {
+        try {
+          const parsed = new URL(result.url);
+          if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+            window.open(result.url, "_blank", "noopener,noreferrer");
+          }
+        } catch { /* invalid URL — ignore */ }
+        toast.success("Opened unsubscribe page in new tab");
+      } else if (result?.status === "unsubscribed") {
+        toast.success("Unsubscribed successfully");
+      } else if (result?.status === "mailto") {
+        toast.info("Unsubscribe requires sending an email — marked as unsubscribed");
+      } else {
+        toast.success("Unsubscribe initiated");
+      }
+      setSubs((prev) =>
+        prev.map((s) =>
+          s.FromAddress === fromAddress
+            ? { ...s, UnsubscribedAt: new Date().toISOString() }
+            : s
+        )
+      );
+    } catch {
+      toast.error("Failed to unsubscribe");
+    } finally {
+      setUnsubscribing(null);
+    }
+  };
+
+  const handleBatchUnsubscribe = async () => {
+    if (selectedAddresses.size === 0) return;
+    setBatchLoading(true);
+    try {
+      const results = await apiPost<{ address: string; status: string; url?: string }[]>(
+        "subscriptions/unsubscribe",
+        { FromAddresses: Array.from(selectedAddresses) }
+      );
+      const redirects = results?.filter((r) => r.status === "redirect") || [];
+      if (redirects.length > 0 && redirects.length <= 3) {
+        for (const r of redirects) {
+          if (r.url) {
+            try {
+              const parsed = new URL(r.url);
+              if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+                window.open(r.url, "_blank", "noopener,noreferrer");
+              }
+            } catch { /* invalid URL — skip */ }
+          }
+        }
+      }
+      toast.success(`Unsubscribed from ${selectedAddresses.size} ${pluralize(selectedAddresses.size, "sender")}`);
+      setSubs((prev) =>
+        prev.map((s) =>
+          selectedAddresses.has(s.FromAddress)
+            ? { ...s, UnsubscribedAt: new Date().toISOString() }
+            : s
+        )
+      );
+      setSelectedAddresses(new Set());
+    } catch {
+      toast.error("Failed to batch unsubscribe");
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const toggleSelect = (addr: string) => {
+    setSelectedAddresses((prev) => {
+      const next = new Set(prev);
+      if (next.has(addr)) next.delete(addr);
+      else next.add(addr);
+      return next;
+    });
+  };
+
+  const activeSubs = subs.filter((s) => !s.UnsubscribedAt);
+  const unsubscribedSubs = subs.filter((s) => s.UnsubscribedAt);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Link
+          href="/senders"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground py-1"
+        >
+          <ArrowLeft className="size-4" />
+          Back to Senders
+        </Link>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Manage Subscriptions</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Senders with unsubscribe links from your emails
+          </p>
+        </div>
+        {selectedAddresses.size > 0 && (
+          <Button
+            onClick={handleBatchUnsubscribe}
+            disabled={batchLoading}
+            variant="destructive"
+            size="sm"
+          >
+            {batchLoading ? (
+              <Loader2 className="size-4 animate-spin mr-1.5" />
+            ) : (
+              <MailX className="size-4 mr-1.5" />
+            )}
+            Unsubscribe ({selectedAddresses.size})
+          </Button>
+        )}
+      </div>
+
+      {subs.length === 0 ? (
+        <EmptyState
+          icon={<SubscriptionIllustration />}
+          title="No subscriptions found"
+          description="We'll show senders here once we detect unsubscribe links in your emails."
+        />
+      ) : (
+        <>
+          {activeSubs.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                Active ({activeSubs.length})
+              </h2>
+              <div className="divide-y rounded-lg border">
+                {activeSubs.map((sub) => (
+                  <SubscriptionRow
+                    key={sub.FromAddress}
+                    sub={sub}
+                    isSelected={selectedAddresses.has(sub.FromAddress)}
+                    onToggleSelect={() => toggleSelect(sub.FromAddress)}
+                    onUnsubscribe={() => handleUnsubscribe(sub.FromAddress)}
+                    isUnsubscribing={unsubscribing === sub.FromAddress}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {unsubscribedSubs.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                Unsubscribed ({unsubscribedSubs.length})
+              </h2>
+              <div className="divide-y rounded-lg border opacity-60">
+                {unsubscribedSubs.map((sub) => (
+                  <SubscriptionRow
+                    key={sub.FromAddress}
+                    sub={sub}
+                    isSelected={false}
+                    onToggleSelect={() => {}}
+                    onUnsubscribe={() => {}}
+                    isUnsubscribing={false}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function SubscriptionRow({
+  sub,
+  isSelected,
+  onToggleSelect,
+  onUnsubscribe,
+  isUnsubscribing,
+}: {
+  sub: SubscriptionInfo;
+  isSelected: boolean;
+  onToggleSelect: () => void;
+  onUnsubscribe: () => void;
+  isUnsubscribing: boolean;
+}) {
+  const senderName = sub.FromName || sub.FromAddress;
+  const isUnsubscribed = !!sub.UnsubscribedAt;
+
+  return (
+    <div className={`flex items-center gap-3 p-3.5 transition-colors hover:bg-accent/50 ${isSelected ? "bg-accent/30" : ""}`}>
+      {!isUnsubscribed && (
+        <input
+          type="checkbox"
+          className="size-4 shrink-0 rounded border-input accent-primary cursor-pointer"
+          checked={isSelected}
+          onChange={onToggleSelect}
+          aria-label={`Select ${senderName}`}
+        />
+      )}
+
+      <SenderAvatar name={senderName} />
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium truncate">{senderName}</span>
+          {isUnsubscribed && (
+            <Badge variant="outline" className="text-xs shrink-0">
+              <Check className="size-3 mr-1" />
+              Unsubscribed
+            </Badge>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground truncate">{sub.FromAddress}</p>
+        <p className="text-xs text-muted-foreground">
+          {sub.EmailCount} {pluralize(sub.EmailCount, "email")}
+          {" \u00b7 "}
+          Last: {formatShortDate(sub.LastSeen)}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        {sub.UnsubscribeURL && !isUnsubscribed && (() => {
+          try {
+            const u = new URL(sub.UnsubscribeURL);
+            if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+          } catch { return null; }
+          return (
+          <a
+            href={sub.UnsubscribeURL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            title="Open unsubscribe page"
+          >
+            <ExternalLink className="size-4" />
+          </a>
+          );
+        })()}
+        {!isUnsubscribed && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onUnsubscribe}
+            disabled={isUnsubscribing}
+            className="text-xs"
+          >
+            {isUnsubscribing ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              "Unsubscribe"
+            )}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
