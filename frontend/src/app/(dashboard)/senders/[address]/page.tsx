@@ -6,7 +6,8 @@ import Link from "next/link";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderDetail, WeekCount, Email, ListResponse } from "@/types/api";
 import { Loader2, Mail, Calendar, BarChart3, Clock, TrendingUp, ExternalLink } from "lucide-react";
-import { formatShortDate, pluralize } from "@/lib/utils";
+import { cn, formatShortDate, pluralize } from "@/lib/utils";
+import { nativeSelectClassName } from "@/lib/constants";
 import { STATUS_OPTIONS, CATEGORY_OPTIONS, CATEGORY_COLORS } from "@/lib/category-constants";
 
 function VolumeChart({ data }: { data: WeekCount[] }) {
@@ -214,7 +215,7 @@ export default function SenderDetailPage() {
             value={detail.Status}
             onChange={(e) => handleUpdate({ Status: e.target.value })}
             disabled={updating}
-            className="block h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className={cn(nativeSelectClassName, "block")}
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -229,7 +230,7 @@ export default function SenderDetailPage() {
             value={detail.Category === detail.AutoCategory ? "" : detail.Category}
             onChange={(e) => handleUpdate({ Category: e.target.value })}
             disabled={updating}
-            className="block h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className={cn(nativeSelectClassName, "block")}
           >
             {CATEGORY_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>

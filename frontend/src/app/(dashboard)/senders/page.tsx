@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderInfo, SenderSuggestion } from "@/types/api";
 import { Loader2, X, MailX } from "lucide-react";
 import { toast } from "sonner";
-import { pluralize } from "@/lib/utils";
+import { cn, pluralize } from "@/lib/utils";
+import { nativeSelectClassName } from "@/lib/constants";
 import { EmptyState, SendersIllustration } from "@/components/empty-state";
 import Link from "next/link";
 import { SenderSparkline } from "./sender-sparkline";
@@ -20,7 +21,7 @@ export default function SendersPage() {
   const [dismissedSuggestions, setDismissedSuggestions] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
-  const fetchSenders = async () => {
+  const fetchSenders = useCallback(async () => {
     try {
       const data = await apiGet<SenderInfo[]>("senders");
       setSenders(
@@ -31,21 +32,21 @@ export default function SendersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     try {
       const data = await apiGet<SenderSuggestion[]>("senders/suggestions");
       setSuggestions(data || []);
     } catch {
       // ignore
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSenders();
     fetchSuggestions();
-  }, []);
+  }, [fetchSenders, fetchSuggestions]);
 
   const handleUpdate = async (fromAddress: string, updates: { Status?: string; Category?: string }) => {
     setUpdating(fromAddress);
@@ -290,7 +291,7 @@ export default function SendersPage() {
                       handleUpdate(sender.FromAddress, { Category: e.target.value })
                     }
                     disabled={updating === sender.FromAddress}
-                    className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring flex-1 sm:flex-none sm:w-[100px]"
+                    className={cn(nativeSelectClassName, "h-8 px-2 text-xs flex-1 sm:flex-none sm:w-[100px]")}
                   >
                     {CATEGORY_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -307,7 +308,7 @@ export default function SendersPage() {
                       handleUpdate(sender.FromAddress, { Status: e.target.value })
                     }
                     disabled={updating === sender.FromAddress}
-                    className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring flex-1 sm:flex-none sm:w-[120px]"
+                    className={cn(nativeSelectClassName, "h-8 px-2 text-xs flex-1 sm:flex-none sm:w-[120px]")}
                   >
                     {STATUS_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>

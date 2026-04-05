@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/database"
@@ -15,12 +14,7 @@ type TopicHandler struct {
 func (h *TopicHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 
-	limit := 15
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 5 && n <= 50 {
-			limit = n
-		}
-	}
+	limit := clampInt(intParam(r, "limit", 15), 5, 50)
 
 	topics, err := h.Extractions.ListTopicsByUser(r.Context(), userID, limit)
 	if err != nil {

@@ -68,6 +68,33 @@ func resolveThreadID(ctx context.Context, emails database.EmailRepository, parse
 
 const maxEmailSize = 25 * 1024 * 1024 // 25MB
 
+// emailFromParsed constructs a domain.Email from a parsed email message.
+// Shared by the webhook handler and admin replay handler.
+func emailFromParsed(parsed *email.ParsedEmail, userID, accountID, toAddress, threadID string) *domain.Email {
+	now := time.Now()
+	return &domain.Email{
+		ID:                uuid.New().String(),
+		UserID:            userID,
+		AccountID:         accountID,
+		MessageID:         parsed.MessageID,
+		InReplyTo:         parsed.InReplyTo,
+		ThreadID:          threadID,
+		FromAddress:       parsed.From,
+		FromName:          parsed.FromName,
+		ToAddress:         toAddress,
+		Subject:           parsed.Subject,
+		TextBody:          parsed.TextBody,
+		HTMLBody:          parsed.HTMLBody,
+		ReceivedAt:        now,
+		DateHeader:        parsed.DateHeader,
+		Status:            domain.EmailStatusPending,
+		UnsubscribeURL:    parsed.UnsubscribeURL,
+		UnsubscribeMailto: parsed.UnsubscribeMailto,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}
+}
+
 type WebhookHandler struct {
 	Accounts        database.AccountRepository
 	Emails          database.EmailRepository
@@ -124,28 +151,7 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 	// Compute thread ID from threading headers
 	threadID := resolveThreadID(r.Context(), h.Emails, parsed)
 
-	now := time.Now()
-	emailRecord := &domain.Email{
-		ID:          uuid.New().String(),
-		UserID:      account.UserID,
-		AccountID:   account.ID,
-		MessageID:   parsed.MessageID,
-		InReplyTo:   parsed.InReplyTo,
-		ThreadID:    threadID,
-		FromAddress: parsed.From,
-		FromName:    parsed.FromName,
-		ToAddress:   toAddress,
-		Subject:     parsed.Subject,
-		TextBody:    parsed.TextBody,
-		HTMLBody:    parsed.HTMLBody,
-		ReceivedAt:  now,
-		DateHeader:  parsed.DateHeader,
-		Status:            domain.EmailStatusPending,
-		UnsubscribeURL:    parsed.UnsubscribeURL,
-		UnsubscribeMailto: parsed.UnsubscribeMailto,
-		CreatedAt:         now,
-		UpdatedAt:         now,
-	}
+	emailRecord := emailFromParsed(parsed, account.UserID, account.ID, toAddress, threadID)
 
 	if err := h.Emails.Create(r.Context(), emailRecord); err != nil {
 		slog.Error("failed to store email", "error", err)
@@ -160,7 +166,7 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 			EmailID:    &emailRecord.ID,
 			RawBody:    body,
 			Headers:    map[string]string{"X-Original-To": r.Header.Get("X-Original-To")},
-			ReceivedAt: now,
+			ReceivedAt: emailRecord.CreatedAt,
 			SizeBytes:  len(body),
 		}
 		if err := h.WebhookPayloads.Create(r.Context(), payload); err != nil {
@@ -178,7 +184,7 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 				Filename:    a.Filename,
 				ContentType: a.ContentType,
 				SizeBytes:   a.SizeBytes,
-				CreatedAt:   now,
+				CreatedAt:   emailRecord.CreatedAt,
 			})
 		}
 		if err := h.Attachments.CreateBatch(r.Context(), attachments); err != nil {

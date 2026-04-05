@@ -92,7 +92,7 @@ export function EmailPreview({ id, onDeleted }: EmailPreviewProps) {
     );
   }
 
-  const ext = email.extraction;
+  const ext = email.Extraction;
 
   return (
     <div className="p-4 space-y-4">

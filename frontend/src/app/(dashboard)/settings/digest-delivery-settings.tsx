@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { HOUR_OPTIONS } from "@/lib/constants";
+import { HOUR_OPTIONS, nativeSelectClassName } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 const DAY_OPTIONS = [
   { value: 0, label: "Sunday" },
@@ -124,7 +125,7 @@ export function DigestDeliverySettings({
                     value={digestDay}
                     onChange={(e) => onDayChange(Number(e.target.value))}
                     disabled={prefSaving}
-                    className="flex h-9 w-full max-w-full sm:max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className={cn(nativeSelectClassName, "flex w-full max-w-full sm:max-w-xs py-1 transition-colors")}
                   >
                     {DAY_OPTIONS.map(({ value, label }) => (
                       <option key={value} value={value}>{label}</option>
@@ -141,7 +142,7 @@ export function DigestDeliverySettings({
                 value={digestHour}
                 onChange={(e) => onHourChange(Number(e.target.value))}
                 disabled={prefSaving}
-                className="flex h-9 w-full max-w-full sm:max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className={cn(nativeSelectClassName, "flex w-full max-w-full sm:max-w-xs py-1 transition-colors")}
               >
                 {HOUR_OPTIONS.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
@@ -156,7 +157,7 @@ export function DigestDeliverySettings({
                 value={digestTimezone}
                 onChange={(e) => onTimezoneChange(e.target.value)}
                 disabled={prefSaving}
-                className="flex h-9 w-full max-w-full sm:max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className={cn(nativeSelectClassName, "flex w-full max-w-full sm:max-w-xs py-1 transition-colors")}
               >
                 {timezoneOptions.map((tz) => (
                   <option key={tz} value={tz}>

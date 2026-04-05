@@ -11,6 +11,8 @@ import (
 	"github.com/hadfielj/taran/backend/internal/domain"
 )
 
+const maxExtractionPromptLen = 50000 // max characters for the extraction user prompt
+
 // callFn is the signature for a provider-specific LLM API call.
 // It takes a context, system prompt, and user prompt, and returns the response text, usage, and error.
 type callFn func(ctx context.Context, systemPrompt, userPrompt string) (string, *Usage, error)
@@ -39,8 +41,8 @@ func triageEmail(ctx context.Context, fn callFn, providerLabel string, subject, 
 // extractEmail builds the extraction prompt, calls the LLM via fn, and parses the result.
 func extractEmail(ctx context.Context, fn callFn, providerLabel string, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
 	userPrompt := buildExtractionUserPrompt(subject, content, fromAddress)
-	if len(userPrompt) > 50000 {
-		userPrompt = userPrompt[:50000] + "\n\n[content truncated]"
+	if len(userPrompt) > maxExtractionPromptLen {
+		userPrompt = userPrompt[:maxExtractionPromptLen] + "\n\n[content truncated]"
 	}
 
 	text, usage, err := retryOnEmpty(ctx, ExtractTimeout, providerLabel+" extract", func(ctx context.Context) (string, *Usage, error) {

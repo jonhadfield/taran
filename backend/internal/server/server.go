@@ -83,7 +83,9 @@ func (s *Server) Start() error {
 func (s *Server) Shutdown(ctx context.Context) error {
 	slog.Info("shutting down server")
 	if s.redirectServer != nil {
-		s.redirectServer.Shutdown(ctx)
+		if err := s.redirectServer.Shutdown(ctx); err != nil {
+			slog.Error("redirect server shutdown error", "error", err)
+		}
 	}
 	return s.httpServer.Shutdown(ctx)
 }

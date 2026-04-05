@@ -27,16 +27,28 @@ type Scheduler struct {
 	retryTimer        *time.Timer
 }
 
-func NewScheduler(generator *Generator, emails database.EmailRepository, digests database.DigestRepository, preferences database.PreferenceRepository, sessions database.SessionRepository, m mailer.Mailer, baseURL, unsubscribeSecret string) *Scheduler {
+// SchedulerConfig groups the dependencies for NewScheduler.
+type SchedulerConfig struct {
+	Generator         *Generator
+	Emails            database.EmailRepository
+	Digests           database.DigestRepository
+	Preferences       database.PreferenceRepository
+	Sessions          database.SessionRepository
+	Mailer            mailer.Mailer
+	BaseURL           string
+	UnsubscribeSecret string
+}
+
+func NewScheduler(cfg SchedulerConfig) *Scheduler {
 	return &Scheduler{
-		generator:         generator,
-		emails:            emails,
-		digests:           digests,
-		preferences:       preferences,
-		sessions:          sessions,
-		mailer:            m,
-		baseURL:           baseURL,
-		unsubscribeSecret: unsubscribeSecret,
+		generator:         cfg.Generator,
+		emails:            cfg.Emails,
+		digests:           cfg.Digests,
+		preferences:       cfg.Preferences,
+		sessions:          cfg.Sessions,
+		mailer:            cfg.Mailer,
+		baseURL:           cfg.BaseURL,
+		unsubscribeSecret: cfg.UnsubscribeSecret,
 	}
 }
 

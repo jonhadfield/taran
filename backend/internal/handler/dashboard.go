@@ -17,18 +17,18 @@ type DashboardHandler struct {
 }
 
 type DashboardResponse struct {
-	Emails        []domain.Email          `json:"emails"`
-	EmailTotal    int                     `json:"emailTotal"`
-	Digests       []domain.Digest         `json:"digests"`
-	UnreadCount   int                     `json:"unreadCount"`
-	Stats         domain.UserStats        `json:"stats"`
-	Processing    domain.ProcessingStats  `json:"processing"`
-	WeeklyHistory []domain.WeekCount      `json:"weeklyHistory"`
-	TopTopics     []string                `json:"topTopics"`
-	TopicsWithCount []domain.TopicCount   `json:"topicsWithCount"`
-	Categories    []domain.CategoryCount  `json:"categories"`
-	ActionItems   int                     `json:"actionItems"`
-	Heatmap       []domain.HeatmapCell   `json:"heatmap"`
+	Emails          []domain.Email         `json:"Emails"`
+	EmailTotal      int                    `json:"EmailTotal"`
+	Digests         []domain.Digest        `json:"Digests"`
+	UnreadCount     int                    `json:"UnreadCount"`
+	Stats           domain.UserStats       `json:"Stats"`
+	Processing      domain.ProcessingStats `json:"Processing"`
+	WeeklyHistory   []domain.WeekCount     `json:"WeeklyHistory"`
+	TopTopics       []string               `json:"TopTopics"`
+	TopicsWithCount []domain.TopicCount    `json:"TopicsWithCount"`
+	Categories      []domain.CategoryCount `json:"Categories"`
+	ActionItems     int                    `json:"ActionItems"`
+	Heatmap         []domain.HeatmapCell   `json:"Heatmap"`
 }
 
 func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {

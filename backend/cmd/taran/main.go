@@ -113,7 +113,16 @@ func main() {
 	sseBroker := sse.NewBroker()
 
 	// Background worker
-	proc := worker.NewProcessor(100, 2, emailRepo, extractionRepo, resolver, senderPrefRepo, tokenUsageRepo, preferenceRepo)
+	proc := worker.NewProcessor(worker.ProcessorConfig{
+		BufferSize:  100,
+		Concurrency: 2,
+		Emails:      emailRepo,
+		Extractions: extractionRepo,
+		Resolver:    resolver,
+		SenderPrefs: senderPrefRepo,
+		TokenUsage:  tokenUsageRepo,
+		Preferences: preferenceRepo,
+	})
 	proc.SSEBroker = sseBroker
 
 	// Mailer (optional — disabled if no Resend API key)
@@ -140,7 +149,16 @@ func main() {
 		Preferences: preferenceRepo,
 		TokenUsage:  tokenUsageRepo,
 	}
-	sched := digest.NewScheduler(gen, emailRepo, digestRepo, preferenceRepo, sessionRepo, m, cfg.Server.BaseURL, cfg.Server.UnsubscribeSecret)
+	sched := digest.NewScheduler(digest.SchedulerConfig{
+		Generator:         gen,
+		Emails:            emailRepo,
+		Digests:           digestRepo,
+		Preferences:       preferenceRepo,
+		Sessions:          sessionRepo,
+		Mailer:            m,
+		BaseURL:           cfg.Server.BaseURL,
+		UnsubscribeSecret: cfg.Server.UnsubscribeSecret,
+	})
 
 	// Webhook payload repo (for dead letter queue / replay)
 	webhookPayloadRepo := database.NewWebhookPayloadRepo(pool)

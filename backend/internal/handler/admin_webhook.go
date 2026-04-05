@@ -4,9 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/hadfielj/taran/backend/internal/email"
@@ -156,28 +154,7 @@ func (h *AdminWebhookHandler) Replay(w http.ResponseWriter, r *http.Request) {
 
 	threadID := resolveThreadID(r.Context(), h.Emails, parsed)
 
-	now := time.Now()
-	emailRecord := &domain.Email{
-		ID:                uuid.New().String(),
-		UserID:            account.UserID,
-		AccountID:         account.ID,
-		MessageID:         parsed.MessageID,
-		InReplyTo:         parsed.InReplyTo,
-		ThreadID:          threadID,
-		FromAddress:       parsed.From,
-		FromName:          parsed.FromName,
-		ToAddress:         toAddress,
-		Subject:           parsed.Subject,
-		TextBody:          parsed.TextBody,
-		HTMLBody:          parsed.HTMLBody,
-		ReceivedAt:        now,
-		DateHeader:        parsed.DateHeader,
-		Status:            domain.EmailStatusPending,
-		UnsubscribeURL:    parsed.UnsubscribeURL,
-		UnsubscribeMailto: parsed.UnsubscribeMailto,
-		CreatedAt:         now,
-		UpdatedAt:         now,
-	}
+	emailRecord := emailFromParsed(parsed, account.UserID, account.ID, toAddress, threadID)
 
 	if err := h.Emails.Create(r.Context(), emailRecord); err != nil {
 		slog.Error("admin replay: failed to create email", "error", err)

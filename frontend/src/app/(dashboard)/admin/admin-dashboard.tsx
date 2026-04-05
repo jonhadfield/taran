@@ -10,13 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { AdminStats } from "@/types/api";
 import { Users, Mail, BookOpen, TrendingUp, Cpu, Gauge, CheckCircle, XCircle, AlertTriangle, Clock } from "lucide-react";
-
-function formatWeek(dateStr: string): string {
-  const d = new Date(dateStr);
-  return formatShortDate(d);
-}
-
-// MiniBarChart is an alias for the shared BarChart component
 import { BarChart as MiniBarChart } from "@/components/bar-chart";
 
 const emptyStats: AdminStats = {
@@ -213,13 +206,13 @@ export function AdminDashboard() {
             <CardContent>
               <MiniBarChart
                 data={stats.WeeklyEmails.map((w) => ({
-                  label: formatWeek(w.Week),
+                  label: formatShortDate(w.Week),
                   value: w.Count,
                 }))}
               />
               <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                <span>{formatWeek(stats.WeeklyEmails[0].Week)}</span>
-                <span>{formatWeek(stats.WeeklyEmails[stats.WeeklyEmails.length - 1].Week)}</span>
+                <span>{formatShortDate(stats.WeeklyEmails[0].Week)}</span>
+                <span>{formatShortDate(stats.WeeklyEmails[stats.WeeklyEmails.length - 1].Week)}</span>
               </div>
             </CardContent>
           </Card>
@@ -235,13 +228,13 @@ export function AdminDashboard() {
             <CardContent>
               <MiniBarChart
                 data={stats.WeeklyDigests.map((w) => ({
-                  label: formatWeek(w.Week),
+                  label: formatShortDate(w.Week),
                   value: w.Count,
                 }))}
               />
               <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                <span>{formatWeek(stats.WeeklyDigests[0].Week)}</span>
-                <span>{formatWeek(stats.WeeklyDigests[stats.WeeklyDigests.length - 1].Week)}</span>
+                <span>{formatShortDate(stats.WeeklyDigests[0].Week)}</span>
+                <span>{formatShortDate(stats.WeeklyDigests[stats.WeeklyDigests.length - 1].Week)}</span>
               </div>
             </CardContent>
           </Card>
@@ -257,14 +250,14 @@ export function AdminDashboard() {
             <CardContent>
               <MiniBarChart
                 data={stats.WeeklyTokens.map((w) => ({
-                  label: formatWeek(w.Week),
+                  label: formatShortDate(w.Week),
                   value: w.Count,
                 }))}
                 formatValue={formatTokens}
               />
               <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                <span>{formatWeek(stats.WeeklyTokens[0].Week)}</span>
-                <span>{formatWeek(stats.WeeklyTokens[stats.WeeklyTokens.length - 1].Week)}</span>
+                <span>{formatShortDate(stats.WeeklyTokens[0].Week)}</span>
+                <span>{formatShortDate(stats.WeeklyTokens[stats.WeeklyTokens.length - 1].Week)}</span>
               </div>
             </CardContent>
           </Card>

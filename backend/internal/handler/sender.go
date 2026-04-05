@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -152,18 +151,7 @@ func (h *SenderHandler) History(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	weeks := 12
-	if wq := r.URL.Query().Get("weeks"); wq != "" {
-		n, err := strconv.Atoi(wq)
-		if err != nil || n < 1 {
-			WriteError(w, http.StatusBadRequest, "weeks must be a positive integer")
-			return
-		}
-		if n > 52 {
-			n = 52
-		}
-		weeks = n
-	}
+	weeks := clampInt(intParam(r, "weeks", 12), 1, 52)
 
 	counts, err := h.Emails.CountBySenderWeek(r.Context(), userID, address, weeks)
 	if err != nil {
