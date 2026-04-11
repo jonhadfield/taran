@@ -53,3 +53,7 @@ certs/
 
 # Log files
 *.log
+
+# Internal project notes (kept local, not published)
+ROADMAP.md
+project-definition.md
