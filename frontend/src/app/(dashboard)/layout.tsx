@@ -1,10 +1,11 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { TitleUpdater } from "@/components/title-updater";
 import { Toaster } from "@/components/ui/sonner";
 import { ColorThemeProvider } from "@/components/color-theme-provider";
 import { isAdmin } from "@/lib/admin";
+import { auth } from "@/lib/auth";
 import { serverFetch } from "@/lib/server-api";
 import { CommandPalette } from "@/components/command-palette";
 import { KeyboardHelp } from "@/components/keyboard-help";
@@ -18,6 +19,12 @@ export default async function DashboardLayout({
 }) {
   const cookieStore = await cookies();
   const colorTheme = parseColorTheme(cookieStore.get("color-theme")?.value);
+
+  // Validate session first — redirect to login if expired or missing
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) {
+    redirect("/login");
+  }
 
   const admin = await isAdmin();
 
