@@ -1,11 +1,11 @@
 module github.com/hadfielj/taran/backend
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.22.0
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/jhillyerd/enmime v1.3.0
 	github.com/joho/godotenv v1.5.1
 	github.com/openai/openai-go/v3 v3.22.0
