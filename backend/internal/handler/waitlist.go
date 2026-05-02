@@ -17,6 +17,7 @@ type WaitlistHandler struct {
 	Waitlist     database.WaitlistRepository
 	Invites      database.InviteRepository
 	Mailer       mailer.Mailer // may be nil
+	AdminEmails  []string
 	AppSettings  *database.AppSettingRepo
 }
 
@@ -55,6 +56,15 @@ func (h *WaitlistHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	if err := h.Waitlist.Create(r.Context(), req); err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to submit waitlist request")
 		return
+	}
+
+	// Notify admins (best-effort)
+	if h.Mailer != nil {
+		for _, adminEmail := range h.AdminEmails {
+			if err := h.Mailer.SendWaitlistNotification(r.Context(), adminEmail, email); err != nil {
+				slog.Error("failed to send waitlist notification", "to", adminEmail, "applicant", email, "error", err)
+			}
+		}
 	}
 
 	WriteJSON(w, http.StatusCreated, req)

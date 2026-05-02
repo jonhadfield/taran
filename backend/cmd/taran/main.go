@@ -256,10 +256,11 @@ func main() {
 		Mailer:      m,
 	}
 	waitlistHandler := &handler.WaitlistHandler{
-		Waitlist:    waitlistRepo,
-		Invites:     inviteRepo,
-		Mailer:      m,
-		AppSettings: appSettingRepo,
+		Waitlist:     waitlistRepo,
+		Invites:      inviteRepo,
+		Mailer:       m,
+		AdminEmails:  cfg.AdminEmails,
+		AppSettings:  appSettingRepo,
 	}
 	exportHandler := &handler.ExportHandler{
 		Emails:  emailRepo,
