@@ -70,7 +70,7 @@ export function SettingsNav({ sections }: SettingsNavProps) {
     <div className="sticky top-14 z-10 -mx-4 lg:-mx-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div
         ref={scrollRef}
-        className="flex gap-1 overflow-x-auto px-4 lg:px-6 py-2 scrollbar-hide"
+        className="flex gap-1 overflow-x-auto px-4 lg:px-6 py-2 scrollbar-none"
       >
         {sections.map((s, i) => {
           const prevGroup = i > 0 ? sections[i - 1].group : undefined;
