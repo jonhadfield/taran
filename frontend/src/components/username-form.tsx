@@ -5,7 +5,8 @@ import { apiGet, apiPost, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import type { EmailAccount } from "@/types/api";
 
 const EMAIL_DOMAIN = process.env.NEXT_PUBLIC_EMAIL_DOMAIN || "mailbrief.io";
@@ -101,7 +102,7 @@ export function UsernameForm({ onSuccess }: UsernameFormProps) {
             {username.length >= 3 && (
               <div className="absolute right-2 top-1/2 -translate-y-1/2">
                 {checking ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <Spinner className="text-muted-foreground" />
                 ) : available === true ? (
                   <Check className="h-4 w-4 text-green-500" />
                 ) : available === false ? (
@@ -124,7 +125,7 @@ export function UsernameForm({ onSuccess }: UsernameFormProps) {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={!available || creating}>
-        {creating && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+        {creating && <Spinner className="mr-1" />}
         Create Inbox
       </Button>
     </form>

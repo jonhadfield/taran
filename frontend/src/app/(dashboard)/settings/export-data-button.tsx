@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "lucide-react";
+import { Download } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export function ExportDataButton() {
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,7 @@ export function ExportDataButton() {
   return (
     <Button variant="outline" onClick={handleExport} disabled={loading}>
       {loading ? (
-        <Loader2 className="size-4 animate-spin mr-1.5" />
+        <Spinner className="mr-1.5" />
       ) : (
         <Download className="size-4 mr-1.5" />
       )}

@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderInfo, SenderSuggestion } from "@/types/api";
-import { Loader2, X, MailX } from "lucide-react";
+import { X, MailX } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { cn, pluralize } from "@/lib/utils";
 import { nativeSelectClassName } from "@/lib/constants";
@@ -234,7 +235,7 @@ export default function SendersPage() {
 
       {loading ? (
         <div className="flex items-center gap-2 py-12 justify-center text-muted-foreground">
-          <Loader2 className="size-5 animate-spin" />
+          <Spinner className="size-5" />
           Loading senders...
         </div>
       ) : senders.length === 0 ? (

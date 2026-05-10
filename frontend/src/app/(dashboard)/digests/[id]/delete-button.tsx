@@ -12,7 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export function DeleteDigestButton({ digestId }: { digestId: string }) {
   const router = useRouter();
@@ -50,7 +51,7 @@ export function DeleteDigestButton({ digestId }: { digestId: string }) {
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              {deleting && <Spinner className="mr-1" />}
               Delete
             </Button>
           </DialogFooter>

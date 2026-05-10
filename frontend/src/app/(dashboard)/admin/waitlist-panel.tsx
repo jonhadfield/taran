@@ -10,7 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { WaitlistRequest, ListResponse } from "@/types/api";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { formatShortDate } from "@/lib/utils";
 
@@ -81,7 +82,7 @@ export function WaitlistPanel() {
                 disabled={approvingId === req.ID}
               >
                 {approvingId === req.ID ? (
-                  <Loader2 className="mr-1 size-3 animate-spin" />
+                  <Spinner className="mr-1 size-3" />
                 ) : (
                   <CheckCircle2 className="mr-1 size-3" />
                 )}

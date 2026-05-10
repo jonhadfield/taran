@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { EmailResponse } from "@/types/api";
 import { Separator } from "@/components/ui/separator";
-import { Sparkles, Clock, ExternalLink, Inbox, Loader2 } from "lucide-react";
+import { Sparkles, Clock, ExternalLink, Inbox } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Kbd } from "@/components/ui/kbd";
 import { ExtractionSummary } from "@/components/extraction-summary";
 import Link from "next/link";
 import { EmailActions } from "./[id]/actions";
@@ -69,8 +71,8 @@ export function EmailPreview({ id, onDeleted }: EmailPreviewProps) {
           Choose an email from the list to preview it here.
         </p>
         <p className="text-xs text-muted-foreground mt-3">
-          <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">j</kbd>/<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">k</kbd> to navigate
-          {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Enter</kbd> to preview
+          <Kbd className="h-auto min-w-0 py-0.5 text-[10px]">j</Kbd>/<Kbd className="h-auto min-w-0 py-0.5 text-[10px]">k</Kbd> to navigate
+          {" "}<Kbd className="h-auto min-w-0 py-0.5 text-[10px]">Enter</Kbd> to preview
         </p>
       </div>
     );
@@ -79,7 +81,7 @@ export function EmailPreview({ id, onDeleted }: EmailPreviewProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <Spinner className="size-6 text-muted-foreground" />
       </div>
     );
   }

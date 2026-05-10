@@ -6,7 +6,8 @@ import { apiPost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Eye, X, ArrowRight } from "lucide-react";
+import { Sparkles, Eye, X, ArrowRight } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import type { Digest, DigestPreview } from "@/types/api";
 import { formatShortDate } from "@/lib/utils";
 
@@ -104,7 +105,7 @@ export function GenerateDigestButton() {
               </Button>
               <Button size="sm" onClick={handleGenerate} disabled={generating}>
                 {generating ? (
-                  <Loader2 className="size-4 animate-spin mr-1.5" />
+                  <Spinner className="mr-1.5" />
                 ) : (
                   <ArrowRight className="size-4 mr-1.5" />
                 )}
@@ -123,7 +124,7 @@ export function GenerateDigestButton() {
     <div className="flex items-center gap-2">
       <Button onClick={handlePreview} disabled={loading} size="sm">
         {loading ? (
-          <Loader2 className="size-4 animate-spin mr-1.5" />
+          <Spinner className="mr-1.5" />
         ) : (
           <Sparkles className="size-4 mr-1.5" />
         )}

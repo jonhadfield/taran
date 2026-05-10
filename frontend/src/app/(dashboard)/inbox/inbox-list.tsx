@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState, InboxIllustration, SearchIllustration } from "@/components/empty-state";
 import { Tag } from "lucide-react";
+import { Kbd } from "@/components/ui/kbd";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import Link from "next/link";
 import { InboxFilters } from "./inbox-filters";
@@ -566,13 +567,13 @@ export function InboxList({
           )}
           <div className="hidden sm:flex justify-center pt-1">
             <p className="text-xs text-muted-foreground">
-              <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">j</kbd>/<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">k</kbd> navigate
-              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">x</kbd> select
-              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">e</kbd> archive
-              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">s</kbd> star
-              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">/</kbd> search
-              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Enter</kbd> open
-              {" "}<kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Esc</kbd> clear
+              <Kbd className="h-auto min-w-0 py-0.5 text-[10px]">j</Kbd>/<Kbd className="h-auto min-w-0 py-0.5 text-[10px]">k</Kbd> navigate
+              {" "}<Kbd className="h-auto min-w-0 py-0.5 text-[10px]">x</Kbd> select
+              {" "}<Kbd className="h-auto min-w-0 py-0.5 text-[10px]">e</Kbd> archive
+              {" "}<Kbd className="h-auto min-w-0 py-0.5 text-[10px]">s</Kbd> star
+              {" "}<Kbd className="h-auto min-w-0 py-0.5 text-[10px]">/</Kbd> search
+              {" "}<Kbd className="h-auto min-w-0 py-0.5 text-[10px]">Enter</Kbd> open
+              {" "}<Kbd className="h-auto min-w-0 py-0.5 text-[10px]">Esc</Kbd> clear
             </p>
           </div>
         </>

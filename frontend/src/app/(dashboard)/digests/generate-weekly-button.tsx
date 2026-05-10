@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiPost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Loader2, BarChart3 } from "lucide-react";
+import { BarChart3 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import type { WeeklySummary } from "@/types/api";
 
 export function GenerateWeeklyButton() {
@@ -29,7 +30,7 @@ export function GenerateWeeklyButton() {
     <div className="flex items-center gap-2">
       <Button onClick={handleGenerate} disabled={loading} size="sm" variant="outline">
         {loading ? (
-          <Loader2 className="size-4 animate-spin mr-1.5" />
+          <Spinner className="mr-1.5" />
         ) : (
           <BarChart3 className="size-4 mr-1.5" />
         )}

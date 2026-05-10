@@ -16,7 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import type { EmailAccount } from "@/types/api";
 import { CopyButton } from "./copy-button";
 import { UsernameForm } from "@/components/username-form";
@@ -54,7 +55,7 @@ export function AccountSettings({
         <CardContent className="space-y-4">
           {loading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
+              <Spinner />
               Loading accounts...
             </div>
           )}
@@ -119,7 +120,7 @@ export function AccountSettings({
               onClick={onDelete}
               disabled={deleting}
             >
-              {deleting && <Loader2 className="mr-1 size-4 animate-spin" />}
+              {deleting && <Spinner className="mr-1" />}
               Delete
             </Button>
           </DialogFooter>

@@ -5,7 +5,8 @@ import { authClient } from "@/lib/auth-client";
 import { apiPost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { APP_NAME } from "@/lib/config";
-import { ShieldX, CheckCircle2, Loader2 } from "lucide-react";
+import { ShieldX, CheckCircle2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function NotInvitedPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "requested">(
@@ -79,7 +80,7 @@ export default function NotInvitedPage() {
                 disabled={status === "loading"}
               >
                 {status === "loading" && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Spinner className="mr-2" />
                 )}
                 Request Access
               </Button>

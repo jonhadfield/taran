@@ -14,7 +14,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Email } from "@/types/api";
-import { Archive, Star, StarOff, Trash2, Loader2 } from "lucide-react";
+import { Archive, Star, StarOff, Trash2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export function EmailActions({ email, onDeleted }: { email: Email; onDeleted?: () => void }) {
   const router = useRouter();
@@ -101,7 +102,7 @@ export function EmailActions({ email, onDeleted }: { email: Email; onDeleted?: (
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              {deleting && <Spinner className="mr-1" />}
               Delete
             </Button>
           </DialogFooter>

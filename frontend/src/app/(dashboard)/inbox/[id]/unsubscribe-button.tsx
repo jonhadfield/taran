@@ -4,7 +4,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { apiPost } from "@/lib/api";
 import { isSafeURL } from "@/lib/utils";
-import { MailX, Loader2 } from "lucide-react";
+import { MailX } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface UnsubscribeButtonProps {
   emailId: string;
@@ -51,7 +52,7 @@ export function UnsubscribeButton({ emailId }: UnsubscribeButtonProps) {
       className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent disabled:opacity-50"
     >
       {loading ? (
-        <Loader2 className="size-3.5 animate-spin" />
+        <Spinner className="size-3.5" />
       ) : (
         <MailX className="size-3.5" />
       )}

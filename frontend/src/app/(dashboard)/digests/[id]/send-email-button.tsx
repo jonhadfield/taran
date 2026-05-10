@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { apiPost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Loader2, Mail, Check } from "lucide-react";
+import { Mail, Check } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface SendEmailButtonProps {
   digestId: string;
@@ -37,7 +38,7 @@ export function SendEmailButton({ digestId, alreadySent }: SendEmailButtonProps)
         disabled={loading}
       >
         {loading ? (
-          <Loader2 className="size-4 animate-spin mr-1.5" />
+          <Spinner className="mr-1.5" />
         ) : sent ? (
           <Check className="size-4 mr-1.5" />
         ) : (

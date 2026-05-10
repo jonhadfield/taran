@@ -14,6 +14,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import {
   Home,
   Inbox,
@@ -158,19 +159,19 @@ export function CommandPalette({ isAdmin }: CommandPaletteProps) {
 
       <div className="border-t px-3 py-2 text-xs text-muted-foreground flex items-center gap-4">
         <span className="flex items-center gap-1">
-          <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">↑↓</kbd>
+          <Kbd>↑↓</Kbd>
           navigate
         </span>
         <span className="flex items-center gap-1">
-          <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Enter</kbd>
+          <Kbd>Enter</Kbd>
           select
         </span>
         <span className="flex items-center gap-1">
-          <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Esc</kbd>
+          <Kbd>Esc</Kbd>
           close
         </span>
         <CommandShortcut className="ml-auto">
-          <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">⌘K</kbd>
+          <KbdGroup><Kbd>⌘</Kbd><Kbd>K</Kbd></KbdGroup>
         </CommandShortcut>
       </div>
     </CommandDialog>

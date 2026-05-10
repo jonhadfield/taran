@@ -6,7 +6,8 @@ import { apiGet } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { DashboardData, UserPreference, WeekCount, TopicCount, CategoryCount, HeatmapCell } from "@/types/api";
-import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, Loader2, AlertCircle, BarChart3, Tag, CheckSquare, PieChart, Clock } from "lucide-react";
+import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, AlertCircle, BarChart3, Tag, CheckSquare, PieChart, Clock } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { FaviconBadge } from "@/components/favicon-badge";
@@ -298,7 +299,7 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
         <div className="flex flex-wrap items-center gap-4 text-sm">
           {inFlightCount > 0 && (
             <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Loader2 className="size-3.5 animate-spin" />
+              <Spinner className="size-3.5" />
               <span>{inFlightCount} {pluralize(inFlightCount, "email")} processing...</span>
             </div>
           )}

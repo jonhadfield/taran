@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderDetail, WeekCount, Email, ListResponse } from "@/types/api";
-import { Loader2, Mail, Calendar, BarChart3, Clock, TrendingUp, ExternalLink } from "lucide-react";
+import { Mail, Calendar, BarChart3, Clock, TrendingUp, ExternalLink } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { cn, formatShortDate, pluralize } from "@/lib/utils";
 import { nativeSelectClassName } from "@/lib/constants";
 import { STATUS_OPTIONS, CATEGORY_OPTIONS, CATEGORY_COLORS } from "@/lib/category-constants";
@@ -112,7 +113,7 @@ export default function SenderDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-12 justify-center text-muted-foreground">
-        <Loader2 className="size-5 animate-spin" />
+        <Spinner className="size-5" />
         Loading sender details...
       </div>
     );

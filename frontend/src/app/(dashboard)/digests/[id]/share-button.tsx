@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { apiPost, apiDelete } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Check, Copy, Link2, Link2Off, Loader2 } from "lucide-react";
+import { Check, Copy, Link2, Link2Off } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ShareButtonProps {
   digestId: string;
@@ -54,7 +55,7 @@ export function ShareButton({ digestId, initialToken }: ShareButtonProps) {
   if (!token) {
     return (
       <Button variant="outline" size="sm" onClick={handleShare} disabled={loading}>
-        {loading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Link2 className="mr-1 h-4 w-4" />}
+        {loading ? <Spinner className="mr-1" /> : <Link2 className="mr-1 h-4 w-4" />}
         Share
       </Button>
     );
@@ -67,7 +68,7 @@ export function ShareButton({ digestId, initialToken }: ShareButtonProps) {
         {copied ? "Copied" : "Copy link"}
       </Button>
       <Button variant="ghost" size="sm" onClick={handleUnshare} disabled={loading}>
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2Off className="h-4 w-4" />}
+        {loading ? <Spinner /> : <Link2Off className="h-4 w-4" />}
       </Button>
     </div>
   );

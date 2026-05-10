@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "lucide-react";
+import { Download } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import type { Digest } from "@/types/api";
 import { formatShortDate } from "@/lib/utils";
@@ -162,7 +163,7 @@ export function DownloadPdfButton({ digest }: DownloadPdfButtonProps) {
 
   return (
     <Button variant="outline" size="sm" onClick={handleDownload} disabled={loading}>
-      {loading ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Download className="size-4 mr-1.5" />}
+      {loading ? <Spinner className="mr-1.5" /> : <Download className="size-4 mr-1.5" />}
       PDF
     </Button>
   );

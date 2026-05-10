@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiGet, apiPost } from "@/lib/api";
 import type { SubscriptionInfo } from "@/types/api";
-import { ArrowLeft, MailX, Check, Loader2, ExternalLink } from "lucide-react";
+import { ArrowLeft, MailX, Check, ExternalLink } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { EmptyState, SubscriptionIllustration } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -115,7 +116,7 @@ export default function SubscriptionsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <Spinner className="size-6 text-muted-foreground" />
       </div>
     );
   }
@@ -147,7 +148,7 @@ export default function SubscriptionsPage() {
             size="sm"
           >
             {batchLoading ? (
-              <Loader2 className="size-4 animate-spin mr-1.5" />
+              <Spinner className="mr-1.5" />
             ) : (
               <MailX className="size-4 mr-1.5" />
             )}
@@ -278,7 +279,7 @@ function SubscriptionRow({
             className="text-xs"
           >
             {isUnsubscribing ? (
-              <Loader2 className="size-3.5 animate-spin" />
+              <Spinner className="size-3.5" />
             ) : (
               "Unsubscribe"
             )}

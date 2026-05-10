@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
 
 const shortcuts = [
   { category: "Navigation", items: [
@@ -62,16 +63,14 @@ export function KeyboardHelp() {
                 {group.items.map((item) => (
                   <div key={item.description} className="flex items-center justify-between text-sm">
                     <span>{item.description}</span>
-                    <div className="flex items-center gap-0.5">
+                    <KbdGroup>
                       {item.keys.map((key, i) => (
                         <span key={i}>
                           {i > 0 && <span className="text-muted-foreground mx-0.5">+</span>}
-                          <kbd className="px-1.5 py-0.5 rounded border bg-muted text-xs font-mono">
-                            {key}
-                          </kbd>
+                          <Kbd>{key}</Kbd>
                         </span>
                       ))}
-                    </div>
+                    </KbdGroup>
                   </div>
                 ))}
               </div>
