@@ -7,8 +7,8 @@ import { apiGet, apiPatch } from "@/lib/api";
 import type { SenderDetail, WeekCount, Email, ListResponse } from "@/types/api";
 import { Mail, Calendar, BarChart3, Clock, TrendingUp, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { cn, formatShortDate, pluralize } from "@/lib/utils";
-import { nativeSelectClassName } from "@/lib/constants";
+import { formatShortDate, pluralize } from "@/lib/utils";
+import { NativeSelect } from "@/components/ui/native-select";
 import { STATUS_OPTIONS, CATEGORY_OPTIONS, CATEGORY_COLORS } from "@/lib/category-constants";
 
 function VolumeChart({ data }: { data: WeekCount[] }) {
@@ -212,26 +212,24 @@ export default function SenderDetailPage() {
       <div className="flex items-center gap-3">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Status</label>
-          <select
+          <NativeSelect
             value={detail.Status}
             onChange={(e) => handleUpdate({ Status: e.target.value })}
             disabled={updating}
-            className={cn(nativeSelectClassName, "block")}
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Category</label>
-          <select
+          <NativeSelect
             value={detail.Category === detail.AutoCategory ? "" : detail.Category}
             onChange={(e) => handleUpdate({ Category: e.target.value })}
             disabled={updating}
-            className={cn(nativeSelectClassName, "block")}
           >
             {CATEGORY_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -240,7 +238,7 @@ export default function SenderDetailPage() {
                   : opt.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 

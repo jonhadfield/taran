@@ -15,8 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { HOUR_OPTIONS, nativeSelectClassName } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { HOUR_OPTIONS } from "@/lib/constants";
+import { NativeSelect } from "@/components/ui/native-select";
 
 const DAY_OPTIONS = [
   { value: 0, label: "Sunday" },
@@ -120,51 +120,54 @@ export function DigestDeliverySettings({
               {digestFrequency === "weekly" && (
                 <div className="space-y-1">
                   <Label htmlFor="digest-day">Day of week</Label>
-                  <select
+                  <NativeSelect
                     id="digest-day"
                     value={digestDay}
                     onChange={(e) => onDayChange(Number(e.target.value))}
                     disabled={prefSaving}
-                    className={cn(nativeSelectClassName, "flex w-full max-w-full sm:max-w-xs py-1 transition-colors")}
+                    wrapperClassName="w-full sm:max-w-xs"
+                    className="transition-colors"
                   >
                     {DAY_OPTIONS.map(({ value, label }) => (
                       <option key={value} value={value}>{label}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="digest-hour">Delivery time</Label>
-              <select
+              <NativeSelect
                 id="digest-hour"
                 value={digestHour}
                 onChange={(e) => onHourChange(Number(e.target.value))}
                 disabled={prefSaving}
-                className={cn(nativeSelectClassName, "flex w-full max-w-full sm:max-w-xs py-1 transition-colors")}
+                wrapperClassName="w-full sm:max-w-xs"
+                className="transition-colors"
               >
                 {HOUR_OPTIONS.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="digest-timezone">Timezone</Label>
-              <select
+              <NativeSelect
                 id="digest-timezone"
                 value={digestTimezone}
                 onChange={(e) => onTimezoneChange(e.target.value)}
                 disabled={prefSaving}
-                className={cn(nativeSelectClassName, "flex w-full max-w-full sm:max-w-xs py-1 transition-colors")}
+                wrapperClassName="w-full sm:max-w-xs"
+                className="transition-colors"
               >
                 {timezoneOptions.map((tz) => (
                   <option key={tz} value={tz}>
                     {tz.replace(/_/g, " ")}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           </div>
         )}

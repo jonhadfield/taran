@@ -3,8 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Search, X, SlidersHorizontal, Paperclip, Calendar, ArrowUpDown } from "lucide-react";
 import type { SavedSearch } from "@/types/api";
-import { nativeSelectClassName } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { NativeSelect } from "@/components/ui/native-select";
 import { SavedSearchDropdown } from "./saved-search-dropdown";
 
 interface SearchFilters {
@@ -79,17 +78,17 @@ export function InboxSearchBar({
           )}
         </div>
         <div className="relative">
-          <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-          <select
+          <ArrowUpDown className="absolute left-2.5 top-1/2 z-10 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          <NativeSelect
             value={sort}
             onChange={(e) => { setSort(e.target.value); setLimit(pageSize); }}
-            className={cn(nativeSelectClassName, "pl-8 pr-2 appearance-none cursor-pointer")}
+            className="pl-8 cursor-pointer"
             aria-label="Sort order"
           >
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
             {debouncedSearch && <option value="relevance">Relevance</option>}
-          </select>
+          </NativeSelect>
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}

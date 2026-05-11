@@ -21,10 +21,6 @@ export function labelColorClass(color: string): string {
   return LABEL_COLORS[color] || "bg-gray-400";
 }
 
-/** Base className for native <select> elements, matching shadcn/ui input styling */
-export const nativeSelectClassName =
-  "h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
-
 /** Valid color themes for the app */
 export const VALID_COLOR_THEMES = new Set([
   "neutral", "blue", "rose", "green", "violet", "amber",

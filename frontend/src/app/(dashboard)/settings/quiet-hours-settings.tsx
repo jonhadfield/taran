@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { HOUR_OPTIONS, nativeSelectClassName } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { HOUR_OPTIONS } from "@/lib/constants";
+import { NativeSelect } from "@/components/ui/native-select";
 
 interface QuietHoursSettingsProps {
   enabled: boolean;
@@ -62,31 +62,33 @@ export function QuietHoursSettings({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="quiet-start">From</Label>
-                <select
+                <NativeSelect
                   id="quiet-start"
                   value={start}
                   onChange={(e) => onStartChange(Number(e.target.value))}
                   disabled={prefSaving}
-                  className={cn(nativeSelectClassName, "flex w-full py-1 transition-colors")}
+                  wrapperClassName="w-full"
+                  className="transition-colors"
                 >
                   {HOUR_OPTIONS.map(({ value, label }) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="quiet-end">Until</Label>
-                <select
+                <NativeSelect
                   id="quiet-end"
                   value={end}
                   onChange={(e) => onEndChange(Number(e.target.value))}
                   disabled={prefSaving}
-                  className={cn(nativeSelectClassName, "flex w-full py-1 transition-colors")}
+                  wrapperClassName="w-full"
+                  className="transition-colors"
                 >
                   {HOUR_OPTIONS.map(({ value, label }) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
             </div>
             <p className="text-xs text-muted-foreground">

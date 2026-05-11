@@ -6,9 +6,10 @@ import type { SenderInfo, SenderSuggestion } from "@/types/api";
 import { X, MailX } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
-import { cn, pluralize } from "@/lib/utils";
-import { nativeSelectClassName } from "@/lib/constants";
-import { EmptyState, SendersIllustration } from "@/components/empty-state";
+import { pluralize } from "@/lib/utils";
+import { NativeSelect } from "@/components/ui/native-select";
+import { SendersIllustration } from "@/components/empty-state";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import Link from "next/link";
 import { SenderSparkline } from "./sender-sparkline";
 import { SenderAvatar } from "@/components/sender-avatar";
@@ -239,11 +240,13 @@ export default function SendersPage() {
           Loading senders...
         </div>
       ) : senders.length === 0 ? (
-        <EmptyState
-          icon={<SendersIllustration />}
-          title="No senders yet"
-          description="Senders will appear here once you receive emails."
-        />
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia><SendersIllustration /></EmptyMedia>
+            <EmptyTitle>No senders yet</EmptyTitle>
+            <EmptyDescription>Senders will appear here once you receive emails.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="divide-y rounded-lg border">
           {filteredSenders.map((sender) => {
@@ -286,13 +289,15 @@ export default function SendersPage() {
                     <SenderSparkline fromAddress={sender.FromAddress} />
                   </div>
 
-                  <select
+                  <NativeSelect
+                    size="sm"
                     value={sender.Category === sender.AutoCategory ? "" : sender.Category}
                     onChange={(e) =>
                       handleUpdate(sender.FromAddress, { Category: e.target.value })
                     }
                     disabled={updating === sender.FromAddress}
-                    className={cn(nativeSelectClassName, "h-8 px-2 text-xs flex-1 sm:flex-none sm:w-[100px]")}
+                    wrapperClassName="flex-1 sm:flex-none sm:w-[100px]"
+                    className="pl-2 text-xs"
                   >
                     {CATEGORY_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -301,22 +306,24 @@ export default function SendersPage() {
                           : opt.label}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
 
-                  <select
+                  <NativeSelect
+                    size="sm"
                     value={sender.Status}
                     onChange={(e) =>
                       handleUpdate(sender.FromAddress, { Status: e.target.value })
                     }
                     disabled={updating === sender.FromAddress}
-                    className={cn(nativeSelectClassName, "h-8 px-2 text-xs flex-1 sm:flex-none sm:w-[120px]")}
+                    wrapperClassName="flex-1 sm:flex-none sm:w-[120px]"
+                    className="pl-2 text-xs"
                   >
                     {STATUS_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
             );

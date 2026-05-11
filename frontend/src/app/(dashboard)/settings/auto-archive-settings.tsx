@@ -15,8 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Trash2, Plus } from "lucide-react";
 import type { AutoArchiveRule } from "@/types/api";
-import { cn, pluralize } from "@/lib/utils";
-import { nativeSelectClassName } from "@/lib/constants";
+import { pluralize } from "@/lib/utils";
+import { NativeSelect } from "@/components/ui/native-select";
 import { CATEGORY_OPTIONS_NO_AUTO } from "@/lib/category-constants";
 
 export function AutoArchiveSettings() {
@@ -153,17 +153,18 @@ export function AutoArchiveSettings() {
                 <div className="space-y-2">
                   <Label>{ruleType === "category" ? "Category" : "Sender email"}</Label>
                   {ruleType === "category" ? (
-                    <select
+                    <NativeSelect
                       value={ruleValue}
                       onChange={(e) => setRuleValue(e.target.value)}
-                      className={cn(nativeSelectClassName, "flex w-full py-1 transition-colors")}
+                      wrapperClassName="w-full"
+                      className="transition-colors"
                     >
                       {CATEGORY_OPTIONS_NO_AUTO.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   ) : (
                     <Input
                       type="email"
