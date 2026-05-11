@@ -5,7 +5,8 @@ import { apiGet, apiPost } from "@/lib/api";
 import type { SubscriptionInfo } from "@/types/api";
 import { ArrowLeft, MailX, Check, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { EmptyState, SubscriptionIllustration } from "@/components/empty-state";
+import { SubscriptionIllustration } from "@/components/empty-state";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -158,11 +159,13 @@ export default function SubscriptionsPage() {
       </div>
 
       {subs.length === 0 ? (
-        <EmptyState
-          icon={<SubscriptionIllustration />}
-          title="No subscriptions found"
-          description="We'll show senders here once we detect unsubscribe links in your emails."
-        />
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia><SubscriptionIllustration /></EmptyMedia>
+            <EmptyTitle>No subscriptions found</EmptyTitle>
+            <EmptyDescription>We&apos;ll show senders here once we detect unsubscribe links in your emails.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <>
           {activeSubs.length > 0 && (

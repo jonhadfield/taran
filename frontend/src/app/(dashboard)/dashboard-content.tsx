@@ -11,7 +11,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { FaviconBadge } from "@/components/favicon-badge";
-import { EmptyState, DashboardIllustration } from "@/components/empty-state";
+import { DashboardIllustration } from "@/components/empty-state";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { WidgetErrorBoundary } from "@/components/widget-error-boundary";
 import Link from "next/link";
 import { formatShortDate, pluralize } from "@/lib/utils";
@@ -481,13 +482,18 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
       {emails.length === 0 && digests.length === 0 && (
         <Card>
           <CardContent>
-            <EmptyState
-              icon={<DashboardIllustration />}
-              title="No emails yet"
-              description="Forward your newsletters to your inbox to get started:"
-            >
-              {emailAddress && <CopyEmailAddress emailAddress={emailAddress} />}
-            </EmptyState>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia><DashboardIllustration /></EmptyMedia>
+                <EmptyTitle>No emails yet</EmptyTitle>
+                <EmptyDescription>Forward your newsletters to your inbox to get started:</EmptyDescription>
+              </EmptyHeader>
+              {emailAddress && (
+                <EmptyContent>
+                  <CopyEmailAddress emailAddress={emailAddress} />
+                </EmptyContent>
+              )}
+            </Empty>
           </CardContent>
         </Card>
       )}

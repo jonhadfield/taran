@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Digest, ListResponse } from "@/types/api";
 import { Mail, MailX } from "lucide-react";
-import { EmptyState, DigestIllustration } from "@/components/empty-state";
+import { DigestIllustration } from "@/components/empty-state";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import Link from "next/link";
 import { formatShortDate } from "@/lib/utils";
 
@@ -33,11 +34,13 @@ export function DigestList({ initialDigests, initialTotal }: DigestListProps) {
       {digests.length === 0 ? (
         <Card>
           <CardContent>
-            <EmptyState
-              icon={<DigestIllustration />}
-              title="No digests yet"
-              description="Once you start receiving emails, digests will be generated automatically."
-            />
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia><DigestIllustration /></EmptyMedia>
+                <EmptyTitle>No digests yet</EmptyTitle>
+                <EmptyDescription>Once you start receiving emails, digests will be generated automatically.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           </CardContent>
         </Card>
       ) : (

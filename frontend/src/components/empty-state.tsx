@@ -1,26 +1,5 @@
 import { cn } from "@/lib/utils";
 
-interface EmptyStateProps {
-  icon: React.ReactNode;
-  title: string;
-  description?: string;
-  children?: React.ReactNode;
-  className?: string;
-}
-
-export function EmptyState({ icon, title, description, children, className }: EmptyStateProps) {
-  return (
-    <div className={cn("flex flex-col items-center justify-center py-12 text-center", className)}>
-      <div className="mb-4 text-muted-foreground">{icon}</div>
-      <h3 className="text-lg font-medium">{title}</h3>
-      {description && (
-        <p className="text-sm text-muted-foreground mt-2 max-w-sm">{description}</p>
-      )}
-      {children && <div className="mt-4">{children}</div>}
-    </div>
-  );
-}
-
 export function InboxIllustration({ className }: { className?: string }) {
   return (
     <svg className={cn("size-20", className)} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { WeeklySummary, ListResponse } from "@/types/api";
 import { Mail, MailX, CheckSquare } from "lucide-react";
-import { EmptyState, DigestIllustration } from "@/components/empty-state";
+import { DigestIllustration } from "@/components/empty-state";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import Link from "next/link";
 import { formatShortDate } from "@/lib/utils";
 import { CATEGORY_COLORS } from "@/lib/category-constants";
@@ -37,11 +38,13 @@ export function WeeklySummaryList({
       {summaries.length === 0 ? (
         <Card>
           <CardContent>
-            <EmptyState
-              icon={<DigestIllustration />}
-              title="No weekly summaries yet"
-              description="Weekly summaries are generated automatically at the end of each week."
-            />
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia><DigestIllustration /></EmptyMedia>
+                <EmptyTitle>No weekly summaries yet</EmptyTitle>
+                <EmptyDescription>Weekly summaries are generated automatically at the end of each week.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           </CardContent>
         </Card>
       ) : (

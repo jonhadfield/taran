@@ -8,7 +8,8 @@ import { usePolling } from "@/hooks/use-polling";
 import type { Email, Label, SavedSearch, ListResponse } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EmptyState, InboxIllustration, SearchIllustration } from "@/components/empty-state";
+import { InboxIllustration, SearchIllustration } from "@/components/empty-state";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Tag } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { CopyEmailAddress } from "@/components/copy-email-address";
@@ -411,28 +412,34 @@ export function InboxList({
       {emails.length === 0 ? (
         <div>
           {debouncedSearch ? (
-            <EmptyState
-              icon={<SearchIllustration />}
-              title={`No results for \u201c${debouncedSearch}\u201d`}
-              description="Try a different search term or adjust your filters."
-            >
-              <Button
-                variant="outline"
-                onClick={() => { setSearchInput(""); setSearchFilters({ hasAttachment: false, since: "", before: "" }); setActiveCategory(""); setActiveTopic(""); }}
-              >
-                Clear search
-              </Button>
-            </EmptyState>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia><SearchIllustration /></EmptyMedia>
+                <EmptyTitle>{`No results for \u201c${debouncedSearch}\u201d`}</EmptyTitle>
+                <EmptyDescription>Try a different search term or adjust your filters.</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button
+                  variant="outline"
+                  onClick={() => { setSearchInput(""); setSearchFilters({ hasAttachment: false, since: "", before: "" }); setActiveCategory(""); setActiveTopic(""); }}
+                >
+                  Clear search
+                </Button>
+              </EmptyContent>
+            </Empty>
           ) : (
-            <EmptyState
-              icon={<InboxIllustration />}
-              title={filter === "all" ? "No emails yet" : `No ${filter} emails`}
-              description={filter === "all" ? "Forward your newsletters to your inbox to get started:" : "Nothing to show for this filter."}
-            >
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia><InboxIllustration /></EmptyMedia>
+                <EmptyTitle>{filter === "all" ? "No emails yet" : `No ${filter} emails`}</EmptyTitle>
+                <EmptyDescription>{filter === "all" ? "Forward your newsletters to your inbox to get started:" : "Nothing to show for this filter."}</EmptyDescription>
+              </EmptyHeader>
               {filter === "all" && emailAddress && (
-                <CopyEmailAddress emailAddress={emailAddress} />
+                <EmptyContent>
+                  <CopyEmailAddress emailAddress={emailAddress} />
+                </EmptyContent>
               )}
-            </EmptyState>
+            </Empty>
           )}
         </div>
       ) : (
