@@ -2,6 +2,8 @@ module github.com/hadfielj/taran/backend
 
 go 1.25.0
 
+toolchain go1.26.3
+
 require (
 	github.com/anthropics/anthropic-sdk-go v1.22.0
 	github.com/google/uuid v1.6.0
@@ -11,7 +13,7 @@ require (
 	github.com/openai/openai-go/v3 v3.22.0
 	github.com/resend/resend-go/v2 v2.28.0
 	golang.org/x/crypto v0.51.0
-	golang.org/x/net v0.54.0
+	golang.org/x/net v0.55.0
 	golang.org/x/time v0.15.0
 )
 

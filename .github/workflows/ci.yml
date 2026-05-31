@@ -30,6 +30,11 @@ jobs:
       - name: Build
         run: go build ./cmd/taran
 
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
