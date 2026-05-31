@@ -157,7 +157,6 @@ export function AutoArchiveSettings() {
                       value={ruleValue}
                       onChange={(e) => setRuleValue(e.target.value)}
                       wrapperClassName="w-full"
-                      className="transition-colors"
                     >
                       {CATEGORY_OPTIONS_NO_AUTO.map((opt) => (
                         <option key={opt.value} value={opt.value}>

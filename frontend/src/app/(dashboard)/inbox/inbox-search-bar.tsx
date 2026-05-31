@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { Search, X, SlidersHorizontal, Paperclip, Calendar, ArrowUpDown } from "lucide-react";
 import type { SavedSearch } from "@/types/api";
 import { NativeSelect } from "@/components/ui/native-select";

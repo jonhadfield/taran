@@ -68,7 +68,6 @@ export function QuietHoursSettings({
                   onChange={(e) => onStartChange(Number(e.target.value))}
                   disabled={prefSaving}
                   wrapperClassName="w-full"
-                  className="transition-colors"
                 >
                   {HOUR_OPTIONS.map(({ value, label }) => (
                     <option key={value} value={value}>{label}</option>
@@ -83,7 +82,6 @@ export function QuietHoursSettings({
                   onChange={(e) => onEndChange(Number(e.target.value))}
                   disabled={prefSaving}
                   wrapperClassName="w-full"
-                  className="transition-colors"
                 >
                   {HOUR_OPTIONS.map(({ value, label }) => (
                     <option key={value} value={value}>{label}</option>

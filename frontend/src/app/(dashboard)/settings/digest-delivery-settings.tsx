@@ -126,7 +126,6 @@ export function DigestDeliverySettings({
                     onChange={(e) => onDayChange(Number(e.target.value))}
                     disabled={prefSaving}
                     wrapperClassName="w-full sm:max-w-xs"
-                    className="transition-colors"
                   >
                     {DAY_OPTIONS.map(({ value, label }) => (
                       <option key={value} value={value}>{label}</option>
@@ -144,7 +143,6 @@ export function DigestDeliverySettings({
                 onChange={(e) => onHourChange(Number(e.target.value))}
                 disabled={prefSaving}
                 wrapperClassName="w-full sm:max-w-xs"
-                className="transition-colors"
               >
                 {HOUR_OPTIONS.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
@@ -160,7 +158,6 @@ export function DigestDeliverySettings({
                 onChange={(e) => onTimezoneChange(e.target.value)}
                 disabled={prefSaving}
                 wrapperClassName="w-full sm:max-w-xs"
-                className="transition-colors"
               >
                 {timezoneOptions.map((tz) => (
                   <option key={tz} value={tz}>
