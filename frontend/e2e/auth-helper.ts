@@ -56,9 +56,10 @@ export async function loginAsTestUser(
     await client.end();
   }
 
-  // Better Auth cookie format: token.hmac_signature
-  const signature = createHmac("sha256", AUTH_SECRET).update(token).digest("hex");
-  const cookieValue = `${token}.${signature}`;
+  // Better Auth (via better-call) cookie format: encodeURIComponent("token.base64Signature")
+  // Signature is HMAC-SHA256(secret_utf8_bytes, token) → standard base64.
+  const signature = createHmac("sha256", AUTH_SECRET).update(token).digest("base64");
+  const cookieValue = encodeURIComponent(`${token}.${signature}`);
 
   await context.addCookies([
     {
