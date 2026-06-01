@@ -62,7 +62,7 @@ func (h *InviteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.Mailer != nil {
-		if err := h.Mailer.SendInvite(r.Context(), req.Email, adminEmail); err != nil {
+		if err := h.Mailer.SendInvite(r.Context(), req.Email); err != nil {
 			slog.Error("failed to send invite email", "to", req.Email, "error", err)
 			// Don't fail the request — invite is created, email delivery is best-effort
 		}

@@ -123,10 +123,10 @@ func (h *WaitlistHandler) Approve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send invite email (best-effort)
+	// Send invite-approved email (best-effort)
 	if h.Mailer != nil {
-		if err := h.Mailer.SendInvite(r.Context(), found.Email, adminEmail); err != nil {
-			slog.Error("failed to send invite email from waitlist approval", "to", found.Email, "error", err)
+		if err := h.Mailer.SendInviteApproved(r.Context(), found.Email); err != nil {
+			slog.Error("failed to send invite-approved email", "to", found.Email, "error", err)
 		}
 	}
 
