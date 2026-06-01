@@ -573,9 +573,10 @@ func (m *MockPreferenceRepo) SetTokenWarningSent(ctx context.Context, userID str
 
 // MockMailer implements mailer.Mailer for testing.
 type MockMailer struct {
-	SendDigestFn       func(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error
-	SendInviteFn       func(ctx context.Context, toEmail, fromName string) error
-	SendTokenWarningFn func(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error
+	SendDigestFn         func(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error
+	SendInviteFn         func(ctx context.Context, toEmail string) error
+	SendInviteApprovedFn func(ctx context.Context, toEmail string) error
+	SendTokenWarningFn   func(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error
 }
 
 func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error {
@@ -585,9 +586,16 @@ func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, dig
 	return nil
 }
 
-func (m *MockMailer) SendInvite(ctx context.Context, toEmail, fromName string) error {
+func (m *MockMailer) SendInvite(ctx context.Context, toEmail string) error {
 	if m.SendInviteFn != nil {
-		return m.SendInviteFn(ctx, toEmail, fromName)
+		return m.SendInviteFn(ctx, toEmail)
+	}
+	return nil
+}
+
+func (m *MockMailer) SendInviteApproved(ctx context.Context, toEmail string) error {
+	if m.SendInviteApprovedFn != nil {
+		return m.SendInviteApprovedFn(ctx, toEmail)
 	}
 	return nil
 }
