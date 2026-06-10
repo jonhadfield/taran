@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { WeeklySummary, ListResponse } from "@/types/api";
-import { Mail, MailX, CheckSquare } from "lucide-react";
+import { Mail, MailX } from "lucide-react";
 import { DigestIllustration } from "@/components/empty-state";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import Link from "next/link";
@@ -78,12 +78,6 @@ export function WeeklySummaryList({
                     <h3 className="font-medium">
                       Weekly Summary
                     </h3>
-                    {summary.ActionItems > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        <CheckSquare className="size-3 mr-1" />
-                        {summary.ActionItems} action items
-                      </Badge>
-                    )}
                   </div>
 
                   {summary.TopSenders?.length > 0 && (

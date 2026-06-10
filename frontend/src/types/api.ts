@@ -34,7 +34,6 @@ export interface Extraction {
   KeyPoints: string[];
   Topics: string[];
   Links: Link[];
-  ActionItems: string[];
   Sentiment: string;
   SourceCategory: string;
   Provider: string;
@@ -268,7 +267,6 @@ export interface WeeklySummary {
   EmailCount: number;
   TopSenders: SenderCount[];
   Categories: Record<string, number>;
-  ActionItems: number;
   SentAt: string | null;
   CreatedAt: string;
 }
@@ -406,6 +404,5 @@ export interface DashboardData {
   WeeklyHistory: WeekCount[];
   TopicsWithCount: TopicCount[];
   Categories: CategoryCount[];
-  ActionItems: number;
   Heatmap: HeatmapCell[];
 }

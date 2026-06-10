@@ -44,22 +44,6 @@ export function ExtractionSummary({ extraction, compact = false }: ExtractionSum
         </div>
       )}
 
-      {ext.ActionItems?.length > 0 && (
-        <div>
-          <h4 className={compact ? "text-xs font-medium text-muted-foreground mb-1.5" : "text-sm font-medium mb-2"}>
-            Action Items
-          </h4>
-          <ul className={compact ? "space-y-1" : "space-y-1.5"}>
-            {ext.ActionItems.map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className={`${compact ? "size-3.5" : "size-4"} mt-0.5 shrink-0 text-amber-500`} />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {ext.Links?.length > 0 && (
         <div>
           <h4 className={compact ? "text-xs font-medium text-muted-foreground mb-1.5" : "text-sm font-medium mb-2"}>

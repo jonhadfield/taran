@@ -22,14 +22,13 @@ func (r *ExtractionRepo) Create(ctx context.Context, extraction *domain.Extracti
 	keyPoints, _ := json.Marshal(extraction.KeyPoints)
 	topics, _ := json.Marshal(extraction.Topics)
 	links, _ := json.Marshal(extraction.Links)
-	actionItems, _ := json.Marshal(extraction.ActionItems)
 
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO extraction (id, email_id, summary, key_points, topics, links, action_items,
+		`INSERT INTO extraction (id, email_id, summary, key_points, topics, links,
 		    sentiment, source_category, provider, model, tokens_used, processed_at, created_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
 		extraction.ID, extraction.EmailID, extraction.Summary,
-		keyPoints, topics, links, actionItems,
+		keyPoints, topics, links,
 		extraction.Sentiment, extraction.SourceCategory,
 		extraction.Provider, extraction.Model, extraction.TokensUsed,
 		extraction.ProcessedAt, extraction.CreatedAt,
@@ -61,7 +60,7 @@ func (r *ExtractionRepo) DeleteByEmailIDScoped(ctx context.Context, userID, emai
 
 func (r *ExtractionRepo) GetByEmailID(ctx context.Context, emailID string) (*domain.Extraction, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT id, email_id, summary, key_points, topics, links, action_items,
+		`SELECT id, email_id, summary, key_points, topics, links,
 		    sentiment, source_category, provider, model, tokens_used, processed_at, created_at
 		 FROM extraction WHERE email_id = $1`, emailID)
 
@@ -70,7 +69,7 @@ func (r *ExtractionRepo) GetByEmailID(ctx context.Context, emailID string) (*dom
 
 func (r *ExtractionRepo) GetByEmailIDScoped(ctx context.Context, userID, emailID string) (*domain.Extraction, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT e.id, e.email_id, e.summary, e.key_points, e.topics, e.links, e.action_items,
+		`SELECT e.id, e.email_id, e.summary, e.key_points, e.topics, e.links,
 		    e.sentiment, e.source_category, e.provider, e.model, e.tokens_used, e.processed_at, e.created_at
 		 FROM extraction e
 		 JOIN email em ON em.id = e.email_id
@@ -84,7 +83,7 @@ func (r *ExtractionRepo) ListByUserAndPeriod(ctx context.Context, userID string,
 		excludedCategories = []string{"notification", "transactional", "marketing"}
 	}
 
-	query := `SELECT e.id, e.email_id, e.summary, e.key_points, e.topics, e.links, e.action_items,
+	query := `SELECT e.id, e.email_id, e.summary, e.key_points, e.topics, e.links,
 		    e.sentiment, e.source_category, e.provider, e.model, e.tokens_used, e.processed_at, e.created_at
 		 FROM extraction e
 		 JOIN email em ON em.id = e.email_id
@@ -212,26 +211,12 @@ func (r *ExtractionRepo) CountByCategory(ctx context.Context, userID string) ([]
 	return counts, nil
 }
 
-func (r *ExtractionRepo) CountActionItems(ctx context.Context, userID string, from, to time.Time) (int, error) {
-	var count int64
-	err := r.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM extraction e
-		 JOIN email em ON em.id = e.email_id
-		 CROSS JOIN LATERAL jsonb_array_elements_text(e.action_items) AS ai
-		 WHERE em.user_id = $1 AND em.received_at >= $2 AND em.received_at < $3`,
-		userID, from, to).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count action items: %w", err)
-	}
-	return int(count), nil
-}
-
 func scanExtraction(row scannable) (*domain.Extraction, error) {
 	var e domain.Extraction
-	var keyPoints, topics, links, actionItems []byte
+	var keyPoints, topics, links []byte
 
 	err := row.Scan(
-		&e.ID, &e.EmailID, &e.Summary, &keyPoints, &topics, &links, &actionItems,
+		&e.ID, &e.EmailID, &e.Summary, &keyPoints, &topics, &links,
 		&e.Sentiment, &e.SourceCategory, &e.Provider, &e.Model, &e.TokensUsed,
 		&e.ProcessedAt, &e.CreatedAt,
 	)
@@ -242,7 +227,6 @@ func scanExtraction(row scannable) (*domain.Extraction, error) {
 	json.Unmarshal(keyPoints, &e.KeyPoints)
 	json.Unmarshal(topics, &e.Topics)
 	json.Unmarshal(links, &e.Links)
-	json.Unmarshal(actionItems, &e.ActionItems)
 
 	return &e, nil
 }

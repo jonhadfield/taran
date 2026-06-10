@@ -6,7 +6,7 @@ import { apiGet } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { DashboardData, UserPreference, WeekCount, TopicCount, CategoryCount, HeatmapCell } from "@/types/api";
-import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, AlertCircle, BarChart3, Tag, CheckSquare, PieChart, Clock } from "lucide-react";
+import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, AlertCircle, BarChart3, Tag, PieChart, Clock } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
@@ -210,7 +210,6 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
   const weeklyHistory = data.WeeklyHistory || [];
   const topicsWithCount = data.TopicsWithCount || [];
   const categories = data.Categories || [];
-  const actionItems = data.ActionItems || 0;
   const heatmap = data.Heatmap || [];
 
   const processing = data.Processing;
@@ -224,7 +223,7 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
       <h1 className="text-2xl font-bold text-balance">Dashboard</h1>
 
       {/* Stat cards */}
-      <div className="grid gap-4 @sm:grid-cols-2 @lg:grid-cols-4">
+      <div className="grid gap-4 @sm:grid-cols-2 @lg:grid-cols-3">
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="flex items-center gap-4 p-6">
             <div className="flex size-12 items-center justify-center rounded-lg bg-blue-500/10">
@@ -269,19 +268,6 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
             <div>
               <p className="text-2xl font-bold">{stats.TotalEmails}</p>
               <p className="text-sm text-muted-foreground">Total Emails</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-emerald-500/10">
-              <CheckSquare className="size-6 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{actionItems}</p>
-              <p className="text-sm text-muted-foreground">Action Items</p>
-              <p className="text-xs text-muted-foreground">This week</p>
             </div>
           </CardContent>
         </Card>

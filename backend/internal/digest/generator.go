@@ -354,7 +354,6 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 				Subject:     em.Subject,
 				SenderName:  em.FromName,
 				Summary:     ext.Summary,
-				ActionItems: ext.ActionItems,
 				Category:    ext.SourceCategory,
 			})
 		}

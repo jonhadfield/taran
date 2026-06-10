@@ -363,7 +363,6 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 		KeyPoints:      result.KeyPoints,
 		Topics:         result.Topics,
 		Links:          result.Links,
-		ActionItems:    result.ActionItems,
 		Sentiment:      result.Sentiment,
 		SourceCategory: sourceCategory,
 		Provider:       provider.Name(),

@@ -32,7 +32,6 @@ export default async function DashboardPage() {
     WeeklyHistory: [],
     TopicsWithCount: [],
     Categories: [],
-    ActionItems: 0,
     Heatmap: [],
   };
 

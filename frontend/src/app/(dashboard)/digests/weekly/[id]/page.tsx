@@ -2,7 +2,7 @@ import { serverFetch } from "@/lib/server-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { WeeklySummary } from "@/types/api";
-import { Mail, MailX, CheckSquare } from "lucide-react";
+import { Mail, MailX } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatShortDate, formatDateTime } from "@/lib/utils";
@@ -72,13 +72,6 @@ export default async function WeeklySummaryDetailPage({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Emails received</span>
               <span className="font-medium">{summary.EmailCount}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Action items</span>
-              <span className="font-medium flex items-center gap-1">
-                <CheckSquare className="size-3.5" />
-                {summary.ActionItems}
-              </span>
             </div>
           </CardContent>
         </Card>

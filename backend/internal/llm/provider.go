@@ -22,7 +22,6 @@ type ExtractionResult struct {
 	KeyPoints      []string      `json:"key_points"`
 	Topics         []string      `json:"topics"`
 	Links          []domain.Link `json:"links"`
-	ActionItems    []string      `json:"action_items"`
 	Sentiment      string        `json:"sentiment"`
 	SourceCategory string        `json:"source_category"`
 }

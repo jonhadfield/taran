@@ -70,8 +70,8 @@ export async function createTestEmail(
     );
 
     await client.query(
-      `INSERT INTO extraction (id, email_id, summary, key_points, topics, links, action_items, sentiment, source_category, provider, model, tokens_used, processed_at)
-       VALUES ($1, $2, $3, $4, $5, '[]'::jsonb, '[]'::jsonb, 'informational', 'newsletter', 'test', 'test', 0, NOW())`,
+      `INSERT INTO extraction (id, email_id, summary, key_points, topics, links, sentiment, source_category, provider, model, tokens_used, processed_at)
+       VALUES ($1, $2, $3, $4, $5, '[]'::jsonb, 'informational', 'newsletter', 'test', 'test', 0, NOW())`,
       [extractionId, emailId, summary, JSON.stringify(keyPoints), JSON.stringify(topics)]
     );
   });

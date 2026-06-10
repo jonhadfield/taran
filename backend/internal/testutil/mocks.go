@@ -331,10 +331,6 @@ func (m *MockExtractionRepo) CountByCategory(ctx context.Context, userID string)
 	return nil, nil
 }
 
-func (m *MockExtractionRepo) CountActionItems(ctx context.Context, userID string, from, to time.Time) (int, error) {
-	return 0, nil
-}
-
 func (m *MockExtractionRepo) GetSummariesByEmailIDs(ctx context.Context, emailIDs []string) (map[string]string, error) {
 	return nil, nil
 }

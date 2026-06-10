@@ -78,7 +78,6 @@ type Extraction struct {
 	KeyPoints      []string  `json:"KeyPoints"`
 	Topics         []string  `json:"Topics"`
 	Links          []Link    `json:"Links"`
-	ActionItems    []string  `json:"ActionItems"`
 	Sentiment      string    `json:"Sentiment"`
 	SourceCategory string    `json:"SourceCategory"`
 	Provider       string    `json:"Provider"`
@@ -122,7 +121,6 @@ type DigestEmailSummary struct {
 	Subject     string   `json:"Subject"`
 	SenderName  string   `json:"SenderName"`
 	Summary     string   `json:"Summary"`
-	ActionItems []string `json:"ActionItems"`
 	Category    string   `json:"Category"`
 }
 
@@ -134,7 +132,6 @@ type WeeklySummary struct {
 	EmailCount  int            `json:"EmailCount"`
 	TopSenders  []SenderCount  `json:"TopSenders"`
 	Categories  map[string]int `json:"Categories"`
-	ActionItems int            `json:"ActionItems"`
 	SentAt      *time.Time     `json:"SentAt"`
 	CreatedAt   time.Time      `json:"CreatedAt"`
 }

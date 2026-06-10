@@ -149,16 +149,15 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 	}
 	if opts.Search != nil && *opts.Search != "" {
 		// Full-text search on tsvector column, ILIKE fallback on from_address/from_name,
-		// and search extraction summary/key_points/action_items for AI-extracted content
+		// and search extraction summary/key_points for AI-extracted content
 		where = append(where, fmt.Sprintf(
 			`(search_tsv @@ plainto_tsquery('english', $%d)
 			 OR from_address ILIKE $%d
 			 OR from_name ILIKE $%d
 			 OR EXISTS (SELECT 1 FROM extraction ex WHERE ex.email_id = email.id
 			   AND (ex.summary ILIKE $%d
-			     OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(ex.key_points) kp WHERE kp ILIKE $%d)
-			     OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(ex.action_items) ai WHERE ai ILIKE $%d))))`,
-			argIdx, argIdx+1, argIdx+1, argIdx+1, argIdx+1, argIdx+1))
+			     OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(ex.key_points) kp WHERE kp ILIKE $%d))))`,
+			argIdx, argIdx+1, argIdx+1, argIdx+1, argIdx+1))
 		args = append(args, *opts.Search, "%"+*opts.Search+"%")
 		argIdx += 2
 	}

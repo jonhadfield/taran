@@ -104,7 +104,6 @@ func (r *WeeklySummaryRunner) GenerateForUser(ctx context.Context, userID string
 	}
 
 	topSenders, _ := r.Emails.TopSenders(ctx, userID, periodStart, periodEnd, 5)
-	actionItems, _ := r.Extractions.CountActionItems(ctx, userID, periodStart, periodEnd)
 
 	// Category breakdown from extractions in period
 	extractions, _ := r.Extractions.ListByUserAndPeriod(ctx, userID, periodStart, periodEnd)
@@ -125,7 +124,6 @@ func (r *WeeklySummaryRunner) GenerateForUser(ctx context.Context, userID string
 		EmailCount:  emailCount,
 		TopSenders:  topSenders,
 		Categories:  categories,
-		ActionItems: actionItems,
 		CreatedAt:   time.Now(),
 	}, nil
 }

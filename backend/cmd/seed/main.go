@@ -147,13 +147,12 @@ func main() {
 		// Create extraction
 		extractionID := uuid.New().String()
 		_, err = pool.Exec(ctx, `
-			INSERT INTO extraction (id, email_id, summary, key_points, topics, links, action_items, sentiment, source_category, provider, model, tokens_used, processed_at)
-			VALUES ($1, $2, $3, $4, $5, '[]'::jsonb, $6, $7, $8, 'seed', 'seed', 0, $9)
+			INSERT INTO extraction (id, email_id, summary, key_points, topics, links, sentiment, source_category, provider, model, tokens_used, processed_at)
+			VALUES ($1, $2, $3, $4, $5, '[]'::jsonb, $6, $7, 'seed', 'seed', 0, $8)
 			ON CONFLICT DO NOTHING`,
 			extractionID, emailID, summary,
 			topicList[:min(3, len(topicList))], // key_points as string array
 			topicList,
-			[]string{}, // action_items
 			"informational",
 			sender.category,
 			receivedAt,

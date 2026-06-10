@@ -27,7 +27,6 @@ type DashboardResponse struct {
 	TopTopics       []string               `json:"TopTopics"`
 	TopicsWithCount []domain.TopicCount    `json:"TopicsWithCount"`
 	Categories      []domain.CategoryCount `json:"Categories"`
-	ActionItems     int                    `json:"ActionItems"`
 	Heatmap         []domain.HeatmapCell   `json:"Heatmap"`
 }
 
@@ -216,20 +215,6 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 			}
 			mu.Lock()
 			resp.Categories = cats
-			mu.Unlock()
-		}()
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			weekStart := startOfWeek(now)
-			count, err := h.Extractions.CountActionItems(ctx, userID, weekStart, now)
-			if err != nil {
-				setErr(err)
-				return
-			}
-			mu.Lock()
-			resp.ActionItems = count
 			mu.Unlock()
 		}()
 	}

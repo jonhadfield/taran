@@ -265,23 +265,6 @@ func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 		b.WriteString(`</ul></div>`)
 	}
 
-	// Collect action items from all emails
-	var allActionItems []string
-	for _, es := range digest.EmailSummaries {
-		allActionItems = append(allActionItems, es.ActionItems...)
-	}
-	if len(allActionItems) > 0 {
-		b.WriteString(`<div style="background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 8px 8px 0;padding:16px;margin-bottom:24px;">`)
-		b.WriteString(`<h2 style="font-size:14px;font-weight:600;color:#92400e;margin:0 0 10px 0;">Action Items</h2>`)
-		b.WriteString(`<ul style="padding-left:18px;margin:0;line-height:1.6;color:#78350f;font-size:14px;">`)
-		for _, item := range allActionItems {
-			b.WriteString(`<li style="margin-bottom:4px;">`)
-			b.WriteString(html.EscapeString(item))
-			b.WriteString(`</li>`)
-		}
-		b.WriteString(`</ul></div>`)
-	}
-
 	// Topics
 	if len(digest.TopTopics) > 0 {
 		b.WriteString(`<div style="margin-bottom:24px;">`)
@@ -333,18 +316,6 @@ func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 			b.WriteString(`<div style="font-size:13px;line-height:1.5;color:#374151;">`)
 			b.WriteString(html.EscapeString(es.Summary))
 			b.WriteString(`</div>`)
-
-			// Per-email action items
-			if len(es.ActionItems) > 0 {
-				b.WriteString(`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f3f4f6;">`)
-				b.WriteString(`<div style="font-size:11px;font-weight:600;color:#92400e;margin-bottom:4px;">Action items:</div>`)
-				for _, ai := range es.ActionItems {
-					b.WriteString(`<div style="font-size:12px;color:#78350f;line-height:1.4;padding-left:12px;">• `)
-					b.WriteString(html.EscapeString(ai))
-					b.WriteString(`</div>`)
-				}
-				b.WriteString(`</div>`)
-			}
 
 			// Link to dashboard
 			b.WriteString(`<a href="https://mailbrief.io/inbox/`)
@@ -422,9 +393,6 @@ func buildWeeklySummaryHTML(summary *domain.WeeklySummary, unsubscribeURL string
 	b.WriteString(`<div style="background:#f8fafc;border-radius:8px;padding:20px;margin-bottom:24px;">`)
 	b.WriteString(fmt.Sprintf(`<div style="font-size:32px;font-weight:700;color:#111827;">%d</div>`, summary.EmailCount))
 	b.WriteString(`<div style="font-size:14px;color:#6b7280;margin-top:2px;">emails received</div>`)
-	if summary.ActionItems > 0 {
-		b.WriteString(fmt.Sprintf(`<div style="font-size:14px;color:#d97706;margin-top:8px;font-weight:500;">%d action items identified</div>`, summary.ActionItems))
-	}
 	b.WriteString(`</div>`)
 
 	// Top senders
