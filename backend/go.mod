@@ -5,7 +5,7 @@ go 1.25.0
 toolchain go1.26.4
 
 require (
-	github.com/anthropics/anthropic-sdk-go v1.51.0
+	github.com/anthropics/anthropic-sdk-go v1.52.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jhillyerd/enmime v1.3.0
