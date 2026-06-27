@@ -10,19 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { UsageStats } from "@/types/api";
-import { formatTokens } from "@/lib/utils";
-
-function getBarColor(percent: number): string {
-  if (percent >= 90) return "bg-red-500";
-  if (percent >= 70) return "bg-yellow-500";
-  return "bg-primary";
-}
-
-function getTextColor(percent: number): string {
-  if (percent >= 90) return "text-red-600 dark:text-red-400";
-  if (percent >= 70) return "text-yellow-600 dark:text-yellow-400";
-  return "";
-}
+import { formatTokens, tokenBarColor as getBarColor, tokenTextColor as getTextColor } from "@/lib/utils";
 
 export function UsageStatsCard() {
   const [stats, setStats] = useState<UsageStats | null>(null);
@@ -142,12 +130,24 @@ export function UsageStatsCard() {
             </span>
           </div>
           {hasDailyLimit && (
-            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${getBarColor(dailyPercent)}`}
-                style={{ width: `${dailyPercent}%` }}
-              />
-            </div>
+            <>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${getBarColor(dailyPercent)}`}
+                  style={{ width: `${dailyPercent}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className={`font-medium ${getTextColor(dailyPercent)}`}>
+                  {dailyPercent >= 100
+                    ? "Daily limit reached"
+                    : `${formatTokens(Math.max(0, stats.DailyTokenLimit - stats.DailyTokensUsed))} remaining today`}
+                </span>
+                <span className="text-muted-foreground">
+                  {Math.round(dailyPercent)}% used
+                </span>
+              </div>
+            </>
           )}
         </div>
 

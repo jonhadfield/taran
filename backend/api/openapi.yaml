@@ -1397,7 +1397,7 @@ paths:
       summary: Get dashboard data
       description: |
         Returns an aggregated response combining recent emails, digests, statistics,
-        processing status, weekly history, topics, categories, action item count, and
+        processing status, weekly history, topics, categories, and
         the email arrival heatmap. Designed to power the main dashboard view in a
         single request.
       tags: [Dashboard]
@@ -2126,10 +2126,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Link"
-        ActionItems:
-          type: array
-          items:
-            type: string
         Sentiment:
           type: string
         SourceCategory:
@@ -2646,7 +2642,7 @@ components:
     # ── Dashboard ───────────────────────────────────────────────────
     DashboardResponse:
       type: object
-      required: [emails, emailTotal, digests, unreadCount, stats, processing, weeklyHistory, topTopics, topicsWithCount, categories, actionItems, heatmap]
+      required: [emails, emailTotal, digests, unreadCount, stats, processing, weeklyHistory, topTopics, topicsWithCount, categories, heatmap]
       properties:
         emails:
           type: array
@@ -2680,8 +2676,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CategoryCount"
-        actionItems:
-          type: integer
         heatmap:
           type: array
           items:
