@@ -1,6 +1,6 @@
 # Taran
 
-**Your newsletters, summarised.** Taran is an open-source, self-hosted AI-powered email digest platform. Users sign up, get a managed inbox, forward their newsletters, and receive daily AI-generated summaries — key points, action items, topics, and sentiment — without reading every email.
+**Your newsletters, summarised.** Taran is an open-source, self-hosted AI-powered email digest platform. Users sign up, get a managed inbox, forward their newsletters, and receive daily AI-generated summaries — key points, topics, and sentiment — without reading every email.
 
 **Demo instance: [mailbrief.io](https://mailbrief.io)**
 
@@ -12,7 +12,7 @@
 1. Sign up via Google or GitHub OAuth
 2. Get a managed inbox (you@mailbrief.io)
 3. Forward your newsletters to that address
-4. AI extracts key points, topics, action items, and sentiment from each email
+4. AI extracts key points, topics, and sentiment from each email
 5. Open your dashboard to read a pre-computed daily digest
 ```
 
@@ -21,7 +21,7 @@ No IMAP, no passwords, no browser extensions. Just email forwarding.
 ## Features
 
 **AI-Powered Intelligence**
-- Structured extraction from every email: summaries, key points, topics, links, action items, sentiment
+- Structured extraction from every email: summaries, key points, topics, links, sentiment
 - Daily and weekly digests with diff highlighting (new/dropped senders and topics)
 - Smart triage: AI decides which emails are worth extracting, skips transactional noise
 - Multi-provider LLM with automatic Anthropic/OpenAI failover

@@ -113,7 +113,7 @@ Pluggable provider interface with three operations:
 | Operation | Timeout | Purpose |
 |-----------|---------|---------|
 | `TriageEmail` | 30s | Cheap call to decide if an email is worth extracting |
-| `ExtractEmail` | 90s | Extract summary, key points, topics, links, action items, sentiment |
+| `ExtractEmail` | 90s | Extract summary, key points, topics, links, sentiment |
 | `GenerateDigest` | 90s | Summarise a batch of extractions into a digest |
 
 ### Providers
