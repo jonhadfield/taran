@@ -16,6 +16,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Menu, LogOut, Sun, Moon, Bell, BellOff, BellRing, Github, Bug } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
+import { DailyTokenPill } from "@/components/daily-token-pill";
 import { cn } from "@/lib/utils";
 
 export function Header({ isAdmin }: { isAdmin?: boolean }) {
@@ -60,6 +61,7 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
       </div>
 
       <div className="flex items-center gap-1">
+        <DailyTokenPill />
         <a
           href="https://github.com/jonhadfield/taran"
           target="_blank"

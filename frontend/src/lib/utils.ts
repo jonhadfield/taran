@@ -38,6 +38,20 @@ export function formatTokens(n: number): string {
   return n.toString();
 }
 
+/** Tailwind background class for a token-usage progress bar, by percent used */
+export function tokenBarColor(percent: number): string {
+  if (percent >= 90) return "bg-red-500";
+  if (percent >= 70) return "bg-yellow-500";
+  return "bg-primary";
+}
+
+/** Tailwind text class for a token-usage figure, by percent used */
+export function tokenTextColor(percent: number): string {
+  if (percent >= 90) return "text-red-600 dark:text-red-400";
+  if (percent >= 70) return "text-yellow-600 dark:text-yellow-400";
+  return "";
+}
+
 /** Pluralize a word based on count */
 export function pluralize(count: number, singular: string, plural?: string) {
   return count === 1 ? singular : (plural ?? singular + "s");
