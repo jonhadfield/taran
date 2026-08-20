@@ -64,7 +64,7 @@ func (r *EmailRepo) Create(ctx context.Context, email *domain.Email) error {
 
 func (r *EmailRepo) GetByID(ctx context.Context, userID, id string) (*domain.Email, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT ` + emailColumns + `
+		`SELECT `+emailColumns+`
 		 FROM email WHERE id = $1 AND user_id = $2`, id, userID)
 
 	return r.scanEmail(row)
@@ -72,7 +72,7 @@ func (r *EmailRepo) GetByID(ctx context.Context, userID, id string) (*domain.Ema
 
 func (r *EmailRepo) GetByIDInternal(ctx context.Context, id string) (*domain.Email, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT ` + emailColumns + `
+		`SELECT `+emailColumns+`
 		 FROM email WHERE id = $1`, id)
 
 	return r.scanEmail(row)
@@ -83,7 +83,7 @@ func (r *EmailRepo) GetByIDsInternal(ctx context.Context, ids []string) ([]domai
 		return nil, nil
 	}
 	rows, err := r.pool.Query(ctx,
-		`SELECT ` + emailColumns + `
+		`SELECT `+emailColumns+`
 		 FROM email WHERE id = ANY($1)`, ids)
 	if err != nil {
 		return nil, fmt.Errorf("get emails by ids: %w", err)
@@ -110,7 +110,7 @@ func (r *EmailRepo) GetByMessageID(ctx context.Context, userID, messageID string
 		return nil, fmt.Errorf("empty message ID")
 	}
 	row := r.pool.QueryRow(ctx,
-		`SELECT ` + emailColumns + `
+		`SELECT `+emailColumns+`
 		 FROM email WHERE user_id = $1 AND message_id = $2`, userID, messageID)
 
 	return r.scanEmail(row)
@@ -230,7 +230,7 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 	}
 
 	query := fmt.Sprintf(
-		`SELECT ` + emailColumns + `
+		`SELECT `+emailColumns+`
 		 FROM email WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d`,
 		whereClause, orderBy, argIdx, argIdx+1)
 	args = append(args, limit, offset)
@@ -378,7 +378,7 @@ func (r *EmailRepo) CountByWeek(ctx context.Context, userID string, weeks int) (
 
 func (r *EmailRepo) ListPending(ctx context.Context, limit int) ([]domain.Email, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT ` + emailColumns + `
+		`SELECT `+emailColumns+`
 		 FROM email WHERE status = 'pending' ORDER BY created_at LIMIT $1`, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list pending: %w", err)
@@ -402,7 +402,7 @@ func (r *EmailRepo) ListRetryable(ctx context.Context, maxRetries, limit int) ([
 	// 2. enough time has passed since last update (exponential backoff: 5min, 20min, 80min, ...)
 	// 3. failure reason is retryable (not "email has no content", "sender is blocked")
 	rows, err := r.pool.Query(ctx,
-		`SELECT ` + emailColumns + `
+		`SELECT `+emailColumns+`
 		 FROM email
 		 WHERE status = 'failed'
 		   AND retry_count < $1
@@ -900,4 +900,158 @@ func (r *EmailRepo) UpdateThreadID(ctx context.Context, userID, id, threadID str
 		return fmt.Errorf("update thread id: %w", err)
 	}
 	return nil
+}
+
+// CountUnencrypted reports how many emails still hold plaintext bodies.
+func (r *EmailRepo) CountUnencrypted(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM email WHERE encrypted = FALSE`).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count unencrypted emails: %w", err)
+	}
+	return count, nil
+}
+
+// BackfillEncryption encrypts email bodies written before encryption was
+// enabled, leaving already-encrypted rows alone.
+//
+// This mirrors Create: empty bodies are stored as-is rather than encrypted, and
+// the row is marked encrypted regardless, so the flag consistently means
+// "written while a key was configured". Both columns and the flag move in a
+// single UPDATE, so a concurrent reader sees either the old plaintext row or
+// the new ciphertext row, never a half-converted one.
+//
+// As with webhook payloads, rows are walked by keyset pagination so a failing
+// row cannot stall the scan, and each column is decrypted and compared against
+// the original before the write is issued — the email table is on the read path
+// for the whole application, and a body rewritten with something that will not
+// decrypt is unrecoverable.
+func (r *EmailRepo) BackfillEncryption(
+	ctx context.Context,
+	batchSize int,
+	dryRun bool,
+	onProgress func(BackfillStats),
+) (BackfillStats, error) {
+	var stats BackfillStats
+
+	if r.encryptor == nil {
+		return stats, fmt.Errorf("no encryptor configured: set TARAN_ENCRYPTION_KEY")
+	}
+	if batchSize <= 0 {
+		batchSize = 100
+	}
+
+	lastID := ""
+	for {
+		rows, err := r.pool.Query(ctx,
+			`SELECT id, text_body, html_body
+			   FROM email
+			  WHERE encrypted = FALSE AND id > $1
+			  ORDER BY id
+			  LIMIT $2`, lastID, batchSize)
+		if err != nil {
+			return stats, fmt.Errorf("select unencrypted emails: %w", err)
+		}
+
+		type row struct{ id, textBody, htmlBody string }
+		var batch []row
+		for rows.Next() {
+			var rw row
+			if err := rows.Scan(&rw.id, &rw.textBody, &rw.htmlBody); err != nil {
+				rows.Close()
+				return stats, fmt.Errorf("scan email: %w", err)
+			}
+			batch = append(batch, rw)
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return stats, fmt.Errorf("iterate emails: %w", err)
+		}
+		if len(batch) == 0 {
+			break
+		}
+
+		for _, rw := range batch {
+			stats.Scanned++
+			lastID = rw.id
+
+			if rw.textBody == "" && rw.htmlBody == "" {
+				// Nothing to encrypt, but still mark it so the flag stays
+				// meaningful and re-runs converge.
+				stats.SkippedEmpty++
+				if !dryRun {
+					if _, err := r.pool.Exec(ctx,
+						`UPDATE email SET encrypted = TRUE WHERE id = $1 AND encrypted = FALSE`,
+						rw.id); err != nil {
+						slog.Error("backfill: failed to mark empty email", "email_id", rw.id, "error", err)
+						stats.Failed++
+					}
+				}
+				continue
+			}
+
+			encText, err := r.encryptBodyColumn(rw.textBody)
+			if err != nil {
+				slog.Error("backfill: failed to encrypt text_body", "email_id", rw.id, "error", err)
+				stats.Failed++
+				continue
+			}
+			encHTML, err := r.encryptBodyColumn(rw.htmlBody)
+			if err != nil {
+				slog.Error("backfill: failed to encrypt html_body", "email_id", rw.id, "error", err)
+				stats.Failed++
+				continue
+			}
+
+			if dryRun {
+				stats.Encrypted++
+				continue
+			}
+
+			tag, err := r.pool.Exec(ctx,
+				`UPDATE email
+				    SET text_body = $1, html_body = $2, encrypted = TRUE
+				  WHERE id = $3 AND encrypted = FALSE`, encText, encHTML, rw.id)
+			if err != nil {
+				slog.Error("backfill: failed to update email", "email_id", rw.id, "error", err)
+				stats.Failed++
+				continue
+			}
+			if tag.RowsAffected() == 0 {
+				// Encrypted by a concurrent run between select and update.
+				continue
+			}
+			stats.Encrypted++
+		}
+
+		if onProgress != nil {
+			onProgress(stats)
+		}
+		if ctx.Err() != nil {
+			return stats, ctx.Err()
+		}
+	}
+
+	return stats, nil
+}
+
+// encryptBodyColumn encrypts one body column, leaving an empty column empty,
+// and proves the result decrypts back to the original before returning it.
+func (r *EmailRepo) encryptBodyColumn(plaintext string) (string, error) {
+	if plaintext == "" {
+		return "", nil
+	}
+	ciphertext, err := r.encryptor.EncryptToString(plaintext)
+	if err != nil {
+		return "", err
+	}
+	roundTripped, err := r.encryptor.DecryptFromString(ciphertext)
+	if err != nil {
+		return "", fmt.Errorf("verify: %w", err)
+	}
+	if roundTripped != plaintext {
+		return "", fmt.Errorf("verify: decrypted body does not match original")
+	}
+	return ciphertext, nil
 }
