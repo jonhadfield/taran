@@ -31,7 +31,16 @@ func TestResponseWrappersStayTransparentToStreaming(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			var gotFlusher, deadlineOK bool
+			// The handler runs on the server's goroutine, so hand the results
+			// back over a channel: the receive gives us a happens-before edge
+			// the race detector can see. Reading shared variables directly
+			// races with the handler still finishing after the client has its
+			// response.
+			type probe struct {
+				gotFlusher bool
+				deadlineOK bool
+			}
+			results := make(chan probe, 1)
 
 			inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// Non-2xx so AuditMiddleware skips its (here unconfigured) log
@@ -39,13 +48,15 @@ func TestResponseWrappersStayTransparentToStreaming(t *testing.T) {
 				w.WriteHeader(http.StatusInternalServerError)
 
 				flusher, ok := w.(http.Flusher)
-				gotFlusher = ok
 				if ok {
 					flusher.Flush()
 				}
 
 				rc := http.NewResponseController(w)
-				deadlineOK = rc.SetWriteDeadline(time.Now().Add(60*time.Second)) == nil
+				results <- probe{
+					gotFlusher: ok,
+					deadlineOK: rc.SetWriteDeadline(time.Now().Add(60*time.Second)) == nil,
+				}
 			})
 
 			srv := httptest.NewServer(tc.wrap(inner))
@@ -57,10 +68,12 @@ func TestResponseWrappersStayTransparentToStreaming(t *testing.T) {
 			}
 			resp.Body.Close()
 
-			if !gotFlusher {
+			got := <-results
+
+			if !got.gotFlusher {
 				t.Error("handler could not assert http.Flusher: SSE would 500")
 			}
-			if !deadlineOK {
+			if !got.deadlineOK {
 				t.Error("ResponseController.SetWriteDeadline did not reach the underlying writer")
 			}
 		})
