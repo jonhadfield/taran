@@ -362,7 +362,15 @@ func (h *EmailHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Prefer HTTP one-click unsubscribe (RFC 8058)
+	// Prefer HTTP one-click unsubscribe, but only where the sender advertised
+	// List-Unsubscribe-Post (RFC 8058). Without that header an automated POST
+	// is unsolicited, and turns this endpoint into a way to make the server
+	// issue attacker-chosen POST requests from its own address.
+	if email.UnsubscribeURL != "" && !email.UnsubscribePost {
+		WriteJSON(w, http.StatusOK, map[string]string{"status": "redirect", "url": email.UnsubscribeURL})
+		return
+	}
+
 	if email.UnsubscribeURL != "" {
 		// SSRF protection: validate URL before making outbound request
 		if err := webhook.ValidateExternalURL(email.UnsubscribeURL); err != nil {
@@ -478,6 +486,16 @@ func (h *EmailHandler) BatchUnsubscribe(w http.ResponseWriter, r *http.Request) 
 		sub := subMap[addr]
 		if sub == nil || (sub.UnsubscribeURL == "" && sub.UnsubscribeMailto == "") {
 			results = append(results, map[string]string{"address": addr, "status": "skipped", "reason": "no unsubscribe link"})
+			continue
+		}
+
+		// Only senders advertising RFC 8058 List-Unsubscribe-Post get an
+		// automated POST; everything else is handed back as a redirect.
+		if sub.UnsubscribeURL != "" && !sub.UnsubscribePost {
+			if h.SenderPrefs != nil {
+				_ = h.SenderPrefs.MarkUnsubscribed(r.Context(), userID, addr)
+			}
+			results = append(results, map[string]string{"address": addr, "status": "redirect", "url": sub.UnsubscribeURL})
 			continue
 		}
 

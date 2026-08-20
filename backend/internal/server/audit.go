@@ -11,7 +11,7 @@ import (
 
 // AuditMiddleware logs admin write operations (POST, PATCH, PUT, DELETE) to the audit log.
 // Read operations (GET) are not logged to avoid noise.
-func AuditMiddleware(auditRepo *database.AuditRepo) func(http.Handler) http.Handler {
+func AuditMiddleware(auditRepo *database.AuditRepo, resolver *ClientIPResolver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Only audit mutating operations
@@ -30,7 +30,7 @@ func AuditMiddleware(auditRepo *database.AuditRepo) func(http.Handler) http.Hand
 				userEmail := auth.UserEmailFromContext(r.Context())
 				action := r.Method + " " + r.URL.Path
 				target := extractTarget(r.URL.Path)
-				ip := clientIP(r)
+				ip := resolver.ClientIP(r)
 
 				if err := auditRepo.Log(r.Context(), userID, userEmail, action, target, "", ip); err != nil {
 					slog.Warn("failed to write audit log", "error", err, "action", action)
@@ -48,6 +48,18 @@ type statusRecorder struct {
 func (r *statusRecorder) WriteHeader(code int) {
 	r.status = code
 	r.ResponseWriter.WriteHeader(code)
+}
+
+// Flush and Unwrap keep this wrapper transparent to streaming handlers and
+// http.ResponseController. See statusWriter in middleware.go.
+func (r *statusRecorder) Flush() {
+	if f, ok := r.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (r *statusRecorder) Unwrap() http.ResponseWriter {
+	return r.ResponseWriter
 }
 
 // extractTarget pulls the resource ID from admin paths like /api/admin/users/{id}/token-limit

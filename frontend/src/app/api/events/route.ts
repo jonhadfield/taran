@@ -1,17 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { requireEnv } from "@/lib/env";
 
 export const maxDuration = 300;
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} environment variable is required`);
-  }
-  return value;
-}
 
 const API_KEY = requireEnv("API_KEY");
 

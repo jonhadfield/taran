@@ -44,6 +44,11 @@ type Processor struct {
 	AutoArchiveRules database.AutoArchiveRuleRepository
 	SSEBroker        *sse.Broker
 	Digests          database.DigestRepository
+
+	// WebhookPayloads and PayloadRetention drive deletion of stored raw
+	// messages. Zero retention disables the sweep.
+	WebhookPayloads  database.WebhookPayloadRepository
+	PayloadRetention time.Duration
 }
 
 // ProcessorConfig groups the dependencies for NewProcessor.
@@ -135,7 +140,26 @@ func (p *Processor) sweeper(ctx context.Context) {
 			p.sweepRetryable(ctx)
 			p.sweepAutoArchive(ctx)
 			p.sweepOrphanedDigests(ctx)
+			p.sweepWebhookPayloads(ctx)
 		}
+	}
+}
+
+// sweepWebhookPayloads enforces the retention window on stored raw webhook
+// payloads. Each row holds a complete copy of an original message, so keeping
+// them indefinitely steadily grows the amount of message content at rest.
+func (p *Processor) sweepWebhookPayloads(ctx context.Context) {
+	if p.WebhookPayloads == nil || p.PayloadRetention <= 0 {
+		return
+	}
+	cutoff := time.Now().Add(-p.PayloadRetention)
+	deleted, err := p.WebhookPayloads.DeleteOlderThan(ctx, cutoff)
+	if err != nil {
+		slog.Error("sweeper: failed to delete expired webhook payloads", "error", err)
+		return
+	}
+	if deleted > 0 {
+		slog.Info("sweeper: deleted expired webhook payloads", "count", deleted, "olderThan", cutoff)
 	}
 }
 

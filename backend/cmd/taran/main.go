@@ -130,11 +130,27 @@ func main() {
 	if cfg.Email.ResendAPIKey != "" {
 		m = mailer.NewResendMailer(cfg.Email.ResendAPIKey, cfg.Email.FromAddress)
 		slog.Info("digest email delivery enabled via Resend")
+		if cfg.Server.UnsubscribeSecret == "" {
+			slog.Error("TARAN_UNSUBSCRIBE_SECRET is not set: outbound email will omit " +
+				"one-click unsubscribe links, and any unsubscribe request will be rejected")
+		}
 	}
 
-	// Wire token warning deps into processor before starting
+	// Webhook payload repo (for dead letter queue / replay)
+	webhookPayloadRepo := database.NewWebhookPayloadRepo(pool, encryptor)
+
+	// Auto-archive rule repo
+	autoArchiveRepo := database.NewAutoArchiveRuleRepo(pool)
+
+	// All processor dependencies must be assigned before Start: the worker and
+	// sweeper goroutines read these fields, so assigning after Start is a data
+	// race and can leave a sweep permanently disabled.
 	proc.Mailer = m
 	proc.Sessions = sessionRepo
+	proc.AutoArchiveRules = autoArchiveRepo
+	proc.Digests = digestRepo
+	proc.WebhookPayloads = webhookPayloadRepo
+	proc.PayloadRetention = time.Duration(cfg.Webhook.PayloadRetentionDays) * 24 * time.Hour
 	proc.Start(ctx)
 
 	// Digest scheduler
@@ -160,19 +176,11 @@ func main() {
 		UnsubscribeSecret: cfg.Server.UnsubscribeSecret,
 	})
 
-	// Webhook payload repo (for dead letter queue / replay)
-	webhookPayloadRepo := database.NewWebhookPayloadRepo(pool)
-
 	// Label repo
 	labelRepo := database.NewLabelRepo(pool)
 
 	// Saved search repo
 	savedSearchRepo := database.NewSavedSearchRepo(pool)
-
-	// Auto-archive rule repo
-	autoArchiveRepo := database.NewAutoArchiveRuleRepo(pool)
-	proc.AutoArchiveRules = autoArchiveRepo
-	proc.Digests = digestRepo
 
 	// Handlers
 	webhookHandler := &handler.WebhookHandler{
@@ -311,6 +319,14 @@ func main() {
 		AdminEmails: cfg.AdminEmails,
 	}
 
+	// Only these proxies may set CF-Connecting-IP; everything else falls back
+	// to the TCP peer address.
+	ipResolver, err := server.NewClientIPResolver(cfg.Server.TrustedProxies)
+	if err != nil {
+		slog.Error("invalid trusted proxy configuration", "error", err)
+		os.Exit(1)
+	}
+
 	// HTTP server
 	mux := server.NewRouter(server.RouterDeps{
 		Pool:               pool,
@@ -343,11 +359,13 @@ func main() {
 		EventsHandler:            &handler.EventsHandler{Broker: sseBroker},
 		UserRateLimiter:      server.NewUserRateLimiter(5, 20), // 5 req/s, 20 burst per user
 		AuditRepo:            auditRepo,
+		ClientIPResolver:     ipResolver,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewSplitRateLimiter(
 		10, 30,  // API: 10 req/s sustained, 30 burst
 		50, 100, // Webhooks/cron: 50 req/s sustained, 100 burst
+		ipResolver,
 	)
 	httpHandler := server.RecoveryMiddleware(server.SecurityHeaders(cors(limiter.Middleware(server.LoggingMiddleware(mux)))))
 

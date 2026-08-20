@@ -25,7 +25,8 @@ type MockEmailRepo struct {
 	ListFn              func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Email, int, error)
 	UpdateStateFn       func(ctx context.Context, userID, id string, state domain.EmailState) error
 	DeleteFn            func(ctx context.Context, userID, id string) error
-	GetByMessageIDFn    func(ctx context.Context, messageID string) (*domain.Email, error)
+	GetByMessageIDFn    func(ctx context.Context, userID, messageID string) (*domain.Email, error)
+	UpdateThreadIDFn    func(ctx context.Context, userID, id, threadID string) error
 	ListPendingFn       func(ctx context.Context, limit int) ([]domain.Email, error)
 	SetStatusFn         func(ctx context.Context, id string, status domain.EmailStatus, reason string) error
 	ListActiveUserIDsFn func(ctx context.Context, from, to time.Time) ([]string, error)
@@ -112,9 +113,9 @@ func (m *MockEmailRepo) CountByWeek(ctx context.Context, userID string, weeks in
 	return nil, nil
 }
 
-func (m *MockEmailRepo) GetByMessageID(ctx context.Context, messageID string) (*domain.Email, error) {
+func (m *MockEmailRepo) GetByMessageID(ctx context.Context, userID, messageID string) (*domain.Email, error) {
 	if m.GetByMessageIDFn != nil {
-		return m.GetByMessageIDFn(ctx, messageID)
+		return m.GetByMessageIDFn(ctx, userID, messageID)
 	}
 	return nil, nil
 }
@@ -253,7 +254,10 @@ func (m *MockEmailRepo) GetThreadEmails(ctx context.Context, userID, threadID st
 	return nil, nil
 }
 
-func (m *MockEmailRepo) UpdateThreadID(ctx context.Context, id, threadID string) error {
+func (m *MockEmailRepo) UpdateThreadID(ctx context.Context, userID, id, threadID string) error {
+	if m.UpdateThreadIDFn != nil {
+		return m.UpdateThreadIDFn(ctx, userID, id, threadID)
+	}
 	return nil
 }
 

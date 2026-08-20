@@ -23,7 +23,7 @@ func TestIngestEmail_Success(t *testing.T) {
 			},
 		},
 		Emails: &testutil.MockEmailRepo{
-			GetByMessageIDFn: func(_ context.Context, _ string) (*domain.Email, error) {
+			GetByMessageIDFn: func(_ context.Context, _, _ string) (*domain.Email, error) {
 				return nil, fmt.Errorf("not found")
 			},
 			CreateFn: func(_ context.Context, e *domain.Email) error {
@@ -108,7 +108,7 @@ func TestIngestEmail_DuplicateMessageID(t *testing.T) {
 			},
 		},
 		Emails: &testutil.MockEmailRepo{
-			GetByMessageIDFn: func(_ context.Context, _ string) (*domain.Email, error) {
+			GetByMessageIDFn: func(_ context.Context, _, _ string) (*domain.Email, error) {
 				return &domain.Email{ID: "existing-id"}, nil // already exists
 			},
 		},
@@ -145,7 +145,7 @@ func TestIngestEmail_CreateError(t *testing.T) {
 			},
 		},
 		Emails: &testutil.MockEmailRepo{
-			GetByMessageIDFn: func(_ context.Context, _ string) (*domain.Email, error) {
+			GetByMessageIDFn: func(_ context.Context, _, _ string) (*domain.Email, error) {
 				return nil, fmt.Errorf("not found")
 			},
 			CreateFn: func(_ context.Context, _ *domain.Email) error {
@@ -181,7 +181,7 @@ func TestIngestEmail_XOriginalToHeader(t *testing.T) {
 			},
 		},
 		Emails: &testutil.MockEmailRepo{
-			GetByMessageIDFn: func(_ context.Context, _ string) (*domain.Email, error) {
+			GetByMessageIDFn: func(_ context.Context, _, _ string) (*domain.Email, error) {
 				return nil, fmt.Errorf("not found")
 			},
 			CreateFn: func(_ context.Context, e *domain.Email) error {
@@ -222,7 +222,7 @@ func TestIngestEmail_NoProvider(t *testing.T) {
 			},
 		},
 		Emails: &testutil.MockEmailRepo{
-			GetByMessageIDFn: func(_ context.Context, _ string) (*domain.Email, error) {
+			GetByMessageIDFn: func(_ context.Context, _, _ string) (*domain.Email, error) {
 				return nil, fmt.Errorf("not found")
 			},
 		},

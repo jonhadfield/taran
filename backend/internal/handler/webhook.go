@@ -21,10 +21,14 @@ import (
 // In-Reply-To and References headers against existing emails.
 // If a parent email is found, reuses its thread_id. Otherwise, uses the email's
 // own Message-ID as the thread root.
-func resolveThreadID(ctx context.Context, emails database.EmailRepository, parsed *email.ParsedEmail) string {
+//
+// All lookups are scoped to userID: the threading headers are attacker-supplied,
+// so an unscoped search would let inbound mail reference — and backfill the
+// thread_id of — another user's email.
+func resolveThreadID(ctx context.Context, emails database.EmailRepository, userID string, parsed *email.ParsedEmail) string {
 	// Check In-Reply-To first (most direct parent reference)
 	if parsed.InReplyTo != "" {
-		if parent, _ := emails.GetByMessageID(ctx, parsed.InReplyTo); parent != nil {
+		if parent, _ := emails.GetByMessageID(ctx, userID, parsed.InReplyTo); parent != nil {
 			if parent.ThreadID != "" {
 				return parent.ThreadID
 			}
@@ -34,7 +38,7 @@ func resolveThreadID(ctx context.Context, emails database.EmailRepository, parse
 				threadID = parent.ID
 			}
 			// Backfill the parent's thread_id
-			_ = emails.UpdateThreadID(ctx, parent.ID, threadID)
+			_ = emails.UpdateThreadID(ctx, userID, parent.ID, threadID)
 			return threadID
 		}
 	}
@@ -45,7 +49,7 @@ func resolveThreadID(ctx context.Context, emails database.EmailRepository, parse
 		if ref == parsed.InReplyTo {
 			continue // already checked
 		}
-		if ancestor, _ := emails.GetByMessageID(ctx, ref); ancestor != nil {
+		if ancestor, _ := emails.GetByMessageID(ctx, userID, ref); ancestor != nil {
 			if ancestor.ThreadID != "" {
 				return ancestor.ThreadID
 			}
@@ -53,7 +57,7 @@ func resolveThreadID(ctx context.Context, emails database.EmailRepository, parse
 			if threadID == "" {
 				threadID = ancestor.ID
 			}
-			_ = emails.UpdateThreadID(ctx, ancestor.ID, threadID)
+			_ = emails.UpdateThreadID(ctx, userID, ancestor.ID, threadID)
 			return threadID
 		}
 	}
@@ -90,6 +94,7 @@ func emailFromParsed(parsed *email.ParsedEmail, userID, accountID, toAddress, th
 		Status:            domain.EmailStatusPending,
 		UnsubscribeURL:    parsed.UnsubscribeURL,
 		UnsubscribeMailto: parsed.UnsubscribeMailto,
+		UnsubscribePost:   parsed.UnsubscribePost,
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
@@ -140,8 +145,10 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Duplicate detection is per-user: the same Message-ID legitimately arrives
+	// for several recipients when a newsletter is broadcast.
 	if parsed.MessageID != "" {
-		existing, _ := h.Emails.GetByMessageID(r.Context(), parsed.MessageID)
+		existing, _ := h.Emails.GetByMessageID(r.Context(), account.UserID, parsed.MessageID)
 		if existing != nil {
 			WriteJSON(w, http.StatusOK, map[string]string{"status": "duplicate"})
 			return
@@ -149,7 +156,7 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Compute thread ID from threading headers
-	threadID := resolveThreadID(r.Context(), h.Emails, parsed)
+	threadID := resolveThreadID(r.Context(), h.Emails, account.UserID, parsed)
 
 	emailRecord := emailFromParsed(parsed, account.UserID, account.ID, toAddress, threadID)
 

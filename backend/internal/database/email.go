@@ -47,13 +47,13 @@ func (r *EmailRepo) Create(ctx context.Context, email *domain.Email) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO email (id, user_id, email_account_id, message_id, in_reply_to, thread_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, encrypted, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)`,
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, unsubscribe_post, retry_count, encrypted, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)`,
 		email.ID, email.UserID, email.AccountID, email.MessageID, email.InReplyTo, email.ThreadID,
 		email.FromAddress, email.FromName, email.ToAddress, email.Subject,
 		textBody, htmlBody, email.ReceivedAt, email.DateHeader,
 		email.Status, email.StatusReason, email.IsRead, email.IsStarred, email.IsArchived,
-		email.UnsubscribeURL, email.UnsubscribeMailto, email.RetryCount, encrypted,
+		email.UnsubscribeURL, email.UnsubscribeMailto, email.UnsubscribePost, email.RetryCount, encrypted,
 		email.CreatedAt, email.UpdatedAt,
 	)
 	if err != nil {
@@ -101,13 +101,17 @@ func (r *EmailRepo) GetByIDsInternal(ctx context.Context, ids []string) ([]domai
 	return emails, nil
 }
 
-func (r *EmailRepo) GetByMessageID(ctx context.Context, messageID string) (*domain.Email, error) {
+// GetByMessageID looks up an email by its RFC 5322 Message-ID within a single
+// user's mailbox. Message-IDs are not globally unique — the same newsletter
+// broadcast reaches many recipients carrying an identical Message-ID — so this
+// must stay scoped to the user or one recipient's copy will mask another's.
+func (r *EmailRepo) GetByMessageID(ctx context.Context, userID, messageID string) (*domain.Email, error) {
 	if messageID == "" {
 		return nil, fmt.Errorf("empty message ID")
 	}
 	row := r.pool.QueryRow(ctx,
 		`SELECT ` + emailColumns + `
-		 FROM email WHERE message_id = $1`, messageID)
+		 FROM email WHERE user_id = $1 AND message_id = $2`, userID, messageID)
 
 	return r.scanEmail(row)
 }
@@ -651,7 +655,8 @@ func (r *EmailRepo) ListSubscriptions(ctx context.Context, userID string) ([]dom
 		        COUNT(*) AS cnt,
 		        MAX(e.received_at) AS last_seen,
 		        COALESCE(MAX(e.unsubscribe_url), '') AS unsub_url,
-		        COALESCE(MAX(e.unsubscribe_mailto), '') AS unsub_mailto
+		        COALESCE(MAX(e.unsubscribe_mailto), '') AS unsub_mailto,
+		        COALESCE(bool_or(e.unsubscribe_post), FALSE) AS unsub_post
 		 FROM email e
 		 WHERE e.user_id = $1
 		   AND (e.unsubscribe_url != '' OR e.unsubscribe_mailto != '')
@@ -666,7 +671,7 @@ func (r *EmailRepo) ListSubscriptions(ctx context.Context, userID string) ([]dom
 	for rows.Next() {
 		var s domain.SubscriptionInfo
 		var cnt int64
-		if err := rows.Scan(&s.FromAddress, &s.FromName, &cnt, &s.LastSeen, &s.UnsubscribeURL, &s.UnsubscribeMailto); err != nil {
+		if err := rows.Scan(&s.FromAddress, &s.FromName, &cnt, &s.LastSeen, &s.UnsubscribeURL, &s.UnsubscribeMailto, &s.UnsubscribePost); err != nil {
 			return nil, fmt.Errorf("scan subscription: %w", err)
 		}
 		s.EmailCount = int(cnt)
@@ -807,7 +812,7 @@ type scannable interface {
 
 const emailColumns = `id, user_id, email_account_id, message_id, in_reply_to, thread_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
-		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, retry_count, encrypted, created_at, updated_at`
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, unsubscribe_post, retry_count, encrypted, created_at, updated_at`
 
 func (r *EmailRepo) scanEmail(row scannable) (*domain.Email, error) {
 	var e domain.Email
@@ -817,7 +822,7 @@ func (r *EmailRepo) scanEmail(row scannable) (*domain.Email, error) {
 		&e.FromAddress, &e.FromName, &e.ToAddress, &e.Subject,
 		&e.TextBody, &e.HTMLBody, &e.ReceivedAt, &e.DateHeader,
 		&e.Status, &e.StatusReason, &e.IsRead, &e.IsStarred, &e.IsArchived,
-		&e.UnsubscribeURL, &e.UnsubscribeMailto, &e.RetryCount, &encrypted,
+		&e.UnsubscribeURL, &e.UnsubscribeMailto, &e.UnsubscribePost, &e.RetryCount, &encrypted,
 		&e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {
@@ -884,10 +889,13 @@ func (r *EmailRepo) GetThreadEmails(ctx context.Context, userID, threadID string
 	return emails, nil
 }
 
-func (r *EmailRepo) UpdateThreadID(ctx context.Context, id, threadID string) error {
+// UpdateThreadID backfills an email's thread_id. Scoped by user so that a
+// crafted In-Reply-To/References header on inbound mail cannot mutate a row
+// belonging to a different user.
+func (r *EmailRepo) UpdateThreadID(ctx context.Context, userID, id, threadID string) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE email SET thread_id = $1, updated_at = NOW() WHERE id = $2`,
-		threadID, id)
+		`UPDATE email SET thread_id = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3`,
+		threadID, id, userID)
 	if err != nil {
 		return fmt.Errorf("update thread id: %w", err)
 	}

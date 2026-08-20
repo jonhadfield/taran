@@ -17,7 +17,7 @@ type EmailRepository interface {
 	Delete(ctx context.Context, userID, id string) error
 	BatchUpdateState(ctx context.Context, userID string, ids []string, state domain.EmailState) error
 	BatchDelete(ctx context.Context, userID string, ids []string) error
-	GetByMessageID(ctx context.Context, messageID string) (*domain.Email, error)
+	GetByMessageID(ctx context.Context, userID, messageID string) (*domain.Email, error)
 	ListPending(ctx context.Context, limit int) ([]domain.Email, error)
 	SetStatus(ctx context.Context, id string, status domain.EmailStatus, reason string) error
 	SetStatusScoped(ctx context.Context, userID, id string, status domain.EmailStatus, reason string) error
@@ -40,7 +40,7 @@ type EmailRepository interface {
 	CountByFilter(ctx context.Context, userID string, status *domain.EmailStatus, isRead *bool) (int, error)
 	ListSubscriptions(ctx context.Context, userID string) ([]domain.SubscriptionInfo, error)
 	GetThreadEmails(ctx context.Context, userID, threadID string) ([]domain.Email, error)
-	UpdateThreadID(ctx context.Context, id, threadID string) error
+	UpdateThreadID(ctx context.Context, userID, id, threadID string) error
 }
 
 type ExtractionRepository interface {

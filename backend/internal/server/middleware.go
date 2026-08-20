@@ -82,3 +82,20 @@ func (w *statusWriter) WriteHeader(status int) {
 	w.status = status
 	w.ResponseWriter.WriteHeader(status)
 }
+
+// Flush forwards to the wrapped ResponseWriter. Embedding http.ResponseWriter
+// only promotes Header/Write/WriteHeader, so without this the wrapper hides the
+// underlying http.Flusher and streaming handlers that type-assert for it fail.
+func (w *statusWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Unwrap lets http.ResponseController reach the underlying writer, so
+// SetWriteDeadline actually applies instead of silently returning
+// ErrNotSupported — which would leave long-lived streams subject to the
+// server's WriteTimeout.
+func (w *statusWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}

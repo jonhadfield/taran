@@ -29,8 +29,11 @@ backend/taran
 backend/bin/
 backend/taran-linux-amd64
 
-# env file
+# env files (all variants: .env.local, .env.production, ...)
 .env
+.env.*
+!.env.example
+!.env.*.example
 
 # TLS certificate cache
 certs/

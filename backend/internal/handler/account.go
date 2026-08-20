@@ -17,6 +17,33 @@ import (
 
 var usernameRegex = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
 
+// reservedUsernames may not be claimed as inbox addresses.
+//
+// These are not merely cosmetic. RFC 2142 role addresses receive abuse and
+// security correspondence, and certificate authorities send domain-validation
+// mail to admin/administrator/webmaster/hostmaster/postmaster — so letting a
+// user claim one hands them mail the operator is expected to control. The
+// remainder protect the platform's own outbound addresses and obvious
+// impersonation targets.
+var reservedUsernames = map[string]bool{
+	// RFC 2142 role addresses
+	"postmaster": true, "abuse": true, "noc": true, "security": true,
+	"hostmaster": true, "webmaster": true, "info": true, "support": true,
+	"sales": true, "marketing": true,
+	// CA domain-validation addresses
+	"admin": true, "administrator": true,
+	// Bounce / automated senders
+	"mailer-daemon": true, "daemon": true, "bounce": true, "bounces": true,
+	"noreply": true, "no-reply": true, "donotreply": true, "do-not-reply": true,
+	// Platform-owned addresses and impersonation targets
+	"digest": true, "mailbrief": true, "taran": true, "billing": true,
+	"legal": true, "privacy": true, "help": true, "contact": true,
+	"root": true, "sysadmin": true, "ssl-admin": true,
+	// Protocol / infrastructure names
+	"dmarc": true, "dkim": true, "spf": true, "api": true, "www": true,
+	"mail": true, "smtp": true, "imap": true, "pop": true, "ftp": true,
+}
+
 type AccountHandler struct {
 	Accounts    database.AccountRepository
 	EmailDomain string
@@ -47,6 +74,9 @@ func validateUsername(username string) error {
 	}
 	if !usernameRegex.MatchString(username) {
 		return fmt.Errorf("username must contain only lowercase letters, numbers, and hyphens")
+	}
+	if reservedUsernames[username] {
+		return fmt.Errorf("username is reserved")
 	}
 	return nil
 }

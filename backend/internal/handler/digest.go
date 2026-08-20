@@ -294,8 +294,14 @@ func (h *DigestHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Shared links expire after 30 days
-	if time.Since(d.CreatedAt) > shareTokenExpiry {
+	// Shared links expire 30 days after being shared. Measuring from the
+	// digest's own creation time meant sharing an older digest handed out a
+	// link that was already expired.
+	sharedAt := d.CreatedAt
+	if d.ShareTokenCreatedAt != nil {
+		sharedAt = *d.ShareTokenCreatedAt
+	}
+	if time.Since(sharedAt) > shareTokenExpiry {
 		WriteError(w, http.StatusGone, "this shared digest has expired")
 		return
 	}

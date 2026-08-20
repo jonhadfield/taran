@@ -45,6 +45,7 @@ type RouterDeps struct {
 	EventsHandler            *handler.EventsHandler
 	UserRateLimiter      *UserRateLimiter
 	AuditRepo            *database.AuditRepo
+	ClientIPResolver     *ClientIPResolver
 }
 
 func NewRouter(deps RouterDeps) *http.ServeMux {
@@ -166,7 +167,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 
 	var adminHandler http.Handler = admin
 	if deps.AuditRepo != nil {
-		adminHandler = AuditMiddleware(deps.AuditRepo)(admin)
+		adminHandler = AuditMiddleware(deps.AuditRepo, deps.ClientIPResolver)(admin)
 	}
 	api.Handle("/api/admin/", deps.SessionAuth.AdminOnly(adminHandler))
 
