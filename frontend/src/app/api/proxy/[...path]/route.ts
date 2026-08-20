@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildBackendURL } from "@/lib/backend-url";
-import { requireEnv } from "@/lib/env";
 import {
   SECURE_SESSION_COOKIE,
   SESSION_COOKIE,
@@ -11,10 +10,6 @@ import {
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 const API_KEY = process.env.API_KEY!; // Validated at startup — required env var
 
-// Required, not optional: by the time the backend sends us a rotated token it
-// has already replaced the token in the database, so skipping the cookie write
-// would log the user out with no way back. Fail at startup instead.
-const AUTH_SECRET = requireEnv("BETTER_AUTH_SECRET");
 
 async function proxyRequest(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
@@ -83,7 +78,23 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
   // Handle session token rotation from the backend
   const rotatedToken = response.headers.get("X-Session-Token-Rotated");
   if (rotatedToken) {
-    const cookieValue = signSessionCookieValue(rotatedToken, AUTH_SECRET);
+    // Read the secret here rather than at module scope: Next evaluates route
+    // modules while collecting page data during the build, where runtime
+    // secrets are not available, and a module-level throw fails the build.
+    //
+    // Still required, not optional. By the time the backend sends a rotated
+    // token it has already replaced the token in the database, so quietly
+    // skipping the cookie write would log the user out with no way back —
+    // fail loudly instead.
+    const authSecret = process.env.BETTER_AUTH_SECRET;
+    if (!authSecret) {
+      console.error(
+        "BETTER_AUTH_SECRET is not set: cannot sign the rotated session cookie",
+      );
+      return NextResponse.json({ error: "server misconfigured" }, { status: 500 });
+    }
+
+    const cookieValue = signSessionCookieValue(rotatedToken, authSecret);
     const { name: cookieName, secure } = sessionCookieTarget(request);
 
     nextResponse.cookies.set(cookieName, cookieValue, {
