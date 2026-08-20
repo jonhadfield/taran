@@ -72,7 +72,7 @@ func (r *DigestRepo) GetByID(ctx context.Context, userID, id string) (*domain.Di
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, title, summary, highlights, top_topics,
 		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
-		    generated_at, sent_at, created_at, share_token
+		    generated_at, sent_at, created_at, share_token, share_token_created_at
 		 FROM digest WHERE id = $1 AND user_id = $2`, id, userID)
 
 	d, err := scanDigest(row)
@@ -93,7 +93,7 @@ func (r *DigestRepo) GetByIDInternal(ctx context.Context, id string) (*domain.Di
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, title, summary, highlights, top_topics,
 		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
-		    generated_at, sent_at, created_at, share_token
+		    generated_at, sent_at, created_at, share_token, share_token_created_at
 		 FROM digest WHERE id = $1`, id)
 
 	d, err := scanDigest(row)
@@ -142,7 +142,7 @@ func (r *DigestRepo) List(ctx context.Context, userID string, opts domain.ListOp
 	query := fmt.Sprintf(
 		`SELECT id, user_id, title, summary, highlights, top_topics,
 		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
-		    generated_at, sent_at, created_at, share_token
+		    generated_at, sent_at, created_at, share_token, share_token_created_at
 		 FROM digest WHERE %s ORDER BY period_start DESC LIMIT $%d OFFSET $%d`,
 		whereClause, argIdx, argIdx+1)
 	args = append(args, limit, opts.Offset)
@@ -184,7 +184,7 @@ func (r *DigestRepo) SetSentAt(ctx context.Context, id string, sentAt time.Time)
 
 func (r *DigestRepo) SetShareToken(ctx context.Context, id, userID, token string) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE digest SET share_token = $1 WHERE id = $2 AND user_id = $3`,
+		`UPDATE digest SET share_token = $1, share_token_created_at = NOW() WHERE id = $2 AND user_id = $3`,
 		token, id, userID)
 	if err != nil {
 		return fmt.Errorf("set share token: %w", err)
@@ -194,7 +194,7 @@ func (r *DigestRepo) SetShareToken(ctx context.Context, id, userID, token string
 
 func (r *DigestRepo) ClearShareToken(ctx context.Context, id, userID string) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE digest SET share_token = NULL WHERE id = $1 AND user_id = $2`,
+		`UPDATE digest SET share_token = NULL, share_token_created_at = NULL WHERE id = $1 AND user_id = $2`,
 		id, userID)
 	if err != nil {
 		return fmt.Errorf("clear share token: %w", err)
@@ -206,7 +206,7 @@ func (r *DigestRepo) GetByShareToken(ctx context.Context, token string) (*domain
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, user_id, title, summary, highlights, top_topics,
 		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
-		    generated_at, sent_at, created_at, share_token
+		    generated_at, sent_at, created_at, share_token, share_token_created_at
 		 FROM digest WHERE share_token = $1`, token)
 
 	d, err := scanDigest(row)
@@ -239,7 +239,7 @@ func (r *DigestRepo) ListUnsent(ctx context.Context, olderThan time.Time, limit 
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, title, summary, highlights, top_topics,
 		    period_start, period_end, period_type, email_count, tokens_used, provider, model,
-		    generated_at, sent_at, created_at, share_token
+		    generated_at, sent_at, created_at, share_token, share_token_created_at
 		 FROM digest
 		 WHERE sent_at IS NULL AND generated_at < $1
 		 ORDER BY generated_at ASC
@@ -297,7 +297,7 @@ func scanDigest(row scannable) (*domain.Digest, error) {
 		&d.ID, &d.UserID, &d.Title, &d.Summary, &highlights, &topTopics,
 		&d.PeriodStart, &d.PeriodEnd, &d.PeriodType, &d.EmailCount,
 		&d.TokensUsed, &d.Provider, &d.Model, &d.GeneratedAt, &d.SentAt, &d.CreatedAt,
-		&d.ShareToken,
+		&d.ShareToken, &d.ShareTokenCreatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("scan digest: %w", err)

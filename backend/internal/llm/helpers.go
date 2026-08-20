@@ -59,6 +59,16 @@ func extractEmail(ctx context.Context, fn callFn, providerLabel string, subject,
 		return nil, usage, fmt.Errorf("parse extraction result: %w (response: %s)", err, text)
 	}
 
+	// The model's link list is derived from untrusted email content, so keep
+	// only links pointing at hosts that genuinely appear in the source.
+	if before := len(result.Links); before > 0 {
+		result.Links = filterLinksToSource(result.Links, content)
+		if dropped := before - len(result.Links); dropped > 0 {
+			slog.Warn("dropped extracted links not present in source email",
+				"provider", providerLabel, "dropped", dropped, "kept", len(result.Links))
+		}
+	}
+
 	return &result, usage, nil
 }
 

@@ -27,6 +27,7 @@ type ServerConfig struct {
 	AllowedOrigins     []string
 	BaseURL            string
 	UnsubscribeSecret  string
+	TrustedProxies     []string
 }
 
 type DatabaseConfig struct {
@@ -35,6 +36,9 @@ type DatabaseConfig struct {
 
 type WebhookConfig struct {
 	Secret string
+	// PayloadRetentionDays bounds how long raw webhook payloads are kept.
+	// 0 disables the retention sweep.
+	PayloadRetentionDays int
 }
 
 type LLMConfig struct {
@@ -133,6 +137,17 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("TARAN_EMAIL_DOMAIN is required")
 	}
 
+	// Proxy CIDRs permitted to set CF-Connecting-IP. Empty = Cloudflare's
+	// published ranges; "none" = trust no proxy.
+	var trustedProxies []string
+	if v := os.Getenv("TARAN_TRUSTED_PROXIES"); v != "" {
+		for _, cidr := range strings.Split(v, ",") {
+			if trimmed := strings.TrimSpace(cidr); trimmed != "" {
+				trustedProxies = append(trustedProxies, trimmed)
+			}
+		}
+	}
+
 	var adminEmails []string
 	if v := os.Getenv("TARAN_ADMIN_EMAILS"); v != "" {
 		for _, email := range strings.Split(v, ",") {
@@ -152,12 +167,14 @@ func Load() (*Config, error) {
 			AllowedOrigins:    allowedOrigins,
 			BaseURL:           os.Getenv("TARAN_BASE_URL"),
 			UnsubscribeSecret: os.Getenv("TARAN_UNSUBSCRIBE_SECRET"),
+			TrustedProxies:    trustedProxies,
 		},
 		DB: DatabaseConfig{
 			URL: dbURL,
 		},
 		Webhook: WebhookConfig{
-			Secret: webhookSecret,
+			Secret:               webhookSecret,
+			PayloadRetentionDays: envInt("TARAN_WEBHOOK_PAYLOAD_RETENTION_DAYS", 30),
 		},
 		LLM: LLMConfig{
 			Provider:                  provider,

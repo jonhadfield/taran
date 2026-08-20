@@ -39,30 +39,33 @@ const (
 )
 
 type Email struct {
-	ID             string      `json:"ID"`
-	UserID         string      `json:"UserID"`
-	AccountID      string      `json:"AccountID"`
-	MessageID      string      `json:"MessageID"`
-	InReplyTo      string      `json:"InReplyTo"`
-	ThreadID       string      `json:"ThreadID"`
-	FromAddress    string      `json:"FromAddress"`
-	FromName       string      `json:"FromName"`
-	ToAddress      string      `json:"ToAddress"`
-	Subject        string      `json:"Subject"`
-	TextBody       string      `json:"TextBody"`
-	HTMLBody       string      `json:"HTMLBody"`
-	ReceivedAt     time.Time   `json:"ReceivedAt"`
-	DateHeader     time.Time   `json:"DateHeader"`
-	Status         EmailStatus `json:"Status"`
-	StatusReason   string      `json:"StatusReason"`
-	IsRead         bool        `json:"IsRead"`
-	IsStarred      bool        `json:"IsStarred"`
-	IsArchived        bool      `json:"IsArchived"`
-	UnsubscribeURL    string    `json:"UnsubscribeURL"`
-	UnsubscribeMailto string    `json:"UnsubscribeMailto"`
-	RetryCount        int       `json:"RetryCount"`
-	CreatedAt         time.Time `json:"CreatedAt"`
-	UpdatedAt         time.Time `json:"UpdatedAt"`
+	ID                string      `json:"ID"`
+	UserID            string      `json:"UserID"`
+	AccountID         string      `json:"AccountID"`
+	MessageID         string      `json:"MessageID"`
+	InReplyTo         string      `json:"InReplyTo"`
+	ThreadID          string      `json:"ThreadID"`
+	FromAddress       string      `json:"FromAddress"`
+	FromName          string      `json:"FromName"`
+	ToAddress         string      `json:"ToAddress"`
+	Subject           string      `json:"Subject"`
+	TextBody          string      `json:"TextBody"`
+	HTMLBody          string      `json:"HTMLBody"`
+	ReceivedAt        time.Time   `json:"ReceivedAt"`
+	DateHeader        time.Time   `json:"DateHeader"`
+	Status            EmailStatus `json:"Status"`
+	StatusReason      string      `json:"StatusReason"`
+	IsRead            bool        `json:"IsRead"`
+	IsStarred         bool        `json:"IsStarred"`
+	IsArchived        bool        `json:"IsArchived"`
+	UnsubscribeURL    string      `json:"UnsubscribeURL"`
+	UnsubscribeMailto string      `json:"UnsubscribeMailto"`
+	// UnsubscribePost reports whether the sender advertised RFC 8058
+	// List-Unsubscribe-Post, i.e. consented to an automated one-click POST.
+	UnsubscribePost bool      `json:"UnsubscribePost"`
+	RetryCount      int       `json:"RetryCount"`
+	CreatedAt       time.Time `json:"CreatedAt"`
+	UpdatedAt       time.Time `json:"UpdatedAt"`
 }
 
 type EmailState struct {
@@ -93,35 +96,38 @@ type Link struct {
 }
 
 type Digest struct {
-	ID          string      `json:"ID"`
-	UserID      string      `json:"UserID"`
-	Title       string      `json:"Title"`
-	Summary     string      `json:"Summary"`
-	Highlights  []string    `json:"Highlights"`
-	TopTopics   []string    `json:"TopTopics"`
-	PeriodStart time.Time   `json:"PeriodStart"`
-	PeriodEnd   time.Time   `json:"PeriodEnd"`
-	PeriodType  string      `json:"PeriodType"`
-	EmailCount  int         `json:"EmailCount"`
-	TokensUsed  int         `json:"TokensUsed"`
-	Provider    string      `json:"Provider"`
-	Model       string      `json:"Model"`
-	GeneratedAt time.Time   `json:"GeneratedAt"`
-	SentAt      *time.Time  `json:"SentAt"`
-	CreatedAt   time.Time   `json:"CreatedAt"`
-	ShareToken  *string     `json:"ShareToken"`
-	Items       []DigestItem `json:"Items"`
+	ID          string     `json:"ID"`
+	UserID      string     `json:"UserID"`
+	Title       string     `json:"Title"`
+	Summary     string     `json:"Summary"`
+	Highlights  []string   `json:"Highlights"`
+	TopTopics   []string   `json:"TopTopics"`
+	PeriodStart time.Time  `json:"PeriodStart"`
+	PeriodEnd   time.Time  `json:"PeriodEnd"`
+	PeriodType  string     `json:"PeriodType"`
+	EmailCount  int        `json:"EmailCount"`
+	TokensUsed  int        `json:"TokensUsed"`
+	Provider    string     `json:"Provider"`
+	Model       string     `json:"Model"`
+	GeneratedAt time.Time  `json:"GeneratedAt"`
+	SentAt      *time.Time `json:"SentAt"`
+	CreatedAt   time.Time  `json:"CreatedAt"`
+	ShareToken  *string    `json:"ShareToken"`
+	// ShareTokenCreatedAt is when the link was shared; share links expire
+	// relative to this, not to the digest's own creation time.
+	ShareTokenCreatedAt *time.Time   `json:"ShareTokenCreatedAt"`
+	Items               []DigestItem `json:"Items"`
 
 	// Transient — populated at generation time for email rendering, not persisted
 	EmailSummaries []DigestEmailSummary `json:"-"`
 }
 
 type DigestEmailSummary struct {
-	EmailID     string   `json:"EmailID"`
-	Subject     string   `json:"Subject"`
-	SenderName  string   `json:"SenderName"`
-	Summary     string   `json:"Summary"`
-	Category    string   `json:"Category"`
+	EmailID    string `json:"EmailID"`
+	Subject    string `json:"Subject"`
+	SenderName string `json:"SenderName"`
+	Summary    string `json:"Summary"`
+	Category   string `json:"Category"`
 }
 
 type WeeklySummary struct {
@@ -180,29 +186,29 @@ type EmailAccount struct {
 }
 
 type UserPreference struct {
-	UserID          string    `json:"UserID"`
-	DigestEmail     bool      `json:"DigestEmail"`
-	DigestFrequency string    `json:"DigestFrequency"` // "daily" or "weekly"
-	DigestHour      int       `json:"DigestHour"`      // 0-23
-	DigestDay       int       `json:"DigestDay"`       // 0=Sunday..6=Saturday (used for weekly)
-	DigestTimezone  string    `json:"DigestTimezone"`  // IANA timezone
-	TopicLimit      int       `json:"TopicLimit"`      // max topics shown in inbox cloud (default 15)
-	DigestStyle       string    `json:"DigestStyle"` // "detailed" or "concise"
-	InterestKeywords  []string  `json:"InterestKeywords"`
-	ExclusionKeywords []string  `json:"ExclusionKeywords"`
-	ColorTheme        string    `json:"ColorTheme"`
-	MonthlyTokenLimit    int        `json:"MonthlyTokenLimit"`
-	ExcludedCategories   []string   `json:"ExcludedCategories"` // categories excluded from digests (default: notification, transactional, marketing)
-	TokenWarningSentAt   *time.Time `json:"TokenWarningSentAt"`
-	DailyTokenLimit      int        `json:"DailyTokenLimit"` // 0 = no daily limit
-	QuietHoursEnabled    bool       `json:"QuietHoursEnabled"`
-	QuietHoursStart      int        `json:"QuietHoursStart"` // 0-23, hour in DigestTimezone
-	QuietHoursEnd        int        `json:"QuietHoursEnd"`   // 0-23, hour in DigestTimezone
-	WeeklySummary        bool       `json:"WeeklySummary"`   // opt-in for weekly activity summary email
-	DigestWebhook        bool       `json:"DigestWebhook"`   // enable webhook delivery for digests
-	WebhookURL           string     `json:"WebhookURL"`      // URL to POST digest summaries to
-	CreatedAt            time.Time  `json:"CreatedAt"`
-	UpdatedAt            time.Time  `json:"UpdatedAt"`
+	UserID             string     `json:"UserID"`
+	DigestEmail        bool       `json:"DigestEmail"`
+	DigestFrequency    string     `json:"DigestFrequency"` // "daily" or "weekly"
+	DigestHour         int        `json:"DigestHour"`      // 0-23
+	DigestDay          int        `json:"DigestDay"`       // 0=Sunday..6=Saturday (used for weekly)
+	DigestTimezone     string     `json:"DigestTimezone"`  // IANA timezone
+	TopicLimit         int        `json:"TopicLimit"`      // max topics shown in inbox cloud (default 15)
+	DigestStyle        string     `json:"DigestStyle"`     // "detailed" or "concise"
+	InterestKeywords   []string   `json:"InterestKeywords"`
+	ExclusionKeywords  []string   `json:"ExclusionKeywords"`
+	ColorTheme         string     `json:"ColorTheme"`
+	MonthlyTokenLimit  int        `json:"MonthlyTokenLimit"`
+	ExcludedCategories []string   `json:"ExcludedCategories"` // categories excluded from digests (default: notification, transactional, marketing)
+	TokenWarningSentAt *time.Time `json:"TokenWarningSentAt"`
+	DailyTokenLimit    int        `json:"DailyTokenLimit"` // 0 = no daily limit
+	QuietHoursEnabled  bool       `json:"QuietHoursEnabled"`
+	QuietHoursStart    int        `json:"QuietHoursStart"` // 0-23, hour in DigestTimezone
+	QuietHoursEnd      int        `json:"QuietHoursEnd"`   // 0-23, hour in DigestTimezone
+	WeeklySummary      bool       `json:"WeeklySummary"`   // opt-in for weekly activity summary email
+	DigestWebhook      bool       `json:"DigestWebhook"`   // enable webhook delivery for digests
+	WebhookURL         string     `json:"WebhookURL"`      // URL to POST digest summaries to
+	CreatedAt          time.Time  `json:"CreatedAt"`
+	UpdatedAt          time.Time  `json:"UpdatedAt"`
 }
 
 type Session struct {
@@ -232,6 +238,7 @@ type SubscriptionInfo struct {
 	LastSeen          time.Time  `json:"LastSeen"`
 	UnsubscribeURL    string     `json:"UnsubscribeURL"`
 	UnsubscribeMailto string     `json:"UnsubscribeMailto"`
+	UnsubscribePost   bool       `json:"UnsubscribePost"`
 	UnsubscribedAt    *time.Time `json:"UnsubscribedAt"`
 }
 
@@ -305,33 +312,33 @@ type TopicCount struct {
 }
 
 type HeatmapCell struct {
-	Hour int `json:"Hour"` // 0-23
-	Day  int `json:"Day"`  // 0=Sunday..6=Saturday
+	Hour  int `json:"Hour"` // 0-23
+	Day   int `json:"Day"`  // 0=Sunday..6=Saturday
 	Count int `json:"Count"`
 }
 
 type AdminStats struct {
-	TotalUsers          int           `json:"TotalUsers"`
-	ActiveUsersWeek     int           `json:"ActiveUsersWeek"`
-	TotalEmails         int           `json:"TotalEmails"`
-	EmailsThisWeek      int           `json:"EmailsThisWeek"`
-	TotalDigests        int           `json:"TotalDigests"`
-	DigestsThisWeek     int           `json:"DigestsThisWeek"`
-	TopGlobalSenders    []SenderCount `json:"TopGlobalSenders"`
-	LLMProvider         string        `json:"LLMProvider"`
-	LLMModel            string        `json:"LLMModel"`
+	TotalUsers               int           `json:"TotalUsers"`
+	ActiveUsersWeek          int           `json:"ActiveUsersWeek"`
+	TotalEmails              int           `json:"TotalEmails"`
+	EmailsThisWeek           int           `json:"EmailsThisWeek"`
+	TotalDigests             int           `json:"TotalDigests"`
+	DigestsThisWeek          int           `json:"DigestsThisWeek"`
+	TopGlobalSenders         []SenderCount `json:"TopGlobalSenders"`
+	LLMProvider              string        `json:"LLMProvider"`
+	LLMModel                 string        `json:"LLMModel"`
 	MonthlyTokensUsed        int           `json:"MonthlyTokensUsed"`
 	DefaultMonthlyTokenLimit int           `json:"DefaultMonthlyTokenLimit"`
 	// Analytics
-	ProcessedCount    int              `json:"ProcessedCount"`
-	FailedCount       int              `json:"FailedCount"`
-	SkippedCount      int              `json:"SkippedCount"`
-	PendingCount      int              `json:"PendingCount"`
-	FeedbackUseful    int              `json:"FeedbackUseful"`
-	FeedbackNotUseful int              `json:"FeedbackNotUseful"`
-	WeeklyEmails      []WeekCount      `json:"WeeklyEmails"`
-	WeeklyDigests     []WeekCount      `json:"WeeklyDigests"`
-	WeeklyTokens      []WeekCount      `json:"WeeklyTokens"`
+	ProcessedCount    int         `json:"ProcessedCount"`
+	FailedCount       int         `json:"FailedCount"`
+	SkippedCount      int         `json:"SkippedCount"`
+	PendingCount      int         `json:"PendingCount"`
+	FeedbackUseful    int         `json:"FeedbackUseful"`
+	FeedbackNotUseful int         `json:"FeedbackNotUseful"`
+	WeeklyEmails      []WeekCount `json:"WeeklyEmails"`
+	WeeklyDigests     []WeekCount `json:"WeeklyDigests"`
+	WeeklyTokens      []WeekCount `json:"WeeklyTokens"`
 }
 
 type AdminUser struct {
@@ -371,19 +378,19 @@ type DigestFeedback struct {
 }
 
 type DigestPreviewItem struct {
-	EmailID     string `json:"EmailID"`
-	Subject     string `json:"Subject"`
-	FromName    string `json:"FromName"`
-	FromAddress string `json:"FromAddress"`
-	Summary     string `json:"Summary"`
+	EmailID     string    `json:"EmailID"`
+	Subject     string    `json:"Subject"`
+	FromName    string    `json:"FromName"`
+	FromAddress string    `json:"FromAddress"`
+	Summary     string    `json:"Summary"`
 	ReceivedAt  time.Time `json:"ReceivedAt"`
 }
 
 type DigestPreview struct {
-	PeriodStart time.Time          `json:"PeriodStart"`
-	PeriodEnd   time.Time          `json:"PeriodEnd"`
-	PeriodType  string             `json:"PeriodType"`
-	EmailCount  int                `json:"EmailCount"`
+	PeriodStart time.Time           `json:"PeriodStart"`
+	PeriodEnd   time.Time           `json:"PeriodEnd"`
+	PeriodType  string              `json:"PeriodType"`
+	EmailCount  int                 `json:"EmailCount"`
 	Items       []DigestPreviewItem `json:"Items"`
 }
 
@@ -400,20 +407,20 @@ type TokenUsage struct {
 }
 
 type UsageStats struct {
-	MonthlyTokensUsed  int `json:"MonthlyTokensUsed"`
-	MonthlyTokenLimit  int `json:"MonthlyTokenLimit"` // 0 = unlimited
-	DailyTokensUsed    int `json:"DailyTokensUsed"`
-	DailyTokenLimit    int `json:"DailyTokenLimit"` // 0 = no daily limit
-	TriageTokens       int `json:"TriageTokens"`
-	ExtractTokens      int `json:"ExtractTokens"`
-	DigestTokens       int `json:"DigestTokens"`
-	DailyHistory       []DailyTokenCount `json:"DailyHistory"`
-	PeriodStart        time.Time `json:"PeriodStart"`
-	PeriodEnd          time.Time `json:"PeriodEnd"`
+	MonthlyTokensUsed int               `json:"MonthlyTokensUsed"`
+	MonthlyTokenLimit int               `json:"MonthlyTokenLimit"` // 0 = unlimited
+	DailyTokensUsed   int               `json:"DailyTokensUsed"`
+	DailyTokenLimit   int               `json:"DailyTokenLimit"` // 0 = no daily limit
+	TriageTokens      int               `json:"TriageTokens"`
+	ExtractTokens     int               `json:"ExtractTokens"`
+	DigestTokens      int               `json:"DigestTokens"`
+	DailyHistory      []DailyTokenCount `json:"DailyHistory"`
+	PeriodStart       time.Time         `json:"PeriodStart"`
+	PeriodEnd         time.Time         `json:"PeriodEnd"`
 }
 
 type DailyTokenCount struct {
-	Date   string `json:"Date"`   // "2006-01-02"
+	Date   string `json:"Date"` // "2006-01-02"
 	Tokens int    `json:"Tokens"`
 }
 

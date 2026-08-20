@@ -2,7 +2,6 @@ package server
 
 import (
 	"log/slog"
-	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -82,18 +81,19 @@ func (krl *keyedRateLimiter) cleanup() {
 // RateLimiter tracks per-IP request rates.
 type RateLimiter struct {
 	*keyedRateLimiter
+	resolver *ClientIPResolver
 }
 
 // NewRateLimiter creates a rate limiter with the given requests per second and burst size.
 // Stale entries are cleaned up after 3 minutes of inactivity.
-func NewRateLimiter(rps float64, burst int) *RateLimiter {
-	return &RateLimiter{keyedRateLimiter: newKeyedRateLimiter(rps, burst)}
+func NewRateLimiter(rps float64, burst int, resolver *ClientIPResolver) *RateLimiter {
+	return &RateLimiter{keyedRateLimiter: newKeyedRateLimiter(rps, burst), resolver: resolver}
 }
 
 // Middleware returns an HTTP middleware that rate-limits by client IP.
 func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := clientIP(r)
+		ip := rl.resolver.ClientIP(r)
 
 		if !rl.allow(ip) {
 			slog.Warn("rate limit exceeded", "ip", ip, "path", r.URL.Path)
@@ -113,10 +113,10 @@ type SplitRateLimiter struct {
 }
 
 // NewSplitRateLimiter creates separate rate limiters for API and webhook traffic.
-func NewSplitRateLimiter(apiRPS float64, apiBurst int, webhookRPS float64, webhookBurst int) *SplitRateLimiter {
+func NewSplitRateLimiter(apiRPS float64, apiBurst int, webhookRPS float64, webhookBurst int, resolver *ClientIPResolver) *SplitRateLimiter {
 	return &SplitRateLimiter{
-		api:     NewRateLimiter(apiRPS, apiBurst),
-		webhook: NewRateLimiter(webhookRPS, webhookBurst),
+		api:     NewRateLimiter(apiRPS, apiBurst, resolver),
+		webhook: NewRateLimiter(webhookRPS, webhookBurst, resolver),
 	}
 }
 
@@ -160,20 +160,4 @@ func (rl *UserRateLimiter) Middleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-func clientIP(r *http.Request) string {
-	// Prefer CF-Connecting-IP (set by Cloudflare, cannot be spoofed by client)
-	if cfIP := r.Header.Get("CF-Connecting-IP"); cfIP != "" {
-		return cfIP
-	}
-
-	// X-Real-Ip omitted — spoofable when not behind a trusted proxy.
-	// Fall through to RemoteAddr (TCP connection source).
-
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return ip
 }

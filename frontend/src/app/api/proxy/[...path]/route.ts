@@ -1,16 +1,28 @@
-import { createHmac } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionToken } from "@/lib/session";
+import { buildBackendURL } from "@/lib/backend-url";
+import { requireEnv } from "@/lib/env";
+import {
+  SECURE_SESSION_COOKIE,
+  SESSION_COOKIE,
+  getSessionToken,
+  signSessionCookieValue,
+} from "@/lib/session";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 const API_KEY = process.env.API_KEY!; // Validated at startup — required env var
-const AUTH_SECRET = process.env.BETTER_AUTH_SECRET || "";
+
+// Required, not optional: by the time the backend sends us a rotated token it
+// has already replaced the token in the database, so skipping the cookie write
+// would log the user out with no way back. Fail at startup instead.
+const AUTH_SECRET = requireEnv("BETTER_AUTH_SECRET");
 
 async function proxyRequest(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
 
-  const backendPath = `/api/${path.join("/")}`;
-  const url = new URL(backendPath, BACKEND_URL);
+  const url = buildBackendURL(path, BACKEND_URL);
+  if (!url) {
+    return NextResponse.json({ error: "invalid path" }, { status: 400 });
+  }
 
   request.nextUrl.searchParams.forEach((value, key) => {
     url.searchParams.set(key, value);
@@ -70,22 +82,53 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
 
   // Handle session token rotation from the backend
   const rotatedToken = response.headers.get("X-Session-Token-Rotated");
-  if (rotatedToken && AUTH_SECRET) {
-    const signature = createHmac("sha256", AUTH_SECRET).update(rotatedToken).digest("hex");
-    const cookieValue = `${rotatedToken}.${signature}`;
-    const isSecure = request.url.startsWith("https://");
-    const cookieName = isSecure ? "__Secure-better-auth.session_token" : "better-auth.session_token";
+  if (rotatedToken) {
+    const cookieValue = signSessionCookieValue(rotatedToken, AUTH_SECRET);
+    const { name: cookieName, secure } = sessionCookieTarget(request);
 
     nextResponse.cookies.set(cookieName, cookieValue, {
       httpOnly: true,
       sameSite: "lax",
-      secure: isSecure,
+      secure,
       path: "/",
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
   }
 
   return nextResponse;
+}
+
+/**
+ * Chooses which session cookie to overwrite when the backend rotates a token.
+ *
+ * Prefer the name the request actually carried, so we replace the cookie Better
+ * Auth issued rather than creating a second one under the other name — the two
+ * readers disagree about precedence, so a split would leave different parts of
+ * the app looking at different tokens.
+ *
+ * Falling back on `request.url` alone is unreliable behind TLS termination,
+ * where the proxy sees plain http internally and would drop the Secure flag;
+ * x-forwarded-proto reflects what the browser actually used.
+ */
+function sessionCookieTarget(request: NextRequest): { name: string; secure: boolean } {
+  if (request.cookies.has(SECURE_SESSION_COOKIE)) {
+    return { name: SECURE_SESSION_COOKIE, secure: true };
+  }
+  if (request.cookies.has(SESSION_COOKIE)) {
+    return { name: SESSION_COOKIE, secure: isSecureRequest(request) };
+  }
+  const secure = isSecureRequest(request);
+  return { name: secure ? SECURE_SESSION_COOKIE : SESSION_COOKIE, secure };
+}
+
+function isSecureRequest(request: NextRequest): boolean {
+  // May be a comma-separated list when proxies are chained; the first entry is
+  // the protocol the client used.
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedProto) {
+    return forwardedProto.split(",")[0].trim().toLowerCase() === "https";
+  }
+  return request.nextUrl.protocol === "https:";
 }
 
 export const GET = proxyRequest;
