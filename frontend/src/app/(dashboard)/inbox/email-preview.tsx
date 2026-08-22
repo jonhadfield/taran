@@ -139,7 +139,7 @@ export function EmailPreview({ id, onDeleted }: EmailPreviewProps) {
       {ext && (
         <div className="space-y-3">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
-            <Sparkles className="size-4 text-indigo-500" />
+            <Sparkles className="size-4 text-info" />
             AI Summary
           </h3>
           <ExtractionSummary extraction={ext} compact />

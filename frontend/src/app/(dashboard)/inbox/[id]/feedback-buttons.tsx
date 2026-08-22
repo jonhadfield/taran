@@ -51,7 +51,7 @@ export function FeedbackButtons({ emailId }: FeedbackButtonsProps) {
         onClick={() => handleFeedback("useful")}
         className={cn(
           "h-8 gap-1",
-          rating === "useful" && "bg-green-500/10 text-green-600 hover:bg-green-500/20"
+          rating === "useful" && "bg-success/10 text-success hover:bg-success/20"
         )}
       >
         <ThumbsUp className="size-4" />
@@ -64,7 +64,7 @@ export function FeedbackButtons({ emailId }: FeedbackButtonsProps) {
         onClick={() => handleFeedback("not_useful")}
         className={cn(
           "h-8 gap-1",
-          rating === "not_useful" && "bg-red-500/10 text-red-600 hover:bg-red-500/20"
+          rating === "not_useful" && "bg-destructive/10 text-destructive hover:bg-destructive/20"
         )}
       >
         <ThumbsDown className="size-4" />

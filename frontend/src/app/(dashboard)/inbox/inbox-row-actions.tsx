@@ -44,7 +44,7 @@ export function InboxRowActions({ emailId, isStarred, isArchived, onMutate }: Pr
         aria-label={isStarred ? "Unstar email" : "Star email"}
       >
         {isStarred ? (
-          <Star className="size-4 fill-yellow-400 text-yellow-400" />
+          <Star className="size-4 fill-warning text-warning" />
         ) : (
           <StarOff className="size-4 text-muted-foreground" />
         )}

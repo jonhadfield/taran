@@ -73,7 +73,7 @@ export function EmailActions({ email, onDeleted }: { email: Email; onDeleted?: (
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={toggleStar}>
           {starred ? (
-            <Star className="mr-1 h-4 w-4 fill-yellow-400 text-yellow-400" />
+            <Star className="mr-1 h-4 w-4 fill-warning text-warning" />
           ) : (
             <StarOff className="mr-1 h-4 w-4" />
           )}

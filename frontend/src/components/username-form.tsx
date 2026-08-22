@@ -104,9 +104,9 @@ export function UsernameForm({ onSuccess }: UsernameFormProps) {
                 {checking ? (
                   <Spinner className="text-muted-foreground" />
                 ) : available === true ? (
-                  <Check className="h-4 w-4 text-green-500" />
+                  <Check className="h-4 w-4 text-success" />
                 ) : available === false ? (
-                  <X className="h-4 w-4 text-red-500" />
+                  <X className="h-4 w-4 text-destructive" />
                 ) : null}
               </div>
             )}

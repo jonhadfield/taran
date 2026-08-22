@@ -99,7 +99,7 @@ export function UsageStatsCard() {
                 />
               </div>
               {monthlyPercent >= 80 && (
-                <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                <p className="text-xs text-destructive font-medium">
                   {monthlyPercent >= 100
                     ? "Monthly limit reached — email processing is paused until next month"
                     : `${Math.round(monthlyPercent)}% of monthly limit used`}

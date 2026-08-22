@@ -57,7 +57,7 @@ export default function NotInvitedPage() {
 
         {status === "requested" ? (
           <>
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
+            <CheckCircle2 className="h-12 w-12 text-success" />
             <h1 className="text-2xl font-bold">You&apos;re on the waitlist!</h1>
             <p className="text-muted-foreground">
               We&apos;ll notify you when your access is approved.
@@ -73,7 +73,7 @@ export default function NotInvitedPage() {
                 ? " Request access below and we'll review your request."
                 : " Please check back later."}
             </p>
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
             {waitlistOpen && (
               <Button
                 onClick={handleRequestAccess}

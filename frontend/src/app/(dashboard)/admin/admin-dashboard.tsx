@@ -130,28 +130,28 @@ export function AdminDashboard() {
             <p className="text-xs text-muted-foreground -mt-2">success rate</p>
             <div className="grid grid-cols-2 gap-3 pt-2 border-t">
               <div className="flex items-center gap-2">
-                <CheckCircle className="size-4 text-green-500" />
+                <CheckCircle className="size-4 text-success" />
                 <div>
                   <div className="text-sm font-medium">{stats.ProcessedCount.toLocaleString()}</div>
                   <div className="text-xs text-muted-foreground">Processed</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <XCircle className="size-4 text-red-500" />
+                <XCircle className="size-4 text-destructive" />
                 <div>
                   <div className="text-sm font-medium">{stats.FailedCount.toLocaleString()}</div>
                   <div className="text-xs text-muted-foreground">Failed</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <AlertTriangle className="size-4 text-yellow-500" />
+                <AlertTriangle className="size-4 text-warning" />
                 <div>
                   <div className="text-sm font-medium">{stats.SkippedCount.toLocaleString()}</div>
                   <div className="text-xs text-muted-foreground">Skipped</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="size-4 text-blue-500" />
+                <Clock className="size-4 text-info" />
                 <div>
                   <div className="text-sm font-medium">{stats.PendingCount.toLocaleString()}</div>
                   <div className="text-xs text-muted-foreground">Pending</div>
@@ -176,15 +176,15 @@ export function AdminDashboard() {
               <div className="pt-2 border-t space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Useful</span>
-                  <span className="font-medium text-green-600 dark:text-green-400">{stats.FeedbackUseful}</span>
+                  <span className="font-medium text-success">{stats.FeedbackUseful}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Not useful</span>
-                  <span className="font-medium text-red-600 dark:text-red-400">{stats.FeedbackNotUseful}</span>
+                  <span className="font-medium text-destructive">{stats.FeedbackNotUseful}</span>
                 </div>
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-green-500"
+                    className="h-full rounded-full bg-success"
                     style={{ width: `${(stats.FeedbackUseful / totalFeedback) * 100}%` }}
                   />
                 </div>

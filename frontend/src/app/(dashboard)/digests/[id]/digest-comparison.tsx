@@ -115,9 +115,9 @@ export function DigestComparison({ currentDigest }: DigestComparisonProps) {
         {emailDelta !== 0 && (
           <div className="flex items-center gap-2 text-sm">
             {emailDelta > 0 ? (
-              <ArrowUp className="size-4 text-green-600" />
+              <ArrowUp className="size-4 text-success" />
             ) : (
-              <ArrowDown className="size-4 text-orange-600" />
+              <ArrowDown className="size-4 text-warning" />
             )}
             <span>
               <span className="font-medium">
@@ -138,12 +138,12 @@ export function DigestComparison({ currentDigest }: DigestComparisonProps) {
             </h3>
             {newTopics.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">
+                <span className="text-xs text-success font-medium flex items-center gap-0.5">
                   <Plus className="size-3" />
                   New
                 </span>
                 {newTopics.map((topic) => (
-                  <Badge key={topic} variant="secondary" className="text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">
+                  <Badge key={topic} variant="secondary" className="text-success bg-success/10">
                     {topic}
                   </Badge>
                 ))}
@@ -174,13 +174,13 @@ export function DigestComparison({ currentDigest }: DigestComparisonProps) {
             </h3>
             {newSenders.length > 0 && (
               <div className="space-y-1">
-                <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">
+                <span className="text-xs text-success font-medium flex items-center gap-0.5">
                   <Plus className="size-3" />
                   New in this digest
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {newSenders.map((s) => (
-                    <Badge key={s.fromAddress} variant="outline" className="text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">
+                    <Badge key={s.fromAddress} variant="outline" className="text-success border-success/30">
                       {s.fromName}
                     </Badge>
                   ))}

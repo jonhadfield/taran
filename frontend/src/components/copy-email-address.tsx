@@ -35,7 +35,7 @@ export function CopyEmailAddress({ emailAddress }: CopyEmailAddressProps) {
     >
       <span className="truncate">{emailAddress}</span>
       {copied ? (
-        <Check className="size-3.5 shrink-0 text-emerald-500" />
+        <Check className="size-3.5 shrink-0 text-success" />
       ) : (
         <Copy className="size-3.5 shrink-0 text-muted-foreground" />
       )}

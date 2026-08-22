@@ -186,7 +186,7 @@ export default function SendersPage() {
 
       {/* Mute suggestions banner */}
       {suggestions.length > 0 && !dismissedSuggestions && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-4">
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="space-y-2">
               <p className="text-sm font-medium">
@@ -218,7 +218,7 @@ export default function SendersPage() {
                 <button
                   onClick={handleMuteAll}
                   disabled={mutingAll}
-                  className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline disabled:opacity-50"
+                  className="mt-1 text-xs font-medium text-warning hover:underline disabled:opacity-50"
                 >
                   {mutingAll ? "Muting..." : `Mute all ${suggestions.length} senders`}
                 </button>

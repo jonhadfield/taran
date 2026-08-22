@@ -50,7 +50,7 @@ export function ReprocessButton({ emailId }: { emailId: string }) {
 
   if (state === "done") {
     return (
-      <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
+      <div className="mt-2 flex items-center gap-2 text-sm text-success">
         <CheckCircle2 className="size-4" />
         Reprocessed successfully — refreshing...
       </div>
