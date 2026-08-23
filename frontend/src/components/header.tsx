@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/sidebar";
-import { Menu, LogOut, Sun, Moon, Bell, BellOff, BellRing, Github, Bug } from "lucide-react";
+import { Menu, LogOut, Sun, Moon, Bell, BellOff, BellRing, Bug } from "lucide-react";
+import { GitHubIcon } from "@/components/github-icon";
 import { useTheme } from "next-themes";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
 import { DailyTokenPill } from "@/components/daily-token-pill";
@@ -70,7 +71,7 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
         >
           <Button variant="ghost" size="icon" asChild>
             <span>
-              <Github className="size-4" />
+              <GitHubIcon className="size-4" />
               <span className="sr-only">View on GitHub</span>
             </span>
           </Button>
