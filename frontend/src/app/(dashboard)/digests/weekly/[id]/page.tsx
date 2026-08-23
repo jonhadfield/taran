@@ -51,7 +51,7 @@ export default async function WeeklySummaryDetailPage({
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {summary.SentAt ? (
             <>
-              <Mail className="size-4 text-green-600" />
+              <Mail className="size-4 text-success" />
               <span>Emailed on {formatDateTime(summary.SentAt)}</span>
             </>
           ) : (
@@ -100,7 +100,7 @@ export default async function WeeklySummaryDetailPage({
                       {totalCategoryEmails > 0 && (
                         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-emerald-500"
+                            className="h-full rounded-full bg-success"
                             style={{
                               width: `${(count / totalCategoryEmails) * 100}%`,
                             }}

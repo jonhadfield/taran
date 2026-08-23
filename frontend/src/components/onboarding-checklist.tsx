@@ -120,7 +120,7 @@ export function OnboardingChecklist({
           >
             <div className="mt-0.5">
               {item.done ? (
-                <Check className="size-4 text-green-500" />
+                <Check className="size-4 text-success" />
               ) : (
                 <Circle className="size-4 text-muted-foreground" />
               )}

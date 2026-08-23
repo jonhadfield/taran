@@ -83,7 +83,7 @@ export function InviteForm() {
             <p className="mt-2 text-sm text-destructive">{error}</p>
           )}
           {success && (
-            <p className="mt-2 text-sm text-green-600">{success}</p>
+            <p className="mt-2 text-sm text-success">{success}</p>
           )}
         </CardContent>
       </Card>

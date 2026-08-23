@@ -1,3 +1,8 @@
+/**
+ * Identity palette for sender avatars — deliberately NOT the semantic status
+ * tokens. These hues carry no meaning beyond "distinct from the last one", and
+ * need more distinct values than the six categorical slots provide.
+ */
 const avatarColors = [
   "bg-blue-500",
   "bg-emerald-500",

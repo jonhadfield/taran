@@ -111,7 +111,7 @@ export function AdminUsers() {
                               pct >= 90
                                 ? "bg-destructive"
                                 : pct >= 70
-                                ? "bg-yellow-500"
+                                ? "bg-warning"
                                 : "bg-primary"
                             }`}
                             style={{ width: `${pct}%` }}

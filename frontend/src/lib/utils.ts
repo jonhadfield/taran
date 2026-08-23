@@ -40,15 +40,15 @@ export function formatTokens(n: number): string {
 
 /** Tailwind background class for a token-usage progress bar, by percent used */
 export function tokenBarColor(percent: number): string {
-  if (percent >= 90) return "bg-red-500";
-  if (percent >= 70) return "bg-yellow-500";
+  if (percent >= 90) return "bg-destructive";
+  if (percent >= 70) return "bg-warning";
   return "bg-primary";
 }
 
 /** Tailwind text class for a token-usage figure, by percent used */
 export function tokenTextColor(percent: number): string {
-  if (percent >= 90) return "text-red-600 dark:text-red-400";
-  if (percent >= 70) return "text-yellow-600 dark:text-yellow-400";
+  if (percent >= 90) return "text-destructive";
+  if (percent >= 70) return "text-warning";
   return "";
 }
 

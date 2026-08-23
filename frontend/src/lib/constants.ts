@@ -5,7 +5,12 @@ export const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
   return { value: i, label: `${hour}:00 ${ampm}` };
 });
 
-/** Label color palette — name to Tailwind class mapping */
+/**
+ * Label colour palette — name to Tailwind class mapping.
+ *
+ * These names are persisted per label, so the keys are part of the stored data
+ * and must stay stable. Not semantic tokens: the user picks the colour.
+ */
 export const LABEL_COLORS: Record<string, string> = {
   blue: "bg-blue-500",
   green: "bg-green-500",

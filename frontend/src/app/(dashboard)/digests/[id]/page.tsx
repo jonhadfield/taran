@@ -66,7 +66,7 @@ export default async function DigestDetailPage({
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {digest.SentAt ? (
             <>
-              <Mail className="size-4 text-green-600" />
+              <Mail className="size-4 text-success" />
               <span>Emailed on {formatDateTime(digest.SentAt)}</span>
             </>
           ) : prefs?.DigestEmail ? (

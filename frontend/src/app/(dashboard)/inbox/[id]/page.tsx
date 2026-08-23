@@ -105,7 +105,7 @@ export default async function EmailDetailPage({
           <Card className="border-t-2 border-t-indigo-500">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Sparkles className="size-5 text-indigo-500" />
+                <Sparkles className="size-5 text-info" />
                 AI Summary
               </CardTitle>
             </CardHeader>

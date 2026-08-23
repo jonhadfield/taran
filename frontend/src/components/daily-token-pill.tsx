@@ -56,7 +56,7 @@ export function DailyTokenPill() {
             <span
               className={cn(
                 "size-1.5 rounded-full",
-                percent >= 90 ? "bg-red-500" : percent >= 70 ? "bg-yellow-500" : "bg-primary"
+                percent >= 90 ? "bg-destructive" : percent >= 70 ? "bg-warning" : "bg-primary"
               )}
             />
             {atLimit ? "Daily limit reached" : `${formatTokens(remaining)} left today`}

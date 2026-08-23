@@ -23,7 +23,7 @@ export function ExtractionSummary({ extraction, compact = false }: ExtractionSum
           <ul className={compact ? "space-y-1" : "space-y-1.5"}>
             {ext.KeyPoints.map((point, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className={`${compact ? "size-3.5" : "size-4"} mt-0.5 shrink-0 text-indigo-500`} />
+                <CheckCircle2 className={`${compact ? "size-3.5" : "size-4"} mt-0.5 shrink-0 text-info`} />
                 <span>{point}</span>
               </li>
             ))}

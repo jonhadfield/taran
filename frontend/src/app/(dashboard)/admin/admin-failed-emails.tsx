@@ -83,10 +83,10 @@ export function AdminFailedEmails() {
       {/* Pipeline health overview */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
         {[
-          { label: "Failed", value: pipeline.failed, color: "text-red-600 dark:text-red-400" },
-          { label: "Pending", value: pipeline.pending, color: "text-blue-600 dark:text-blue-400" },
-          { label: "Processing", value: pipeline.processing, color: "text-yellow-600 dark:text-yellow-400" },
-          { label: "Processed", value: pipeline.processed, color: "text-green-600 dark:text-green-400" },
+          { label: "Failed", value: pipeline.failed, color: "text-destructive" },
+          { label: "Pending", value: pipeline.pending, color: "text-info" },
+          { label: "Processing", value: pipeline.processing, color: "text-warning" },
+          { label: "Processed", value: pipeline.processed, color: "text-success" },
           { label: "Skipped", value: pipeline.skipped, color: "text-muted-foreground" },
           { label: "Payloads", value: pipeline.payloads, color: "text-muted-foreground" },
         ].map((item) => (
@@ -103,7 +103,7 @@ export function AdminFailedEmails() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <AlertTriangle className="size-5 text-red-500" />
+            <AlertTriangle className="size-5 text-destructive" />
             Failed Emails ({total})
           </CardTitle>
           {total > 0 && (
@@ -150,7 +150,7 @@ export function AdminFailedEmails() {
                         )}
                       </p>
                       {email.StatusReason && (
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                        <p className="text-xs text-destructive mt-1">
                           {email.StatusReason}
                         </p>
                       )}

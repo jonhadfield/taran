@@ -55,7 +55,7 @@ export function HighlightedTopics({ currentDigest }: { currentDigest: Digest }) 
           <Badge
             key={topic}
             variant="secondary"
-            className={isNew ? "ring-1 ring-green-500/40 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400" : ""}
+            className={isNew ? "ring-1 ring-success/40 bg-success/10 text-success" : ""}
           >
             {isNew && <Sparkles className="size-3 mr-1" />}
             {topic}
@@ -89,7 +89,7 @@ export function HighlightedItems({ currentDigest }: { currentDigest: Digest }) {
                     {item.Subject || `Email ${item.SortOrder + 1}`}
                   </p>
                   {isNewSender && (
-                    <Badge variant="outline" className="shrink-0 text-[10px] text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 px-1.5 py-0">
+                    <Badge variant="outline" className="shrink-0 text-[10px] text-success border-success/30 px-1.5 py-0">
                       New sender
                     </Badge>
                   )}

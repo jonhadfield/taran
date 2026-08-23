@@ -10,6 +10,9 @@ import {
 import { cn } from "@/lib/utils";
 import type { ColorTheme } from "@/components/color-theme-provider";
 
+// Swatches preview the accent each theme applies, so these are deliberately
+// literal colours rather than semantic tokens — a token would render the wrong
+// accent (and would make Blue and Violet identical).
 const THEMES: { value: ColorTheme; label: string; swatch: string }[] = [
   { value: "neutral", label: "Neutral", swatch: "bg-zinc-800 dark:bg-zinc-300" },
   { value: "blue", label: "Blue", swatch: "bg-blue-600 dark:bg-blue-400" },

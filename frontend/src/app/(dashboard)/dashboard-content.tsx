@@ -226,8 +226,8 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
       <div className="grid gap-4 @sm:grid-cols-2 @lg:grid-cols-3">
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-blue-500/10">
-              <Mail className="size-6 text-blue-600 dark:text-blue-400" />
+            <div className="flex size-12 items-center justify-center rounded-lg bg-chart-1/10">
+              <Mail className="size-6 text-chart-1" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.EmailsThisWeek}</p>
@@ -235,11 +235,11 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
               {stats.EmailsLastWeek > 0 && (
                 <div className="flex items-center gap-1 mt-0.5">
                   {weekDiff >= 0 ? (
-                    <TrendingUp className="size-3 text-emerald-500" />
+                    <TrendingUp className="size-3 text-success" />
                   ) : (
-                    <TrendingDown className="size-3 text-rose-500" />
+                    <TrendingDown className="size-3 text-destructive" />
                   )}
-                  <span className={`text-xs ${weekDiff >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                  <span className={`text-xs ${weekDiff >= 0 ? "text-success" : "text-destructive"}`}>
                     {weekDiff >= 0 ? "+" : ""}{weekDiff} vs last week
                   </span>
                 </div>
@@ -250,8 +250,8 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
 
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-amber-500/10">
-              <Inbox className="size-6 text-amber-600 dark:text-amber-400" />
+            <div className="flex size-12 items-center justify-center rounded-lg bg-chart-2/10">
+              <Inbox className="size-6 text-chart-2" />
             </div>
             <div>
               <p className="text-2xl font-bold">{unreadCount}</p>
@@ -262,8 +262,8 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
 
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-indigo-500/10">
-              <BookOpen className="size-6 text-indigo-600 dark:text-indigo-400" />
+            <div className="flex size-12 items-center justify-center rounded-lg bg-chart-3/10">
+              <BookOpen className="size-6 text-chart-3" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.TotalEmails}</p>
@@ -442,7 +442,7 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
                 className="flex items-center gap-3 p-3.5 transition-colors hover:bg-accent/50"
               >
                 {!email.IsRead && (
-                  <span className="size-2 shrink-0 rounded-full bg-blue-500" />
+                  <span className="size-2 shrink-0 rounded-full bg-info" />
                 )}
                 {email.IsRead && <span className="size-2 shrink-0" />}
                 <div className="flex-1 min-w-0">

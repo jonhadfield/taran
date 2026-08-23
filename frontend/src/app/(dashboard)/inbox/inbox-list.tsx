@@ -477,7 +477,7 @@ export function InboxList({
                   {/* Unread dot */}
                   <div className="w-2 shrink-0">
                     {!email.IsRead && (
-                      <span className="block size-2 rounded-full bg-blue-500" />
+                      <span className="block size-2 rounded-full bg-info" />
                     )}
                   </div>
 
