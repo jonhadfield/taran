@@ -20,7 +20,17 @@ export default function DashboardError({
         </p>
         <div className="flex gap-2">
           <Button onClick={reset}>Try Again</Button>
-          <Button variant="outline" onClick={() => window.location.href = "/"}>
+          {/*
+            Full document load on purpose. "Try Again" above is the soft path
+            (reset() re-renders the segment); this button is the escape hatch
+            for when the client state itself is what broke, so it deliberately
+            starts a fresh document rather than navigating within it.
+          */}
+          <Button
+            variant="outline"
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+            onClick={() => (window.location.href = "/")}
+          >
             Dashboard
           </Button>
         </div>
