@@ -9,6 +9,24 @@ import { APP_NAME } from "@/lib/config";
 import { Mail, Sparkles, BookOpen } from "lucide-react";
 import Image from "next/image";
 
+const STEPS = [
+  {
+    Icon: Mail,
+    title: "Forward",
+    description: "Send newsletters to your @mailbrief.io inbox",
+  },
+  {
+    Icon: Sparkles,
+    title: "Digest",
+    description: "AI reads everything and creates a daily summary",
+  },
+  {
+    Icon: BookOpen,
+    title: "Read",
+    description: "Get one concise digest instead of dozens of emails",
+  },
+] as const;
+
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
@@ -31,33 +49,29 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* How it works */}
-        <div className="grid w-full grid-cols-3 gap-4 text-center">
-          <div className="flex flex-col items-center gap-2">
-            <Mail className="h-5 w-5 text-muted-foreground" />
-            <p className="text-xs font-medium">Forward</p>
-            <p className="text-xs text-muted-foreground">
-              Send newsletters to your @mailbrief.io inbox
-            </p>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <Sparkles className="h-5 w-5 text-muted-foreground" />
-            <p className="text-xs font-medium">Digest</p>
-            <p className="text-xs text-muted-foreground">
-              AI reads everything and creates a daily summary
-            </p>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <BookOpen className="h-5 w-5 text-muted-foreground" />
-            <p className="text-xs font-medium">Read</p>
-            <p className="text-xs text-muted-foreground">
-              Get one concise digest instead of dozens of emails
-            </p>
-          </div>
-        </div>
+        {/* How it works — an ordered process, so a list rather than three
+            sibling divs, and the step names are headings rather than bold
+            paragraphs so they appear in the document outline. */}
+        <section aria-labelledby="how-it-works" className="w-full">
+          <h2 id="how-it-works" className="sr-only">
+            How it works
+          </h2>
+          <ol className="grid w-full grid-cols-3 gap-4 text-center">
+            {STEPS.map(({ Icon, title, description }) => (
+              <li key={title} className="flex flex-col items-center gap-2">
+                <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                <h3 className="text-xs font-medium">{title}</h3>
+                <p className="text-xs text-muted-foreground">{description}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
 
         {/* Sign in */}
-        <div className="w-full space-y-3">
+        <section aria-labelledby="sign-in" className="w-full space-y-3">
+          <h2 id="sign-in" className="sr-only">
+            Sign in
+          </h2>
           <Button
             variant="outline"
             className="w-full"
@@ -78,13 +92,13 @@ export default function LoginPage() {
             <GitHubIcon className="mr-2 size-4" />
             Continue with GitHub
           </Button>
-        </div>
+        </section>
 
         {/* Demo digest preview */}
-        <div className="w-full space-y-3">
-          <p className="text-center text-sm text-muted-foreground">
+        <figure className="w-full space-y-3">
+          <figcaption className="text-center text-sm text-muted-foreground">
             Here&apos;s what a digest looks like
-          </p>
+          </figcaption>
           <Card className="opacity-90">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Your Daily Newsletter Digest</CardTitle>
@@ -102,16 +116,18 @@ export default function LoginPage() {
                   <li>Open-source framework hits 50k GitHub stars</li>
                 </ul>
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <ul className="flex flex-wrap gap-1.5">
                 {["AI", "Markets", "Open Source", "Startups"].map((topic) => (
-                  <Badge key={topic} variant="secondary" className="text-xs">
-                    {topic}
-                  </Badge>
+                  <li key={topic}>
+                    <Badge variant="secondary" className="text-xs">
+                      {topic}
+                    </Badge>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </CardContent>
           </Card>
-        </div>
+        </figure>
       </div>
     </div>
   );
