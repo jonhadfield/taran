@@ -92,6 +92,10 @@ export default function NotInvitedPage() {
           variant="outline"
           onClick={async () => {
             await authClient.signOut();
+            // Full document load on purpose: a client-side push would keep the
+            // React tree — and any state cached in it from the signed-in
+            // session — alive after sign-out.
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
             window.location.href = "/login";
           }}
         >
