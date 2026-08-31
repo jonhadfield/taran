@@ -50,7 +50,7 @@ func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPr
 			DigestStyle:        "detailed",
 			InterestKeywords:   []string{},
 			ExclusionKeywords:  []string{},
-			ColorTheme:         "neutral",
+			ColorTheme:         "brand",
 			MonthlyTokenLimit:  r.defaultTokenLimit(ctx),
 			ExcludedCategories: []string{"notification", "transactional", "marketing"},
 			QuietHoursEnabled:  false,

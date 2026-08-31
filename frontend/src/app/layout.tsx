@@ -38,7 +38,7 @@ export default async function RootLayout({
   const colorTheme = parseColorTheme(cookieStore.get("color-theme")?.value);
 
   return (
-    <html lang="en" suppressHydrationWarning {...(colorTheme !== "neutral" ? { "data-theme": colorTheme } : {})}>
+    <html lang="en" suppressHydrationWarning {...(colorTheme !== "brand" ? { "data-theme": colorTheme } : {})}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
