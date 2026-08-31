@@ -18,6 +18,9 @@ export function SettingsNav({ sections }: SettingsNavProps) {
   const isClicking = useRef(false);
   const pillRef = useRef<HTMLButtonElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The scrollbar is hidden, so without this the pills simply clipped at the
+  // edge with nothing to say more existed.
+  const [overflow, setOverflow] = useState({ left: false, right: false });
 
   useEffect(() => {
     const els = sections
@@ -52,6 +55,27 @@ export function SettingsNav({ sections }: SettingsNavProps) {
     }
   }, [activeId]);
 
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const update = () => {
+      // 1px of slack: sub-pixel layout can leave scrollWidth a hair above
+      // clientWidth on a row that is not actually scrollable.
+      const max = el.scrollWidth - el.clientWidth;
+      setOverflow({ left: el.scrollLeft > 1, right: el.scrollLeft < max - 1 });
+    };
+
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [sections]);
+
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -71,6 +95,11 @@ export function SettingsNav({ sections }: SettingsNavProps) {
       <div
         ref={scrollRef}
         className="flex gap-1 overflow-x-auto px-4 lg:px-6 py-2 scrollbar-none"
+        style={{
+          maskImage: `linear-gradient(to right, transparent 0, black ${
+            overflow.left ? "2.5rem" : "0"
+          }, black calc(100% - ${overflow.right ? "2.5rem" : "0px"}), transparent 100%)`,
+        }}
       >
         {sections.map((s, i) => {
           const prevGroup = i > 0 ? sections[i - 1].group : undefined;
