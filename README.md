@@ -132,7 +132,7 @@ See [backend/README.md](backend/README.md) and [frontend/README.md](frontend/REA
 
 ## Quick Start (Local Development)
 
-**Prerequisites:** Go 1.24+, Node.js 22+, Docker
+**Prerequisites:** Go 1.25+, Node.js 22+, Docker
 
 ```bash
 # 1. Start PostgreSQL

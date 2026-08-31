@@ -4,7 +4,7 @@ Go API server handling email ingestion, AI-powered extraction, digest generation
 
 ## Tech Stack
 
-- **Go 1.24** with stdlib `net/http` routing (no framework)
+- **Go 1.25+** with stdlib `net/http` routing (no framework)
 - **pgx/v5** for PostgreSQL (no ORM)
 - **enmime** for RFC 5322 email parsing
 - **Anthropic SDK v1.22** + **OpenAI Go SDK v3** for LLM integration
