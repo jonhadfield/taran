@@ -102,6 +102,8 @@ export function InboxList({
     searchFilters.hasAttachment,
     searchFilters.since,
     searchFilters.before,
+    activeLabel,
+    activeTopic,
   ].filter(Boolean).length;
   const queryString = buildQueryString(filter, debouncedSearch, activeTopic, limit, activeCategory, searchFilters, sort, activeLabel);
 
@@ -334,8 +336,10 @@ export function InboxList({
         ))}
       </div>
 
-      {/* Label filter */}
-      {labels.length > 0 && (
+      {/* Label filter — secondary, so it lives behind the Filters toggle.
+         Stays visible while a label is applied so an active filter is
+         never hidden from the person who set it. */}
+      {labels.length > 0 && (showFilters || activeLabel) && (
         <div className="flex flex-wrap gap-1.5">
           <Badge
             variant={activeLabel === "" ? "default" : "outline"}
@@ -372,7 +376,9 @@ export function InboxList({
         </div>
       )}
 
-      {topics.length > 0 && (
+      {/* Topics are unbounded — they grow with the corpus — so they are the
+         strongest candidate for hiding by default. */}
+      {topics.length > 0 && (showFilters || activeTopic) && (
         <div className="flex flex-wrap gap-1.5">
           <Badge
             variant={activeTopic === "" ? "default" : "outline"}
