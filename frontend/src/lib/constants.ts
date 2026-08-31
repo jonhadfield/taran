@@ -28,13 +28,13 @@ export function labelColorClass(color: string): string {
 
 /** Valid color themes for the app */
 export const VALID_COLOR_THEMES = new Set([
-  "neutral", "blue", "rose", "green", "violet", "amber",
+  "brand", "neutral", "blue", "rose", "green", "violet", "amber",
 ]);
 
-export type ColorTheme = "neutral" | "blue" | "rose" | "green" | "violet" | "amber";
+export type ColorTheme = "brand" | "neutral" | "blue" | "rose" | "green" | "violet" | "amber";
 
 /** Parse a cookie value into a validated ColorTheme */
 export function parseColorTheme(value: string | undefined): ColorTheme {
   if (value && VALID_COLOR_THEMES.has(value)) return value as ColorTheme;
-  return "neutral";
+  return "brand";
 }

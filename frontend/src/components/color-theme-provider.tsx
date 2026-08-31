@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import { apiPatch } from "@/lib/api";
 
-export type ColorTheme = "neutral" | "blue" | "rose" | "green" | "violet" | "amber";
+export type ColorTheme = "brand" | "neutral" | "blue" | "rose" | "green" | "violet" | "amber";
 
 interface ColorThemeContextValue {
   colorTheme: ColorTheme;
@@ -24,8 +24,9 @@ export function ColorThemeProvider({
   const setColorTheme = useCallback((theme: ColorTheme) => {
     setColorThemeState(theme);
 
-    // Update data-theme on <html>
-    if (theme === "neutral") {
+    // Update data-theme on <html>. "brand" is the :root default, so it is
+    // represented by the absence of the attribute rather than a value.
+    if (theme === "brand") {
       document.documentElement.removeAttribute("data-theme");
     } else {
       document.documentElement.setAttribute("data-theme", theme);

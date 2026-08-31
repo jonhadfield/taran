@@ -14,6 +14,7 @@ import type { ColorTheme } from "@/components/color-theme-provider";
 // literal colours rather than semantic tokens — a token would render the wrong
 // accent (and would make Blue and Violet identical).
 const THEMES: { value: ColorTheme; label: string; swatch: string }[] = [
+  { value: "brand", label: "Brand", swatch: "bg-indigo-600 dark:bg-indigo-400" },
   { value: "neutral", label: "Neutral", swatch: "bg-zinc-800 dark:bg-zinc-300" },
   { value: "blue", label: "Blue", swatch: "bg-blue-600 dark:bg-blue-400" },
   { value: "rose", label: "Rose", swatch: "bg-rose-600 dark:bg-rose-400" },

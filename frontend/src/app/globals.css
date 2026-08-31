@@ -62,7 +62,10 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  /* Brand accent, taken from the logo's own gradient (#4f46e5 -> #818cf8), so
+     the interface matches the mark instead of shadcn's default near-black.
+     White on this reads 6.29:1. Pick "Neutral" in settings to opt out. */
+  --primary: oklch(0.511 0.230 277.0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -73,7 +76,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.511 0.230 277.0);
   /* Status palette — reserved for state, never reused as a series colour.
      Each is stepped to clear 4.5:1 against the surface so the same token is
      safe as ink, as an icon, and (at low opacity) as a tint. */
@@ -96,12 +99,12 @@
   --chart-6: oklch(0.529 0.180 142.5); /* green   */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.511 0.230 277.0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: oklch(0.511 0.230 277.0);
 }
 
 .dark {
@@ -111,8 +114,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.680 0.158 276.9);
+  --primary-foreground: oklch(0.145 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -122,7 +125,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.680 0.158 276.9);
   --success: oklch(0.800 0.182 151.7); /* 8.80:1 on the dark card */
   --success-foreground: oklch(0.145 0 0);
   --warning: oklch(0.837 0.164 84.4);  /* 9.18:1 on the dark card */
@@ -138,12 +141,12 @@
   --chart-6: oklch(0.529 0.180 142.5); /* green   */
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.680 0.158 276.9);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.680 0.158 276.9);
 }
 
 /* ── Blue theme ── */
@@ -162,6 +165,26 @@
   --sidebar-primary: oklch(0.623 0.214 259.815);
   --sidebar-primary-foreground: oklch(0.145 0 0);
   --sidebar-ring: oklch(0.623 0.214 259.815);
+}
+
+/* ── Neutral theme ──
+   The previous default. Now an explicit choice rather than the fallback, so
+   anyone who prefers the greyscale interface can still select it. */
+[data-theme="neutral"] {
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.708 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+.dark[data-theme="neutral"] {
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --ring: oklch(0.556 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
 /* ── Rose theme ── */
