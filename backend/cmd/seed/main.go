@@ -113,6 +113,10 @@ func main() {
 	now := time.Now()
 	emailIDs := make([]string, 0, 30)
 
+	// Counted rather than assumed: the summary used to print fixed totals, so a
+	// run where every insert failed still reported success.
+	var emailsInserted, digestsInserted, labelsInserted int
+
 	// Create 30 emails spread over the last 14 days
 	for i := 0; i < 30; i++ {
 		sender := senders[i%len(senders)]
@@ -128,7 +132,7 @@ func main() {
 		emailIDs = append(emailIDs, emailID)
 
 		_, err := pool.Exec(ctx, `
-			INSERT INTO email (id, user_id, account_id, message_id, from_address, from_name, to_address, subject, text_body, received_at, date_header, status, is_read, is_starred, is_archived)
+			INSERT INTO email (id, user_id, email_account_id, message_id, from_address, from_name, to_address, subject, text_body, received_at, date_header, status, is_read, is_starred, is_archived)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, 'processed', $11, $12, false)
 			ON CONFLICT DO NOTHING`,
 			emailID, userID, accountID,
@@ -143,6 +147,7 @@ func main() {
 			log.Printf("insert email %d: %v", i, err)
 			continue
 		}
+		emailsInserted++
 
 		// Create extraction
 		extractionID := uuid.New().String()
@@ -169,8 +174,8 @@ func main() {
 		periodStart := periodEnd.Add(-7 * 24 * time.Hour)
 
 		_, err := pool.Exec(ctx, `
-			INSERT INTO digest (id, user_id, title, summary, highlights, top_topics, period_start, period_end, period_type, email_count)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'weekly', $9)
+			INSERT INTO digest (id, user_id, title, summary, highlights, top_topics, period_start, period_end, period_type, email_count, provider, model)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'weekly', $9, 'seed', 'seed')
 			ON CONFLICT DO NOTHING`,
 			digestID, userID,
 			fmt.Sprintf("Weekly Digest — %s", periodStart.Format("Jan 2")),
@@ -184,6 +189,7 @@ func main() {
 			log.Printf("insert digest %d: %v", i, err)
 			continue
 		}
+		digestsInserted++
 
 		// Link some emails to the digest
 		itemCount := min(15, len(emailIDs))
@@ -207,14 +213,22 @@ func main() {
 	}
 	for _, l := range labelNames {
 		labelID := uuid.New().String()
-		pool.Exec(ctx, `
+		if _, err := pool.Exec(ctx, `
 			INSERT INTO label (id, user_id, name, color)
 			VALUES ($1, $2, $3, $4)
 			ON CONFLICT DO NOTHING`,
 			labelID, userID, l.name, l.color,
-		)
+		); err != nil {
+			log.Printf("insert label %q: %v", l.name, err)
+			continue
+		}
+		labelsInserted++
 	}
 
-	fmt.Printf("Seeded: 30 emails, 2 digests, 3 labels\n")
+	fmt.Printf("Seeded: %d emails, %d digests, %d labels\n",
+		emailsInserted, digestsInserted, labelsInserted)
+	if emailsInserted == 0 || digestsInserted == 0 {
+		log.Fatal("seed did not insert the expected rows — see the errors above")
+	}
 	fmt.Println("Done! Refresh the dashboard to see the data.")
 }
