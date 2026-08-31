@@ -9,6 +9,8 @@
 
 **Demo instance: [mailbrief.io](https://mailbrief.io)**
 
+![The MailBrief dashboard in dark mode, showing email volume over the last eight weeks, a category breakdown, top topics, and an arrival-time heatmap](docs/dashboard-dark.png)
+
 ---
 
 ## How It Works
