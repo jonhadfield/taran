@@ -99,7 +99,7 @@ export default async function DigestDetailPage({
           <CardTitle className="text-lg">Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm">{digest.Summary}</p>
+          <p className="font-reading text-base leading-relaxed">{digest.Summary}</p>
         </CardContent>
       </Card>
 

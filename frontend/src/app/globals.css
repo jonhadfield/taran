@@ -7,8 +7,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --font-sans: var(--font-interface), ui-sans-serif, system-ui, sans-serif;
+  /* The reading face is exposed as its own utility (font-reading) rather than
+     replacing the sans, so it can be applied only to digest and summary prose. */
+  --font-reading: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -55,37 +58,40 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  /* Tighter than shadcn's 0.625rem default: this is a tool for
+     working through mail, and the squarer corner reads as precise
+     rather than friendly. */
+  --radius: 0.5rem;
+  --background: oklch(1 0.004 277);
+  --foreground: oklch(0.145 0.004 277);
+  --card: oklch(1 0.004 277);
+  --card-foreground: oklch(0.145 0.004 277);
+  --popover: oklch(1 0.004 277);
+  --popover-foreground: oklch(0.145 0.004 277);
   /* Brand accent, taken from the logo's own gradient (#4f46e5 -> #818cf8), so
      the interface matches the mark instead of shadcn's default near-black.
      White on this reads 6.29:1. Pick "Neutral" in settings to opt out. */
   --primary: oklch(0.511 0.230 277.0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0.004 277);
+  --secondary: oklch(0.97 0.004 277);
+  --secondary-foreground: oklch(0.205 0.008 277);
+  --muted: oklch(0.97 0.004 277);
+  --muted-foreground: oklch(0.556 0.008 277);
+  --accent: oklch(0.97 0.004 277);
+  --accent-foreground: oklch(0.205 0.008 277);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.922 0.008 277);
+  --input: oklch(0.922 0.008 277);
   --ring: oklch(0.511 0.230 277.0);
   /* Status palette — reserved for state, never reused as a series colour.
      Each is stepped to clear 4.5:1 against the surface so the same token is
      safe as ink, as an icon, and (at low opacity) as a tint. */
   --success: oklch(0.527 0.137 150.1); /* 5.02:1 on white */
-  --success-foreground: oklch(0.985 0 0);
+  --success-foreground: oklch(0.985 0.004 277);
   --warning: oklch(0.555 0.146 49.0);  /* 5.02:1 on white */
-  --warning-foreground: oklch(0.985 0 0);
+  --warning-foreground: oklch(0.985 0.004 277);
   --info: oklch(0.488 0.217 264.4);    /* 6.70:1 on white */
-  --info-foreground: oklch(0.985 0 0);
+  --info-foreground: oklch(0.985 0.004 277);
 
   /* Categorical palette, fixed order. Validated for CVD separation, chroma
      floor and lightness band against the light surface — see
@@ -97,41 +103,41 @@
   --chart-4: oklch(0.764 0.161 75.1);  /* yellow  */
   --chart-5: oklch(0.716 0.141 357.4); /* magenta */
   --chart-6: oklch(0.529 0.180 142.5); /* green   */
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar: oklch(0.985 0.004 277);
+  --sidebar-foreground: oklch(0.145 0.004 277);
   --sidebar-primary: oklch(0.511 0.230 277.0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0.004 277);
+  --sidebar-accent: oklch(0.97 0.004 277);
+  --sidebar-accent-foreground: oklch(0.205 0.008 277);
+  --sidebar-border: oklch(0.922 0.008 277);
   --sidebar-ring: oklch(0.511 0.230 277.0);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  --background: oklch(0.145 0.004 277);
+  --foreground: oklch(0.985 0.004 277);
+  --card: oklch(0.205 0.008 277);
+  --card-foreground: oklch(0.985 0.004 277);
+  --popover: oklch(0.205 0.008 277);
+  --popover-foreground: oklch(0.985 0.004 277);
   --primary: oklch(0.680 0.158 276.9);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.145 0.004 277);
+  --secondary: oklch(0.269 0.008 277);
+  --secondary-foreground: oklch(0.985 0.004 277);
+  --muted: oklch(0.269 0.008 277);
+  --muted-foreground: oklch(0.708 0.008 277);
+  --accent: oklch(0.269 0.008 277);
+  --accent-foreground: oklch(0.985 0.004 277);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.680 0.158 276.9);
   --success: oklch(0.800 0.182 151.7); /* 8.80:1 on the dark card */
-  --success-foreground: oklch(0.145 0 0);
+  --success-foreground: oklch(0.145 0.004 277);
   --warning: oklch(0.837 0.164 84.4);  /* 9.18:1 on the dark card */
-  --warning-foreground: oklch(0.145 0 0);
+  --warning-foreground: oklch(0.145 0.004 277);
   --info: oklch(0.714 0.143 254.6);    /* 6.03:1 on the dark card */
-  --info-foreground: oklch(0.145 0 0);
+  --info-foreground: oklch(0.145 0.004 277);
 
   --chart-1: oklch(0.622 0.161 255.1); /* blue    */
   --chart-2: oklch(0.622 0.173 40.1);  /* orange  */
@@ -139,12 +145,12 @@
   --chart-4: oklch(0.670 0.143 73.2);  /* yellow  */
   --chart-5: oklch(0.622 0.171 0.8);   /* magenta */
   --chart-6: oklch(0.529 0.180 142.5); /* green   */
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar: oklch(0.205 0.008 277);
+  --sidebar-foreground: oklch(0.985 0.004 277);
   --sidebar-primary: oklch(0.680 0.158 276.9);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-primary-foreground: oklch(0.145 0.004 277);
+  --sidebar-accent: oklch(0.269 0.008 277);
+  --sidebar-accent-foreground: oklch(0.985 0.004 277);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.680 0.158 276.9);
 }
