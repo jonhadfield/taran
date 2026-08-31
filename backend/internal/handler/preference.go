@@ -113,10 +113,10 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Validate color theme
 	if req.ColorTheme != nil {
 		switch *req.ColorTheme {
-		case "neutral", "blue", "rose", "green", "violet", "amber":
+		case "brand", "neutral", "blue", "rose", "green", "violet", "amber":
 			// valid
 		default:
-			WriteError(w, http.StatusBadRequest, "color theme must be one of: neutral, blue, rose, green, violet, amber")
+			WriteError(w, http.StatusBadRequest, "color theme must be one of: brand, neutral, blue, rose, green, violet, amber")
 			return
 		}
 	}

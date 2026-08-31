@@ -178,3 +178,52 @@ func TestPreferenceHandler_Update_InvalidTimezone(t *testing.T) {
 		t.Errorf("error = %q, want mention of timezone", resp.Error)
 	}
 }
+
+// Regression: the accent themes offered by the UI and the themes accepted here
+// are two separate lists, and they drifted. "brand" shipped as the default
+// accent and as the value migration 049 wrote for every existing row, while
+// this handler still rejected it — so choosing Brand in settings applied
+// locally and then failed to save, silently, because the client discards the
+// error.
+func TestPreferenceHandler_Update_AcceptsEveryOfferedColorTheme(t *testing.T) {
+	// Must match VALID_COLOR_THEMES in frontend/src/lib/constants.ts.
+	offered := []string{"brand", "neutral", "blue", "rose", "green", "violet", "amber"}
+
+	for _, theme := range offered {
+		t.Run(theme, func(t *testing.T) {
+			h := &PreferenceHandler{Preferences: &testutil.MockPreferenceRepo{}}
+
+			body := `{"ColorTheme":"` + theme + `"}`
+			req := httptest.NewRequest("PUT", "/api/preferences", strings.NewReader(body))
+			req = req.WithContext(testutil.ContextWithUserID("user-1"))
+			rec := httptest.NewRecorder()
+			h.Update(rec, req)
+
+			if rec.Code == http.StatusBadRequest {
+				var resp ErrorResponse
+				json.NewDecoder(rec.Body).Decode(&resp)
+				t.Errorf("theme %q rejected: %s", theme, resp.Error)
+			}
+		})
+	}
+}
+
+func TestPreferenceHandler_Update_RejectsUnknownColorTheme(t *testing.T) {
+	h := &PreferenceHandler{Preferences: &testutil.MockPreferenceRepo{}}
+
+	body := `{"ColorTheme":"chartreuse"}`
+	req := httptest.NewRequest("PUT", "/api/preferences", strings.NewReader(body))
+	req = req.WithContext(testutil.ContextWithUserID("user-1"))
+	rec := httptest.NewRecorder()
+	h.Update(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+
+	var resp ErrorResponse
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if !strings.Contains(resp.Error, "color theme") {
+		t.Errorf("error = %q, want mention of color theme", resp.Error)
+	}
+}
