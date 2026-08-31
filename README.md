@@ -9,6 +9,8 @@
 
 **Demo instance: [mailbrief.io](https://mailbrief.io)**
 
+![The MailBrief inbox in dark mode: a message list on the left, and on the right the selected newsletter's AI-generated summary, five extracted key points, and topic tags](docs/inbox-dark.png)
+
 ---
 
 ## How It Works
