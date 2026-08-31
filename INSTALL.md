@@ -95,7 +95,7 @@ node --version
 ```
 You should see `v22.x.x` or higher.
 
-#### 3. Go 1.24+
+#### 3. Go 1.25+
 
 Go is the programming language the backend is written in.
 
