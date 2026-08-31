@@ -1,6 +1,11 @@
 # Taran
 
-**Your newsletters, summarised.** Taran is an open-source, self-hosted AI-powered email digest platform. Users sign up, get a managed inbox, forward their newsletters, and receive daily AI-generated summaries — key points, topics, and sentiment — without reading every email.
+[![CI](https://github.com/jonhadfield/taran/actions/workflows/ci.yml/badge.svg)](https://github.com/jonhadfield/taran/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.25%2B-00ADD8?logo=go&logoColor=white)](backend/go.mod)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](frontend/package.json)
+
+**Your newsletters, summarised.** Taran is the codebase behind [MailBrief](https://mailbrief.io) — an open-source, self-hosted AI-powered email digest platform. Users sign up, get a managed inbox, forward their newsletters, and receive daily AI-generated summaries — key points, topics, and sentiment — without reading every email.
 
 **Demo instance: [mailbrief.io](https://mailbrief.io)**
 
@@ -63,7 +68,7 @@ No IMAP, no passwords, no browser extensions. Just email forwarding.
 
 **Security**
 - Email encryption at rest (AES-256-GCM)
-- Session token rotation (hourly)
+- Session token rotation (daily)
 - Per-user rate limiting
 - Content Security Policy headers
 - Secrets stored in Google Secret Manager
@@ -101,8 +106,8 @@ No IMAP, no passwords, no browser extensions. Just email forwarding.
 | Layer | Technology |
 |-------|-----------|
 | **Frontend** | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui, Radix UI |
-| **Auth** | Better Auth (Google + GitHub OAuth) with hourly token rotation |
-| **Backend** | Go 1.24, stdlib `net/http` router, `log/slog` |
+| **Auth** | Better Auth (Google + GitHub OAuth) with daily token rotation |
+| **Backend** | Go 1.25+, stdlib `net/http` router, `log/slog` |
 | **Database** | PostgreSQL (Neon), `pgx/v5` with tuned connection pool |
 | **Email Parsing** | `enmime` (RFC 5322) |
 | **AI** | Anthropic Claude + OpenAI (pluggable provider with automatic fallback) |
@@ -120,8 +125,7 @@ taran/
 ├── frontend/              # Next.js dashboard, auth, UI
 ├── .github/workflows/     # CI: backend tests, frontend lint/test, E2E with PostgreSQL
 ├── Makefile               # Dev lifecycle commands
-├── INSTALL.md             # Full deployment guide (step-by-step, beginner-friendly)
-└── ROADMAP.md             # Feature roadmap
+└── INSTALL.md             # Full deployment guide (step-by-step, beginner-friendly)
 ```
 
 See [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md) for detailed documentation of each service.
