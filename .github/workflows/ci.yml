@@ -65,7 +65,7 @@ jobs:
       - name: Build
         run: npx next build
         env:
-          BETTER_AUTH_SECRET: SZeXi3l0/z/wP8LBX5R6WXLF5Wdk6DUdcgKxcAPIxd0=
+          BETTER_AUTH_SECRET: ci-only-not-a-real-secret-do-not-reuse
           BETTER_AUTH_URL: http://localhost:3002
           DATABASE_URL: postgresql://localhost/ci
           BACKEND_URL: http://localhost:8080
@@ -92,7 +92,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://taran:taran@localhost:5432/taran?sslmode=disable
       E2E_DATABASE_URL: postgresql://taran:taran@localhost:5432/taran?sslmode=disable
-      BETTER_AUTH_SECRET: SZeXi3l0/z/wP8LBX5R6WXLF5Wdk6DUdcgKxcAPIxd0=
+      BETTER_AUTH_SECRET: ci-only-not-a-real-secret-do-not-reuse
       BETTER_AUTH_URL: http://localhost:3002
       BACKEND_URL: http://localhost:8080
       API_KEY: ci-test-key

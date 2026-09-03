@@ -170,6 +170,8 @@ npm run test:e2e:ui  # Interactive UI mode
 
 Configuration: Chromium only, auto-starts dev server on `:3002`, 30s timeout, screenshots on failure.
 
+Requires `BETTER_AUTH_SECRET` in `.env.local`: the tests forge session cookies and must sign them with the same secret the app verifies with. They fail fast if it is unset.
+
 Test files in `e2e/` directory.
 
 ## Development
