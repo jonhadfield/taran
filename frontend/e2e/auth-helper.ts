@@ -5,7 +5,20 @@ import pg from "pg";
 // E2E tests always use the local test database. Use E2E_DATABASE_URL to override,
 // NOT DATABASE_URL (which typically points to production via .env).
 const DB_URL = process.env.E2E_DATABASE_URL || "postgresql://taran:taran@localhost:5432/taran?sslmode=disable";
-const AUTH_SECRET = process.env.BETTER_AUTH_SECRET || "SZeXi3l0/z/wP8LBX5R6WXLF5Wdk6DUdcgKxcAPIxd0=";
+// No fallback: forged session cookies must be signed with the same secret the
+// app verifies with, so a missing value has to fail loudly rather than silently
+// sign with a hardcoded one. Playwright loads .env/.env.local before this runs.
+const AUTH_SECRET = ((): string => {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      "BETTER_AUTH_SECRET is not set. E2E tests forge session cookies and must " +
+        "sign them with the secret the app verifies with. Set it in " +
+        "frontend/.env.local, or in the environment for CI."
+    );
+  }
+  return secret;
+})();
 
 interface TestUser {
   id: string;
