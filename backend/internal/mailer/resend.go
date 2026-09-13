@@ -10,6 +10,13 @@ import (
 	"github.com/resend/resend-go/v2"
 )
 
+// Date layouts for rendered email content: short dates omit the year, and
+// full dates use an unambiguous numeric form.
+const (
+	shortDateLayout = "2 January"
+	fullDateLayout  = "2006/01/02"
+)
+
 type ResendMailer struct {
 	client      *resend.Client
 	fromAddress string
@@ -241,9 +248,9 @@ func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 
 	// Period + count
 	b.WriteString(`<p style="color:#6b7280;font-size:13px;margin:0 0 20px 0;">`)
-	b.WriteString(digest.PeriodStart.Format("Jan 2"))
+	b.WriteString(digest.PeriodStart.Format(fullDateLayout))
 	b.WriteString(` – `)
-	b.WriteString(digest.PeriodEnd.Format("Jan 2, 2006"))
+	b.WriteString(digest.PeriodEnd.Format(fullDateLayout))
 	b.WriteString(fmt.Sprintf(` · %d emails`, digest.EmailCount))
 	b.WriteString(`</p>`)
 
@@ -347,14 +354,10 @@ func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 func (m *ResendMailer) SendWeeklySummary(ctx context.Context, toEmail string, summary *domain.WeeklySummary, unsubscribeURL string) error {
 	htmlBody := buildWeeklySummaryHTML(summary, unsubscribeURL)
 
-	subject := fmt.Sprintf("Your week in review — %s to %s",
-		summary.PeriodStart.Format("Jan 2"),
-		summary.PeriodEnd.Format("Jan 2"))
-
 	params := &resend.SendEmailRequest{
 		From:    m.fromAddress,
 		To:      []string{toEmail},
-		Subject: subject,
+		Subject: weeklySummarySubject(summary),
 		Html:    htmlBody,
 	}
 
@@ -372,6 +375,12 @@ func (m *ResendMailer) SendWeeklySummary(ctx context.Context, toEmail string, su
 	return nil
 }
 
+func weeklySummarySubject(summary *domain.WeeklySummary) string {
+	return fmt.Sprintf("Your week in review — %s to %s",
+		summary.PeriodStart.Format(shortDateLayout),
+		summary.PeriodEnd.Format(shortDateLayout))
+}
+
 func buildWeeklySummaryHTML(summary *domain.WeeklySummary, unsubscribeURL string) string {
 	var b strings.Builder
 
@@ -382,9 +391,9 @@ func buildWeeklySummaryHTML(summary *domain.WeeklySummary, unsubscribeURL string
 	b.WriteString(`<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;"><tr>`)
 	b.WriteString(`<td><span style="font-size:13px;font-weight:600;color:#6b7280;letter-spacing:0.05em;text-transform:uppercase;">MailBrief</span></td>`)
 	b.WriteString(`<td align="right"><span style="font-size:13px;color:#6b7280;">`)
-	b.WriteString(summary.PeriodStart.Format("Jan 2"))
+	b.WriteString(summary.PeriodStart.Format(fullDateLayout))
 	b.WriteString(` – `)
-	b.WriteString(summary.PeriodEnd.Format("Jan 2, 2006"))
+	b.WriteString(summary.PeriodEnd.Format(fullDateLayout))
 	b.WriteString(`</span></td></tr></table>`)
 
 	b.WriteString(`<h1 style="font-size:22px;font-weight:700;margin:0 0 20px 0;line-height:1.3;">Your week in review</h1>`)
