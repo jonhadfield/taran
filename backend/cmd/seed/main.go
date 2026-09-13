@@ -178,7 +178,7 @@ func main() {
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'weekly', $9, 'seed', 'seed')
 			ON CONFLICT DO NOTHING`,
 			digestID, userID,
-			fmt.Sprintf("Weekly Digest — %s", periodStart.Format("Jan 2")),
+			fmt.Sprintf("Weekly Digest — %s", periodStart.Format("2 January")),
 			"A busy week with newsletters covering AI developments, infrastructure best practices, and market trends.",
 			[]string{"AI chip demand continues to surge", "New open-source database project gains traction", "Enterprise SaaS consolidation accelerating"},
 			[]string{"AI", "Tech News", "Infrastructure", "SaaS"},
