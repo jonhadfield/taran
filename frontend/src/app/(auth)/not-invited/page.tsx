@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { apiPost } from "@/lib/api";
+import { PublicShell } from "@/components/public-shell";
 import { Button } from "@/components/ui/button";
 import { APP_NAME } from "@/lib/config";
-import { ShieldX, CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function NotInvitedPage() {
@@ -45,28 +45,22 @@ export default function NotInvitedPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/logo.svg"
-          alt={`${APP_NAME} logo`}
-          width={64}
-          height={64}
-        />
-
+    <PublicShell>
+      <div className="flex w-full flex-col items-center gap-5 text-center">
         {status === "requested" ? (
           <>
-            <CheckCircle2 className="h-12 w-12 text-success" />
-            <h1 className="text-2xl font-bold">You&apos;re on the waitlist!</h1>
+            <h2 className="text-2xl font-bold tracking-tight">
+              You&apos;re on the waitlist
+            </h2>
             <p className="text-muted-foreground">
               We&apos;ll notify you when your access is approved.
             </p>
           </>
         ) : (
           <>
-            <ShieldX className="h-12 w-12 text-muted-foreground" />
-            <h1 className="text-2xl font-bold">Invite Required</h1>
+            <h2 className="text-2xl font-bold tracking-tight">
+              Invite required
+            </h2>
             <p className="text-muted-foreground">
               {APP_NAME} is currently invite-only.
               {waitlistOpen
@@ -79,9 +73,7 @@ export default function NotInvitedPage() {
                 onClick={handleRequestAccess}
                 disabled={status === "loading"}
               >
-                {status === "loading" && (
-                  <Spinner className="mr-2" />
-                )}
+                {status === "loading" && <Spinner className="mr-2" />}
                 Request Access
               </Button>
             )}
@@ -90,6 +82,7 @@ export default function NotInvitedPage() {
 
         <Button
           variant="outline"
+          className="bg-background"
           onClick={async () => {
             await authClient.signOut();
             // Full document load on purpose: a client-side push would keep the
@@ -102,6 +95,6 @@ export default function NotInvitedPage() {
           Sign out
         </Button>
       </div>
-    </div>
+    </PublicShell>
   );
 }
