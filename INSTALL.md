@@ -484,6 +484,7 @@ Add each of the following variables. For each one, set it for all environments (
 | `NEXT_PUBLIC_APP_NAME` | `MailBrief` | Displayed in the UI |
 | `NEXT_PUBLIC_APP_URL` | `https://<yourdomain.com>` | Used for generating links |
 | `NEXT_PUBLIC_EMAIL_DOMAIN` | `<yourdomain.com>` | Shown to users as their email domain |
+| `NEXT_PUBLIC_SHOW_MARKETING` | `true` | Public login pitch/demo digest; set `false` for auth-only |
 | `ADMIN_EMAILS` | `<your-personal-email>` | Email addresses that get admin access |
 
 > **Very important: `API_KEY` must match exactly.** The `API_KEY` you set in Vercel must be the exact same value you stored as `taran-api-key` in Secret Manager (Part 4, Step 4). This is how the frontend proves to the backend that requests are legitimate. If these do not match, every API call will fail with "unauthorized" and the app will appear broken.

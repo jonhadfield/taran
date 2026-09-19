@@ -1,11 +1,11 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail } from "lucide-react";
 import type { Digest } from "@/types/api";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { APP_NAME } from "@/lib/config";
+import { APP_NAME, SHOW_MARKETING } from "@/lib/config";
 import { formatShortDate } from "@/lib/utils";
+import { PublicShell } from "@/components/public-shell";
+import Image from "next/image";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 
@@ -34,109 +34,130 @@ export default async function SharedDigestPage({
   }
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold">{digest.Title}</h1>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span>
-                {formatShortDate(digest.PeriodStart)} &ndash;{" "}
-                {formatShortDate(digest.PeriodEnd)}
-              </span>
-              <Badge variant="secondary">{digest.EmailCount} emails</Badge>
-            </div>
+    <PublicShell width="2xl" showBrand={false} className="items-stretch gap-10">
+      <header className="flex items-center gap-2.5">
+        <Image
+          src="/logo.svg"
+          alt={APP_NAME}
+          width={28}
+          height={28}
+          className="rounded-md"
+        />
+        <span className="text-sm font-semibold tracking-tight">{APP_NAME}</span>
+      </header>
+
+      <article className="digest-sheet space-y-8 p-5 sm:p-8">
+        <header className="space-y-2">
+          <h1 className="font-reading text-2xl font-medium leading-snug sm:text-3xl">
+            {digest.Title}
+          </h1>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <span>
+              {formatShortDate(digest.PeriodStart)} &ndash;{" "}
+              {formatShortDate(digest.PeriodEnd)}
+            </span>
+            <Badge variant="secondary">{digest.EmailCount} emails</Badge>
           </div>
+        </header>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm">{digest.Summary}</p>
-            </CardContent>
-          </Card>
+        <section aria-labelledby="summary-heading" className="space-y-3">
+          <h2 id="summary-heading" className="text-sm font-medium text-muted-foreground">
+            Summary
+          </h2>
+          <p className="font-reading text-base leading-relaxed">{digest.Summary}</p>
+        </section>
 
-          {digest.Highlights?.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Highlights</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc list-inside space-y-2 text-sm">
-                  {digest.Highlights.map((highlight, i) => (
-                    <li key={i}>{highlight}</li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
+        {digest.Highlights?.length > 0 && (
+          <section aria-labelledby="highlights-heading" className="space-y-3">
+            <h2
+              id="highlights-heading"
+              className="text-sm font-medium text-muted-foreground"
+            >
+              Highlights
+            </h2>
+            <ul className="space-y-3">
+              {digest.Highlights.map((highlight, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-2.5 font-reading text-base leading-relaxed"
+                >
+                  <span
+                    className="mt-2.5 size-1 shrink-0 rounded-full bg-primary/50"
+                    aria-hidden
+                  />
+                  {highlight}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
-          {digest.TopTopics?.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Top Topics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {digest.TopTopics.map((topic) => (
-                    <Badge key={topic} variant="secondary">
-                      {topic}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        {digest.TopTopics?.length > 0 && (
+          <section aria-labelledby="topics-heading" className="space-y-3">
+            <h2
+              id="topics-heading"
+              className="text-sm font-medium text-muted-foreground"
+            >
+              Top topics
+            </h2>
+            <ul className="flex flex-wrap gap-2">
+              {digest.TopTopics.map((topic) => (
+                <li key={topic}>
+                  <Badge variant="secondary">{topic}</Badge>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
-          {digest.Items?.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Included Emails</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {digest.Items.map((item) => (
-                    <div key={item.ID} className="border-b last:border-0 pb-3 last:pb-0">
-                      <p className="text-sm font-medium">
-                        {item.Subject || `Email ${item.SortOrder + 1}`}
-                      </p>
-                      {item.FromName && (
-                        <p className="text-xs text-muted-foreground">
-                          {item.FromName}
-                        </p>
-                      )}
-                      {item.Summary && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {item.Summary}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        {digest.Items?.length > 0 && (
+          <section aria-labelledby="emails-heading" className="space-y-3">
+            <h2
+              id="emails-heading"
+              className="text-sm font-medium text-muted-foreground"
+            >
+              Included emails
+            </h2>
+            <ul className="divide-y">
+              {digest.Items.map((item) => (
+                <li key={item.ID} className="py-3 first:pt-0 last:pb-0">
+                  <p className="text-sm font-medium">
+                    {item.Subject || `Email ${item.SortOrder + 1}`}
+                  </p>
+                  {item.FromName && (
+                    <p className="text-xs text-muted-foreground">{item.FromName}</p>
+                  )}
+                  {item.Summary && (
+                    <p className="mt-1 font-reading text-sm leading-relaxed text-muted-foreground">
+                      {item.Summary}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </article>
 
-          <div className="border-t pt-6 text-center">
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Mail className="h-4 w-4" />
-              <span>
-                Powered by{" "}
-                <Link href="/login" className="font-medium text-foreground hover:underline">
-                  {APP_NAME}
-                </Link>
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Get AI-powered digests of your newsletters.{" "}
-              <Link href="/login" className="underline">
-                Sign up free
-              </Link>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+      <footer className="border-t pt-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Powered by{" "}
+          <Link
+            href="/login"
+            className="font-medium text-foreground hover:underline"
+          >
+            {APP_NAME}
+          </Link>
+        </p>
+        {SHOW_MARKETING && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Open-source newsletter digests that save you time.{" "}
+            <Link href="/login" className="underline">
+              Sign in
+            </Link>
+          </p>
+        )}
+      </footer>
+    </PublicShell>
   );
 }

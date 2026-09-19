@@ -299,3 +299,47 @@
     animation: none !important;
   }
 }
+
+/* Public pages — soft indigo wash from the logo mark, not a SaaS gradient hero */
+.public-wash {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(
+      ellipse 80% 50% at 50% -10%,
+      color-mix(in oklch, var(--primary) 12%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 80% 100%,
+      color-mix(in oklch, var(--primary) 6%, transparent),
+      transparent 65%
+    );
+}
+
+/* Digest as a paper sheet — the memorable element on marketing login */
+.digest-sheet {
+  background: var(--background);
+  border: 1px solid color-mix(in oklch, var(--border) 80%, var(--primary) 20%);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent),
+    0 12px 40px -16px color-mix(in oklch, var(--primary) 18%, transparent);
+  animation: digest-sheet-in 500ms ease-out both;
+}
+
+@keyframes digest-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .digest-sheet {
+    animation: none !important;
+  }
+}

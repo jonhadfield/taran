@@ -1,135 +1,119 @@
 "use client";
 
+import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 import { GitHubIcon } from "@/components/github-icon";
+import { PublicShell } from "@/components/public-shell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { APP_NAME } from "@/lib/config";
-import { Mail, Sparkles, BookOpen } from "lucide-react";
-import Image from "next/image";
-
-const STEPS = [
-  {
-    Icon: Mail,
-    title: "Forward",
-    description: "Send newsletters to your @mailbrief.io inbox",
-  },
-  {
-    Icon: Sparkles,
-    title: "Digest",
-    description: "AI reads everything and creates a daily summary",
-  },
-  {
-    Icon: BookOpen,
-    title: "Read",
-    description: "Get one concise digest instead of dozens of emails",
-  },
-] as const;
+import { SHOW_MARKETING } from "@/lib/config";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="flex w-full max-w-md flex-col items-center gap-10">
-        {/* Hero */}
-        <div className="flex flex-col items-center gap-3 text-center">
-          <Image
-            src="/logo.svg"
-            alt={`${APP_NAME} logo`}
-            width={80}
-            height={80}
-            priority
-          />
-          <h1 className="text-4xl font-bold tracking-tight">{APP_NAME}</h1>
-          <p className="text-lg text-muted-foreground">
-            Open-source, AI-powered newsletter digests.
-          </p>
-          <p className="text-sm font-medium text-muted-foreground/80">
-            Currently invite-only &mdash; sign in below to join the waitlist
-          </p>
-        </div>
+    <PublicShell>
+      {SHOW_MARKETING && (
+        <p className="max-w-sm text-center text-base text-muted-foreground">
+          Open-source email digests. Forward your newsletters, get one brief that
+          saves you time.
+        </p>
+      )}
 
-        {/* How it works — an ordered process, so a list rather than three
-            sibling divs, and the step names are headings rather than bold
-            paragraphs so they appear in the document outline. */}
-        <section aria-labelledby="how-it-works" className="w-full">
-          <h2 id="how-it-works" className="sr-only">
-            How it works
-          </h2>
-          <ol className="grid w-full grid-cols-3 gap-4 text-center">
-            {STEPS.map(({ Icon, title, description }) => (
-              <li key={title} className="flex flex-col items-center gap-2">
-                <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-xs font-medium">{title}</h3>
-                <p className="text-xs text-muted-foreground">{description}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
+      <section aria-labelledby="sign-in" className="w-full space-y-3">
+        <h2 id="sign-in" className="sr-only">
+          Sign in
+        </h2>
+        <Button
+          variant="outline"
+          className="w-full bg-background"
+          onClick={() =>
+            authClient.signIn.social({ provider: "google", callbackURL: "/" })
+          }
+        >
+          <GoogleIcon />
+          Continue with Google
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full bg-background"
+          onClick={() =>
+            authClient.signIn.social({ provider: "github", callbackURL: "/" })
+          }
+        >
+          <GitHubIcon className="mr-2 size-4" />
+          Continue with GitHub
+        </Button>
+        <p className="text-center text-sm text-muted-foreground">
+          Invite-only — sign in to join the waitlist if you need access
+        </p>
+      </section>
 
-        {/* Sign in */}
-        <section aria-labelledby="sign-in" className="w-full space-y-3">
-          <h2 id="sign-in" className="sr-only">
-            Sign in
-          </h2>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() =>
-              authClient.signIn.social({ provider: "google", callbackURL: "/" })
-            }
-          >
-            <GoogleIcon />
-            Continue with Google
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() =>
-              authClient.signIn.social({ provider: "github", callbackURL: "/" })
-            }
-          >
-            <GitHubIcon className="mr-2 size-4" />
-            Continue with GitHub
-          </Button>
-        </section>
+      {SHOW_MARKETING && (
+        <>
+          <figure className="w-full overflow-hidden rounded-xl border border-border/60 bg-background/80">
+            <Image
+              src="/digest-flow.png"
+              alt="Forward newsletters, digest with AI, read one brief"
+              width={1280}
+              height={720}
+              className="h-auto w-full"
+              priority
+            />
+          </figure>
 
-        {/* Demo digest preview */}
-        <figure className="w-full space-y-3">
-          <figcaption className="text-center text-sm text-muted-foreground">
-            Here&apos;s what a digest looks like
-          </figcaption>
-          <Card className="opacity-90">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Your Daily Newsletter Digest</CardTitle>
-              <p className="text-xs text-muted-foreground">Feb 14 &ndash; Feb 15, 2026 &middot; 8 emails</p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                AI breakthroughs dominated today&apos;s newsletters with major announcements from leading labs. Markets reacted positively to strong earnings, while new open-source tools gained traction in the developer community.
+          <figure className="digest-sheet w-full space-y-4 p-5 sm:p-6">
+            <figcaption className="text-center text-sm text-muted-foreground">
+              What a digest looks like
+            </figcaption>
+            <div className="space-y-1">
+              <p className="font-reading text-lg font-medium leading-snug">
+                Your Daily Newsletter Digest
               </p>
-              <div>
-                <p className="text-xs font-medium mb-2">Highlights</p>
-                <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
-                  <li>New reasoning model achieves state-of-the-art benchmarks</li>
-                  <li>Tech earnings beat expectations across the board</li>
-                  <li>Open-source framework hits 50k GitHub stars</li>
-                </ul>
-              </div>
-              <ul className="flex flex-wrap gap-1.5">
-                {["AI", "Markets", "Open Source", "Startups"].map((topic) => (
-                  <li key={topic}>
-                    <Badge variant="secondary" className="text-xs">
-                      {topic}
-                    </Badge>
+              <p className="text-xs text-muted-foreground">
+                14 February – 15 February · 8 emails
+              </p>
+            </div>
+            <p className="font-reading text-[0.9375rem] leading-relaxed text-foreground/90">
+              AI breakthroughs dominated today&apos;s newsletters with major
+              announcements from leading labs. Markets reacted positively to
+              strong earnings, while new open-source tools gained traction in the
+              developer community.
+            </p>
+            <div>
+              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                Highlights
+              </p>
+              <ul className="space-y-2">
+                {[
+                  "New reasoning model achieves state-of-the-art benchmarks",
+                  "Tech earnings beat expectations across the board",
+                  "Open-source framework hits 50k GitHub stars",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-start gap-2 font-reading text-[0.9375rem] leading-relaxed text-muted-foreground"
+                  >
+                    <span
+                      className="mt-2 size-1 shrink-0 rounded-full bg-primary/50"
+                      aria-hidden
+                    />
+                    {item}
                   </li>
                 ))}
               </ul>
-            </CardContent>
-          </Card>
-        </figure>
-      </div>
-    </div>
+            </div>
+            <ul className="flex flex-wrap gap-2 pt-1">
+              {["AI", "Markets", "Open Source", "Startups"].map((topic) => (
+                <li
+                  key={topic}
+                  className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                >
+                  {topic}
+                </li>
+              ))}
+            </ul>
+          </figure>
+        </>
+      )}
+    </PublicShell>
   );
 }
 
@@ -155,4 +139,3 @@ function GoogleIcon() {
     </svg>
   );
 }
-
