@@ -20,11 +20,11 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Skip Next.js internals, API routes, and the icon files the login page loads —
+// Skip Next.js internals, API routes, and the public assets the login page loads —
 // otherwise signed-out visitors are redirected and receive the login page's
-// HTML in place of the icon. File names are matched exactly.
+// HTML in place of the asset. File names are matched exactly.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|api/|(?:favicon\\.ico|icon\\.svg|apple-icon\\.png|logo\\.svg|logo-192\\.png|logo-512\\.png)$).*)",
+    "/((?!_next/static|_next/image|api/|(?:favicon\\.ico|icon\\.svg|apple-icon\\.png|logo\\.svg|logo-192\\.png|logo-512\\.png|digest-flow\\.png)$).*)",
   ],
 };
