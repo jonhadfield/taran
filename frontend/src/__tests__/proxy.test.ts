@@ -29,6 +29,7 @@ describe("proxy matcher", () => {
     "/logo.svg",
     "/logo-192.png",
     "/logo-512.png",
+    "/digest-flow.png",
   ])("skips static asset or API path %s", (path) => {
     expect(runsProxy(path)).toBe(false);
   });
