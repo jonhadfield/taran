@@ -305,8 +305,7 @@ TARAN_DIGEST_CRON=0 7 * * *,\
 TARAN_DIGEST_TIMEZONE=UTC,\
 TARAN_EMAIL_DOMAIN=<yourdomain.com>,\
 TARAN_ADMIN_EMAILS=<your-personal-email>,\
-TARAN_ALLOWED_ORIGINS=https://<yourdomain.com>,\
-TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT=500000" \
+TARAN_ALLOWED_ORIGINS=https://<yourdomain.com>" \
   --set-secrets "\
 TARAN_DB_URL=taran-db-url:latest,\
 TARAN_WEBHOOK_SECRET=taran-webhook-secret:latest,\
@@ -328,7 +327,8 @@ TARAN_ENCRYPTION_KEY=taran-encryption-key:latest"
 | `TARAN_EMAIL_DOMAIN` | Your domain name, used to create user email addresses. | `yourdomain.com` |
 | `TARAN_ADMIN_EMAILS` | Comma-separated list of admin email addresses. | `you@gmail.com` |
 | `TARAN_ALLOWED_ORIGINS` | Your frontend URL, for CORS security. | `https://yourdomain.com` |
-| `TARAN_DEFAULT_MONTHLY_TOKEN_LIMIT` | AI token budget per user per month. 500,000 is a good start. | `500000` |
+
+Each user's monthly AI token budget defaults to 500,000. Once you're signed in as an admin, you can change it from the Admin dashboard.
 
 **Secrets** (sensitive, stored in Secret Manager via `--set-secrets`):
 
