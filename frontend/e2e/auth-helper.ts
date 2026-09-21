@@ -3,7 +3,8 @@ import { randomUUID, createHmac } from "crypto";
 import pg from "pg";
 
 // E2E tests always use the local test database. Use E2E_DATABASE_URL to override,
-// NOT DATABASE_URL (which typically points to production via .env).
+// NOT DATABASE_URL: that is the app's own connection, which can point at a shared
+// or production database, and these helpers create and delete users directly.
 const DB_URL = process.env.E2E_DATABASE_URL || "postgresql://taran:taran@localhost:5432/taran?sslmode=disable";
 // No fallback: forged session cookies must be signed with the same secret the
 // app verifies with, so a missing value has to fail loudly rather than silently
