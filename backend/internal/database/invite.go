@@ -67,6 +67,18 @@ func (r *InviteRepo) List(ctx context.Context) ([]domain.Invite, error) {
 	return invites, nil
 }
 
+// CountByInviter returns how many invites were created by the given inviter,
+// e.g. auth.OpenRegistrationInviter for open-registration sign-ups.
+func (r *InviteRepo) CountByInviter(ctx context.Context, invitedBy string) (int, error) {
+	var count int64
+	err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM invite WHERE invited_by = $1`, invitedBy).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count invites by inviter: %w", err)
+	}
+	return int(count), nil
+}
+
 func (r *InviteRepo) MarkAccepted(ctx context.Context, email string) error {
 	now := time.Now().UTC()
 	_, err := r.pool.Exec(ctx,

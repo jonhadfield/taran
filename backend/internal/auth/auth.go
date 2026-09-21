@@ -66,6 +66,8 @@ type SessionAuth struct {
 	Sessions    database.SessionRepository
 	Invites     database.InviteRepository
 	AdminEmails []string
+	// Settings enables open registration; nil keeps the app invite-only.
+	Settings BoolSettings
 }
 
 func (a *SessionAuth) Middleware(next http.Handler) http.Handler {
@@ -132,17 +134,13 @@ func (a *SessionAuth) AdminOnly(next http.Handler) http.Handler {
 }
 
 func (a *SessionAuth) isAllowed(ctx context.Context, email string) bool {
-	email = strings.ToLower(email)
-	for _, admin := range a.AdminEmails {
-		if email == admin {
-			return true
-		}
+	checker := AccessChecker{Invites: a.Invites, Settings: a.Settings, AdminEmails: a.AdminEmails}
+	access, err := checker.Check(ctx, email)
+	if err != nil {
+		slog.Warn("access check failed", "error", err)
+		return false
 	}
-	if a.Invites != nil {
-		invite, _ := a.Invites.GetByEmail(ctx, email)
-		return invite != nil
-	}
-	return false
+	return access.Allowed
 }
 
 func extractToken(r *http.Request) string {

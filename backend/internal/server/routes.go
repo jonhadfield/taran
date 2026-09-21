@@ -162,6 +162,8 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	admin.HandleFunc("PATCH /api/admin/settings/token-limit", deps.AdminStatsHandler.SetDefaultTokenLimit)
 	admin.HandleFunc("GET /api/admin/settings/waitlist", deps.AdminStatsHandler.GetWaitlistEnabled)
 	admin.HandleFunc("PATCH /api/admin/settings/waitlist", deps.AdminStatsHandler.SetWaitlistEnabled)
+	admin.HandleFunc("GET /api/admin/settings/open-registration", deps.AdminStatsHandler.GetOpenRegistration)
+	admin.HandleFunc("PATCH /api/admin/settings/open-registration", deps.AdminStatsHandler.SetOpenRegistration)
 	if deps.AdminWebhookHandler != nil {
 		admin.HandleFunc("GET /api/admin/emails/failed", deps.AdminWebhookHandler.ListFailed)
 		admin.HandleFunc("POST /api/admin/emails/{id}/retry", deps.AdminWebhookHandler.RetryOne)

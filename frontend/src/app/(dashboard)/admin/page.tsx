@@ -7,6 +7,7 @@ import { InviteForm } from "./invite-form";
 import { WaitlistPanel } from "./waitlist-panel";
 import { AuditLog } from "./audit-log";
 import { WaitlistToggle } from "./waitlist-toggle";
+import { OpenRegistrationToggle } from "./open-registration-toggle";
 
 export default async function AdminPage() {
   const admin = await isAdmin();
@@ -22,7 +23,8 @@ export default async function AdminPage() {
       <AdminUsers />
       <h2 className="text-xl font-bold pt-4">Audit Log</h2>
       <AuditLog />
-      <h2 className="text-xl font-bold pt-4">Waitlist</h2>
+      <h2 className="text-xl font-bold pt-4">Access & Waitlist</h2>
+      <OpenRegistrationToggle />
       <WaitlistToggle />
       <WaitlistPanel />
       <h2 className="text-xl font-bold pt-4">Invitations</h2>

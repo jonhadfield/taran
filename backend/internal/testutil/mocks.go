@@ -657,6 +657,14 @@ type MockInviteRepo struct {
 	CreateFn       func(ctx context.Context, invite *domain.Invite) error
 	ListFn         func(ctx context.Context) ([]domain.Invite, error)
 	MarkAcceptedFn func(ctx context.Context, email string) error
+	CountByInviterFn func(ctx context.Context, invitedBy string) (int, error)
+}
+
+func (m *MockInviteRepo) CountByInviter(ctx context.Context, invitedBy string) (int, error) {
+	if m.CountByInviterFn != nil {
+		return m.CountByInviterFn(ctx, invitedBy)
+	}
+	return 0, nil
 }
 
 func (m *MockInviteRepo) GetByEmail(ctx context.Context, email string) (*domain.Invite, error) {

@@ -104,6 +104,7 @@ type InviteRepository interface {
 	Create(ctx context.Context, invite *domain.Invite) error
 	List(ctx context.Context) ([]domain.Invite, error)
 	MarkAccepted(ctx context.Context, email string) error
+	CountByInviter(ctx context.Context, invitedBy string) (int, error)
 }
 
 type WaitlistRepository interface {

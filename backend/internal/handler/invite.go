@@ -15,6 +15,8 @@ import (
 
 type InviteHandler struct {
 	Invites     database.InviteRepository
+	// Settings enables open registration; nil keeps the app invite-only.
+	Settings    auth.BoolSettings
 	AdminEmails []string
 	Mailer      mailer.Mailer // may be nil
 }
@@ -84,31 +86,20 @@ func (h *InviteHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *InviteHandler) CheckAccess(w http.ResponseWriter, r *http.Request) {
 	email := strings.ToLower(auth.UserEmailFromContext(r.Context()))
 
-	// Admins always have access
-	for _, admin := range h.AdminEmails {
-		if email == admin {
-			WriteJSON(w, http.StatusOK, map[string]any{"hasAccess": true, "reason": "admin"})
-			return
-		}
-	}
-
-	invite, err := h.Invites.GetByEmail(r.Context(), email)
+	checker := auth.AccessChecker{Invites: h.Invites, Settings: h.Settings, AdminEmails: h.AdminEmails}
+	access, err := checker.Check(r.Context(), email)
 	if err != nil {
+		slog.Error("access check failed", "error", err)
 		WriteError(w, http.StatusInternalServerError, "failed to check access")
 		return
 	}
 
-	if invite == nil {
-		WriteJSON(w, http.StatusOK, map[string]any{"hasAccess": false, "reason": "not_invited"})
-		return
-	}
-
 	// Mark accepted on first successful access check
-	if invite.AcceptedAt == nil {
+	if access.Invite != nil && access.Invite.AcceptedAt == nil {
 		if err := h.Invites.MarkAccepted(r.Context(), email); err != nil {
 			slog.Error("failed to mark invite accepted", "email", email, "error", err)
 		}
 	}
 
-	WriteJSON(w, http.StatusOK, map[string]any{"hasAccess": true, "reason": "invited"})
+	WriteJSON(w, http.StatusOK, map[string]any{"hasAccess": access.Allowed, "reason": access.Reason})
 }

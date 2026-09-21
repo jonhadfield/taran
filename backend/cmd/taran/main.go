@@ -263,9 +263,11 @@ func main() {
 		Preferences: preferenceRepo,
 		AppSettings: appSettingRepo,
 		AuditLog:    auditRepo,
+		Invites:     inviteRepo,
 	}
 	inviteHandler := &handler.InviteHandler{
 		Invites:     inviteRepo,
+		Settings:    appSettingRepo,
 		AdminEmails: cfg.AdminEmails,
 		Mailer:      m,
 	}
@@ -326,6 +328,7 @@ func main() {
 		Sessions:    sessionRepo,
 		Invites:     inviteRepo,
 		AdminEmails: cfg.AdminEmails,
+		Settings:    appSettingRepo,
 	}
 
 	// Only these proxies may set CF-Connecting-IP; everything else falls back
