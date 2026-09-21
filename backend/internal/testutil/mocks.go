@@ -690,7 +690,7 @@ func (m *MockInviteRepo) MarkAccepted(ctx context.Context, email string) error {
 // MockProvider implements llm.Provider for testing.
 type MockProvider struct {
 	TriageEmailFn    func(ctx context.Context, subject, fromAddress, contentPreview string) (*llm.TriageResult, *llm.Usage, error)
-	ExtractEmailFn   func(ctx context.Context, subject, content, fromAddress string) (*llm.ExtractionResult, *llm.Usage, error)
+	ExtractEmailFn   func(ctx context.Context, subject, content, fromAddress string, opts *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error)
 	GenerateDigestFn func(ctx context.Context, extractions []domain.Extraction, periodType string, opts *llm.DigestOptions) (*llm.DigestSummary, *llm.Usage, error)
 	NameVal          string
 	ModelVal         string
@@ -703,9 +703,9 @@ func (m *MockProvider) TriageEmail(ctx context.Context, subject, fromAddress, co
 	return &llm.TriageResult{Extract: true, Reason: "default mock triage"}, &llm.Usage{TotalTokens: 5}, nil
 }
 
-func (m *MockProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*llm.ExtractionResult, *llm.Usage, error) {
+func (m *MockProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string, opts *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
 	if m.ExtractEmailFn != nil {
-		return m.ExtractEmailFn(ctx, subject, content, fromAddress)
+		return m.ExtractEmailFn(ctx, subject, content, fromAddress, opts)
 	}
 	return &llm.ExtractionResult{Summary: "test summary"}, &llm.Usage{TotalTokens: 10}, nil
 }
@@ -793,4 +793,56 @@ func (m *MockDigestFeedbackRepo) GetByDigestID(ctx context.Context, userID, dige
 		return m.GetByDigestIDFn(ctx, userID, digestID)
 	}
 	return nil, nil
+}
+
+// MockAnalysisRuleRepo implements database.AnalysisRuleRepository for testing.
+type MockAnalysisRuleRepo struct {
+	CreateFn          func(ctx context.Context, rule *domain.AnalysisRule) error
+	ListByUserFn      func(ctx context.Context, userID string) ([]domain.AnalysisRule, error)
+	ListActiveRulesFn func(ctx context.Context, userID string) ([]string, error)
+	UpdateFn          func(ctx context.Context, userID, id string, rule *string, isActive *bool) error
+	DeleteFn          func(ctx context.Context, userID, id string) error
+	CountByUserFn     func(ctx context.Context, userID string) (int, error)
+}
+
+func (m *MockAnalysisRuleRepo) Create(ctx context.Context, rule *domain.AnalysisRule) error {
+	if m.CreateFn != nil {
+		return m.CreateFn(ctx, rule)
+	}
+	return nil
+}
+
+func (m *MockAnalysisRuleRepo) ListByUser(ctx context.Context, userID string) ([]domain.AnalysisRule, error) {
+	if m.ListByUserFn != nil {
+		return m.ListByUserFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockAnalysisRuleRepo) ListActiveRules(ctx context.Context, userID string) ([]string, error) {
+	if m.ListActiveRulesFn != nil {
+		return m.ListActiveRulesFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockAnalysisRuleRepo) Update(ctx context.Context, userID, id string, rule *string, isActive *bool) error {
+	if m.UpdateFn != nil {
+		return m.UpdateFn(ctx, userID, id, rule, isActive)
+	}
+	return nil
+}
+
+func (m *MockAnalysisRuleRepo) Delete(ctx context.Context, userID, id string) error {
+	if m.DeleteFn != nil {
+		return m.DeleteFn(ctx, userID, id)
+	}
+	return nil
+}
+
+func (m *MockAnalysisRuleRepo) CountByUser(ctx context.Context, userID string) (int, error) {
+	if m.CountByUserFn != nil {
+		return m.CountByUserFn(ctx, userID)
+	}
+	return 0, nil
 }

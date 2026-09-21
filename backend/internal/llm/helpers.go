@@ -39,14 +39,15 @@ func triageEmail(ctx context.Context, fn callFn, providerLabel string, subject, 
 }
 
 // extractEmail builds the extraction prompt, calls the LLM via fn, and parses the result.
-func extractEmail(ctx context.Context, fn callFn, providerLabel string, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
+func extractEmail(ctx context.Context, fn callFn, providerLabel string, subject, content, fromAddress string, opts *ExtractOptions) (*ExtractionResult, *Usage, error) {
+	systemPrompt := buildExtractionSystemPrompt(opts)
 	userPrompt := buildExtractionUserPrompt(subject, content, fromAddress)
 	if len(userPrompt) > maxExtractionPromptLen {
 		userPrompt = userPrompt[:maxExtractionPromptLen] + "\n\n[content truncated]"
 	}
 
 	text, usage, err := retryOnEmpty(ctx, ExtractTimeout, providerLabel+" extract", func(ctx context.Context) (string, *Usage, error) {
-		return fn(ctx, extractionSystemPrompt, userPrompt)
+		return fn(ctx, systemPrompt, userPrompt)
 	})
 	if err != nil {
 		return nil, nil, err

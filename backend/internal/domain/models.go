@@ -486,6 +486,17 @@ type SavedSearch struct {
 	UpdatedAt time.Time              `json:"UpdatedAt"`
 }
 
+// AnalysisRule is a free-text instruction a user gives the LLM about how to
+// analyse their emails and digests (e.g. "more detail on Bitcoin news").
+type AnalysisRule struct {
+	ID        string    `json:"ID"`
+	UserID    string    `json:"UserID"`
+	Rule      string    `json:"Rule"`
+	IsActive  bool      `json:"IsActive"`
+	CreatedAt time.Time `json:"CreatedAt"`
+	UpdatedAt time.Time `json:"UpdatedAt"`
+}
+
 type ListOptions struct {
 	Limit         int          `json:"Limit"`
 	Offset        int          `json:"Offset"`

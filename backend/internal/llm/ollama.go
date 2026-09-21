@@ -50,8 +50,8 @@ func (p *OllamaProvider) TriageEmail(ctx context.Context, subject, fromAddress, 
 	return triageEmail(ctx, p.call(100), "ollama", subject, fromAddress, contentPreview)
 }
 
-func (p *OllamaProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
-	return extractEmail(ctx, p.call(4096), "ollama", subject, content, fromAddress)
+func (p *OllamaProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string, opts *ExtractOptions) (*ExtractionResult, *Usage, error) {
+	return extractEmail(ctx, p.call(4096), "ollama", subject, content, fromAddress, opts)
 }
 
 func (p *OllamaProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error) {

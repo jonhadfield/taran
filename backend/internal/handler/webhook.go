@@ -110,6 +110,7 @@ type WebhookHandler struct {
 	SenderPrefs     database.SenderPreferenceRepository
 	TokenUsage      database.TokenUsageRepository
 	Preferences     database.PreferenceRepository
+	AnalysisRules   database.AnalysisRuleRepository
 	SSEBroker       *sse.Broker
 }
 
@@ -216,8 +217,9 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 			Resolver:    h.Resolver,
 			SenderPrefs: h.SenderPrefs,
 			TokenUsage:  h.TokenUsage,
-			Preferences: h.Preferences,
-			Broker:      h.SSEBroker,
+			Preferences:   h.Preferences,
+			AnalysisRules: h.AnalysisRules,
+			Broker:        h.SSEBroker,
 		})
 	}
 

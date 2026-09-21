@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -296,29 +297,92 @@ func (h *EmailHandler) Reprocess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if email.Status != domain.EmailStatusFailed && email.Status != domain.EmailStatusSkipped {
-		WriteError(w, http.StatusBadRequest, "only failed or skipped emails can be reprocessed")
+	switch email.Status {
+	case domain.EmailStatusFailed, domain.EmailStatusSkipped:
+		// Start from scratch: any partial extraction is discarded.
+		if err := h.Extractions.DeleteByEmailIDScoped(r.Context(), userID, id); err != nil {
+			slog.Error("failed to delete extraction for reprocess", "emailID", id, "error", err)
+			WriteError(w, http.StatusInternalServerError, "failed to reprocess email")
+			return
+		}
+	case domain.EmailStatusProcessed:
+		// Re-analysis (e.g. with new analysis rules). The existing extraction is
+		// kept until the worker replaces it, so a failed attempt loses nothing.
+	default:
+		WriteError(w, http.StatusConflict, "email is already being processed")
 		return
 	}
 
-	if err := h.Extractions.DeleteByEmailIDScoped(r.Context(), userID, id); err != nil {
-		slog.Error("failed to delete extraction for reprocess", "emailID", id, "error", err)
-		WriteError(w, http.StatusInternalServerError, "failed to reprocess email")
-		return
-	}
-
-	if err := h.Emails.SetStatusScoped(r.Context(), userID, id, domain.EmailStatusPending, ""); err != nil {
+	if err := h.queueForProcessing(r, userID, id); err != nil {
 		slog.Error("failed to reset status for reprocess", "emailID", id, "error", err)
 		WriteError(w, http.StatusInternalServerError, "failed to reprocess email")
 		return
 	}
 
-	// Reset retry count so manual reprocess starts fresh
-	_ = h.Emails.ResetRetryCount(r.Context(), id)
-
-	h.Processor.Enqueue(id)
-
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "queued"})
+}
+
+const (
+	defaultReanalyseDays = 7
+	maxReanalyseDays     = 30
+	maxReanalyseEmails   = 50
+)
+
+// Reanalyse re-runs AI analysis on the user's recently processed emails so
+// they pick up changes to the user's analysis rules. It is capped to bound
+// token spend; the most recent emails are chosen first.
+func (h *EmailHandler) Reanalyse(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+
+	var req struct {
+		Days int `json:"Days"`
+	}
+	if err := LimitedJSONDecoder(r).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Days == 0 {
+		req.Days = defaultReanalyseDays
+	}
+	if req.Days < 1 || req.Days > maxReanalyseDays {
+		WriteError(w, http.StatusBadRequest, fmt.Sprintf("days must be between 1 and %d", maxReanalyseDays))
+		return
+	}
+
+	status := domain.EmailStatusProcessed
+	since := time.Now().AddDate(0, 0, -req.Days)
+	emails, total, err := h.Emails.List(r.Context(), userID, domain.ListOptions{
+		Status: &status,
+		Since:  &since,
+		Limit:  maxReanalyseEmails,
+	})
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to list emails")
+		return
+	}
+
+	queued := 0
+	for _, e := range emails {
+		if err := h.queueForProcessing(r, userID, e.ID); err != nil {
+			slog.Error("failed to queue email for re-analysis", "emailID", e.ID, "error", err)
+			continue
+		}
+		queued++
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]int{"queued": queued, "matched": total})
+}
+
+// queueForProcessing marks an email pending and hands it to the worker. If the
+// worker queue is full, the sweeper picks up pending emails later.
+func (h *EmailHandler) queueForProcessing(r *http.Request, userID, id string) error {
+	if err := h.Emails.SetStatusScoped(r.Context(), userID, id, domain.EmailStatusPending, ""); err != nil {
+		return err
+	}
+	// Reset retry count so a manual reprocess starts fresh
+	_ = h.Emails.ResetRetryCount(r.Context(), id)
+	h.Processor.Enqueue(id)
+	return nil
 }
 
 func clampInt(n, min, max int) int {

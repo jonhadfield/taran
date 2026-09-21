@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/hadfielj/taran/backend/internal/testutil"
@@ -231,14 +232,23 @@ func TestEmailHandler_Reprocess_NotFound(t *testing.T) {
 	}
 }
 
-func TestEmailHandler_Reprocess_WrongStatus(t *testing.T) {
+func TestEmailHandler_Reprocess_ProcessedKeepsExtraction(t *testing.T) {
+	proc := &mockProcessor{}
+	deleted := false
+	emails := &testutil.MockEmailRepo{
+		GetByIDFn: func(_ context.Context, _, id string) (*domain.Email, error) {
+			return &domain.Email{ID: id, Status: domain.EmailStatusProcessed}, nil
+		},
+	}
 	h := &EmailHandler{
-		Emails: &testutil.MockEmailRepo{
-			GetByIDFn: func(_ context.Context, _, id string) (*domain.Email, error) {
-				return &domain.Email{ID: id, Status: domain.EmailStatusProcessed}, nil
+		Emails: emails,
+		Extractions: &testutil.MockExtractionRepo{
+			DeleteByEmailIDScopedFn: func(_ context.Context, _, _ string) error {
+				deleted = true
+				return nil
 			},
 		},
-		Extractions: &testutil.MockExtractionRepo{},
+		Processor: proc,
 	}
 
 	req := httptest.NewRequest("POST", "/api/emails/em-1/reprocess", nil)
@@ -247,7 +257,101 @@ func TestEmailHandler_Reprocess_WrongStatus(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.Reprocess(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if deleted {
+		t.Error("re-analysis must keep the existing extraction until it is replaced")
+	}
+	if len(proc.enqueued) != 1 || proc.enqueued[0] != "em-1" {
+		t.Errorf("expected em-1 enqueued, got %v", proc.enqueued)
+	}
+	if len(emails.SetStatusCalls) != 1 || emails.SetStatusCalls[0].Status != domain.EmailStatusPending {
+		t.Errorf("expected status reset to pending, got %+v", emails.SetStatusCalls)
+	}
+}
+
+func TestEmailHandler_Reprocess_InProgressConflicts(t *testing.T) {
+	for _, status := range []domain.EmailStatus{domain.EmailStatusPending, domain.EmailStatusProcessing} {
+		proc := &mockProcessor{}
+		h := &EmailHandler{
+			Emails: &testutil.MockEmailRepo{
+				GetByIDFn: func(_ context.Context, _, id string) (*domain.Email, error) {
+					return &domain.Email{ID: id, Status: status}, nil
+				},
+			},
+			Extractions: &testutil.MockExtractionRepo{},
+			Processor:   proc,
+		}
+
+		req := httptest.NewRequest("POST", "/api/emails/em-1/reprocess", nil)
+		req.SetPathValue("id", "em-1")
+		req = req.WithContext(testutil.ContextWithUserID("user-1"))
+		rec := httptest.NewRecorder()
+		h.Reprocess(rec, req)
+
+		if rec.Code != http.StatusConflict {
+			t.Errorf("%s: status = %d, want %d", status, rec.Code, http.StatusConflict)
+		}
+		if len(proc.enqueued) != 0 {
+			t.Errorf("%s: email was enqueued twice", status)
+		}
+	}
+}
+
+func TestEmailHandler_Reanalyse_QueuesRecentProcessedEmails(t *testing.T) {
+	proc := &mockProcessor{}
+	var gotOpts domain.ListOptions
+	emails := &testutil.MockEmailRepo{
+		ListFn: func(_ context.Context, userID string, opts domain.ListOptions) ([]domain.Email, int, error) {
+			if userID != "user-1" {
+				t.Errorf("listed emails for %q", userID)
+			}
+			gotOpts = opts
+			return []domain.Email{{ID: "em-1"}, {ID: "em-2"}}, 73, nil
+		},
+	}
+	h := &EmailHandler{Emails: emails, Extractions: &testutil.MockExtractionRepo{}, Processor: proc}
+
+	req := httptest.NewRequest("POST", "/api/emails/reanalyse", strings.NewReader(`{"Days":14}`))
+	req = req.WithContext(testutil.ContextWithUserID("user-1"))
+	rec := httptest.NewRecorder()
+	before := time.Now()
+	h.Reanalyse(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body)
+	}
+	var resp map[string]int
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp["queued"] != 2 || resp["matched"] != 73 {
+		t.Errorf("response = %v, want queued 2, matched 73", resp)
+	}
+	if gotOpts.Status == nil || *gotOpts.Status != domain.EmailStatusProcessed {
+		t.Error("only processed emails should be re-analysed")
+	}
+	if gotOpts.Limit != maxReanalyseEmails {
+		t.Errorf("limit = %d, want %d", gotOpts.Limit, maxReanalyseEmails)
+	}
+	wantSince := before.AddDate(0, 0, -14)
+	if gotOpts.Since == nil || gotOpts.Since.Sub(wantSince).Abs() > time.Minute {
+		t.Errorf("since = %v, want about %v", gotOpts.Since, wantSince)
+	}
+	if strings.Join(proc.enqueued, ",") != "em-1,em-2" {
+		t.Errorf("enqueued = %v", proc.enqueued)
+	}
+}
+
+func TestEmailHandler_Reanalyse_Validation(t *testing.T) {
+	for _, body := range []string{`{"Days":-1}`, `{"Days":31}`, `{`} {
+		proc := &mockProcessor{}
+		h := &EmailHandler{Emails: &testutil.MockEmailRepo{}, Extractions: &testutil.MockExtractionRepo{}, Processor: proc}
+		req := httptest.NewRequest("POST", "/api/emails/reanalyse", strings.NewReader(body))
+		req = req.WithContext(testutil.ContextWithUserID("user-1"))
+		rec := httptest.NewRecorder()
+		h.Reanalyse(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("body %s: status = %d, want 400", body, rec.Code)
+		}
 	}
 }

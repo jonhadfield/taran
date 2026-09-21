@@ -47,8 +47,8 @@ func (p *AnthropicProvider) TriageEmail(ctx context.Context, subject, fromAddres
 	return triageEmail(ctx, p.call(100), "anthropic", subject, fromAddress, contentPreview)
 }
 
-func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
-	return extractEmail(ctx, p.call(4096), "anthropic", subject, content, fromAddress)
+func (p *AnthropicProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string, opts *ExtractOptions) (*ExtractionResult, *Usage, error) {
+	return extractEmail(ctx, p.call(4096), "anthropic", subject, content, fromAddress, opts)
 }
 
 func (p *AnthropicProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error) {

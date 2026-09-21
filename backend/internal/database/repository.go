@@ -177,6 +177,15 @@ type SavedSearchRepository interface {
 	CountByUser(ctx context.Context, userID string) (int, error)
 }
 
+type AnalysisRuleRepository interface {
+	Create(ctx context.Context, rule *domain.AnalysisRule) error
+	ListByUser(ctx context.Context, userID string) ([]domain.AnalysisRule, error)
+	ListActiveRules(ctx context.Context, userID string) ([]string, error)
+	Update(ctx context.Context, userID, id string, rule *string, isActive *bool) error
+	Delete(ctx context.Context, userID, id string) error
+	CountByUser(ctx context.Context, userID string) (int, error)
+}
+
 type SenderPreferenceRepository interface {
 	Upsert(ctx context.Context, pref *domain.SenderPreference) error
 	GetByAddress(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error)

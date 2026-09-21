@@ -50,11 +50,17 @@ type DigestOptions struct {
 	Style               string // "concise" or "detailed" (default)
 	InterestKeywords    []string
 	ExclusionKeywords   []string
+	Rules               []string // user-defined analysis rules
+}
+
+// ExtractOptions carries per-user settings that shape email extraction.
+type ExtractOptions struct {
+	Rules []string // user-defined analysis rules
 }
 
 type Provider interface {
 	TriageEmail(ctx context.Context, subject, fromAddress, contentPreview string) (*TriageResult, *Usage, error)
-	ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error)
+	ExtractEmail(ctx context.Context, subject, content, fromAddress string, opts *ExtractOptions) (*ExtractionResult, *Usage, error)
 	GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error)
 	Name() string
 	Model() string

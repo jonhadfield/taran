@@ -35,6 +35,7 @@ type Processor struct {
 	senderPrefs database.SenderPreferenceRepository
 	tokenUsage  database.TokenUsageRepository
 	preferences database.PreferenceRepository
+	rules       database.AnalysisRuleRepository
 	wg          sync.WaitGroup
 	concurrency int
 
@@ -61,6 +62,8 @@ type ProcessorConfig struct {
 	SenderPrefs database.SenderPreferenceRepository
 	TokenUsage  database.TokenUsageRepository
 	Preferences database.PreferenceRepository
+	// AnalysisRules supplies the user's rules for the extraction prompt; nil disables them.
+	AnalysisRules database.AnalysisRuleRepository
 }
 
 func NewProcessor(cfg ProcessorConfig) *Processor {
@@ -73,6 +76,7 @@ func NewProcessor(cfg ProcessorConfig) *Processor {
 		senderPrefs: cfg.SenderPrefs,
 		tokenUsage:  cfg.TokenUsage,
 		preferences: cfg.Preferences,
+		rules:       cfg.AnalysisRules,
 		concurrency: cfg.Concurrency,
 	}
 }
@@ -210,8 +214,9 @@ func (p *Processor) processEmail(ctx context.Context, emailID string) {
 		Resolver:    p.resolver,
 		SenderPrefs: p.senderPrefs,
 		TokenUsage:  p.tokenUsage,
-		Preferences: p.preferences,
-		Broker:      p.SSEBroker,
+		Preferences:   p.preferences,
+		AnalysisRules: p.rules,
+		Broker:        p.SSEBroker,
 	})
 
 	// Check token warning after processing (best-effort, non-blocking)
@@ -232,7 +237,9 @@ type ProcessEmailParams struct {
 	SenderPrefs database.SenderPreferenceRepository
 	TokenUsage  database.TokenUsageRepository
 	Preferences database.PreferenceRepository
-	Broker      *sse.Broker
+	// AnalysisRules supplies the user's rules for the extraction prompt; nil disables them.
+	AnalysisRules database.AnalysisRuleRepository
+	Broker        *sse.Broker
 }
 
 // ProcessEmail runs LLM extraction on a single email. It can be called
@@ -261,6 +268,23 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 		return
 	}
 
+	// An email that already has an extraction is being re-analysed (e.g. after
+	// the user changed their analysis rules). It passed triage before, and its
+	// existing summary must survive if this attempt does not complete.
+	existing, _ := extractions.GetByEmailID(ctx, emailID)
+	reanalysis := existing != nil
+
+	// giveUp records a terminal skipped/failed outcome. When re-analysing, the
+	// previous summary is kept and the email returns to processed instead.
+	giveUp := func(status domain.EmailStatus, reason string) {
+		if reanalysis {
+			logger.Warn("re-analysis did not complete, keeping previous summary", "outcome", status, "reason", reason)
+			emails.SetStatus(ctx, emailID, domain.EmailStatusProcessed, "")
+			return
+		}
+		emails.SetStatus(ctx, emailID, status, reason)
+	}
+
 	// Check quiet hours — defer processing if user is in quiet hours
 	if preferences != nil {
 		pref, prefErr := preferences.Get(ctx, em.UserID)
@@ -275,7 +299,7 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 	provider, err := resolver.ResolveForUser(ctx, em.UserID)
 	if err != nil {
 		logger.Error("failed to resolve LLM provider", "error", err)
-		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "failed to resolve LLM provider")
+		giveUp(domain.EmailStatusFailed, "failed to resolve LLM provider")
 		return
 	}
 
@@ -284,7 +308,7 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 		pref, _ := senderPrefs.GetByAddress(ctx, em.UserID, em.FromAddress)
 		if pref != nil && pref.Status == "blocked" {
 			logger.Info("sender is blocked, skipping", "from", em.FromAddress)
-			emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped, "sender is blocked")
+			giveUp(domain.EmailStatusSkipped, "sender is blocked")
 			return
 		}
 	}
@@ -297,7 +321,7 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 				used, err := tokenUsage.GetMonthlyTotal(ctx, em.UserID)
 				if err == nil && used >= pref.MonthlyTokenLimit {
 					logger.Warn("monthly token limit exceeded", "used", used, "limit", pref.MonthlyTokenLimit)
-					emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped, "monthly token limit exceeded")
+					giveUp(domain.EmailStatusSkipped, "monthly token limit exceeded")
 					return
 				}
 			}
@@ -323,7 +347,7 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 	}
 	if content == "" {
 		logger.Warn("email has no content, skipping")
-		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "email has no content")
+		giveUp(domain.EmailStatusFailed, "email has no content")
 		return
 	}
 
@@ -332,23 +356,28 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 	if len(contentPreview) > triagePreviewMaxLen {
 		contentPreview = contentPreview[:triagePreviewMaxLen]
 	}
-	triageResult, triageUsage, triageErr := provider.TriageEmail(ctx, em.Subject, em.FromAddress, contentPreview)
-	// Always record triage tokens when available, even if parsing failed
-	recordTokenUsage(ctx, tokenUsage, em.UserID, "triage", provider, triageUsage)
-	if triageErr != nil {
-		logger.Warn("triage failed, proceeding to extraction", "error", triageErr)
+	// Re-analysed emails already passed triage, so don't spend tokens on it again.
+	if !reanalysis {
+		triageResult, triageUsage, triageErr := provider.TriageEmail(ctx, em.Subject, em.FromAddress, contentPreview)
+		// Always record triage tokens when available, even if parsing failed
+		recordTokenUsage(ctx, tokenUsage, em.UserID, "triage", provider, triageUsage)
+		if triageErr != nil {
+			logger.Warn("triage failed, proceeding to extraction", "error", triageErr)
+		}
+		if triageErr == nil && !triageResult.Extract {
+			logger.Info("triage skipped email", "reason", triageResult.Reason)
+			giveUp(domain.EmailStatusSkipped, triageResult.Reason)
+			return
+		}
 	}
-	if triageErr == nil && !triageResult.Extract {
-		logger.Info("triage skipped email", "reason", triageResult.Reason)
-		emails.SetStatus(ctx, emailID, domain.EmailStatusSkipped, triageResult.Reason)
-		return
-	}
+
+	extractOpts := loadExtractOptions(ctx, params.AnalysisRules, em.UserID, logger)
 
 	// Retry loop for extraction with exponential backoff
 	var result *llm.ExtractionResult
 	var usage *llm.Usage
 	for attempt := 1; attempt <= extractMaxRetries; attempt++ {
-		result, usage, err = provider.ExtractEmail(ctx, em.Subject, content, em.FromAddress)
+		result, usage, err = provider.ExtractEmail(ctx, em.Subject, content, em.FromAddress, extractOpts)
 		if err == nil {
 			break
 		}
@@ -358,7 +387,7 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 			select {
 			case <-ctx.Done():
 				logger.Error("context cancelled during extraction retry", "error", ctx.Err())
-				emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "context cancelled")
+				giveUp(domain.EmailStatusFailed, "context cancelled")
 				return
 			case <-time.After(delay):
 			}
@@ -366,7 +395,7 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 	}
 	if err != nil {
 		logger.Error("LLM extraction failed after retries", "attempts", extractMaxRetries, "error", err)
-		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "extraction failed")
+		giveUp(domain.EmailStatusFailed, "extraction failed")
 		return
 	}
 
@@ -398,7 +427,7 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 
 	if err := extractions.Create(ctx, extraction); err != nil {
 		logger.Error("failed to store extraction", "error", err)
-		emails.SetStatus(ctx, emailID, domain.EmailStatusFailed, "failed to store extraction")
+		giveUp(domain.EmailStatusFailed, "failed to store extraction")
 		return
 	}
 
@@ -541,4 +570,21 @@ func (p *Processor) sweepOrphanedDigests(ctx context.Context) {
 	if deleted > 0 {
 		slog.Info("orphaned digest sweep complete", "deleted", deleted)
 	}
+}
+
+// loadExtractOptions fetches the user's active analysis rules. Failing to load
+// them is not fatal: the email is still worth extracting with default rules.
+func loadExtractOptions(ctx context.Context, repo database.AnalysisRuleRepository, userID string, logger *slog.Logger) *llm.ExtractOptions {
+	if repo == nil {
+		return nil
+	}
+	rules, err := repo.ListActiveRules(ctx, userID)
+	if err != nil {
+		logger.Warn("failed to load analysis rules, extracting without them", "error", err)
+		return nil
+	}
+	if len(rules) == 0 {
+		return nil
+	}
+	return &llm.ExtractOptions{Rules: rules}
 }

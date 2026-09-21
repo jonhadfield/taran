@@ -106,6 +106,9 @@ func main() {
 
 	userLLMKeyRepo := database.NewUserLLMKeyRepo(pool)
 
+	// User-defined rules that steer LLM analysis of emails and digests
+	analysisRuleRepo := database.NewAnalysisRuleRepo(pool)
+
 	// Provider resolver (BYOK → platform fallback)
 	resolver := llm.NewProviderResolver(provider, userLLMKeyRepo, encryptor, &cfg.LLM)
 
@@ -120,8 +123,9 @@ func main() {
 		Extractions: extractionRepo,
 		Resolver:    resolver,
 		SenderPrefs: senderPrefRepo,
-		TokenUsage:  tokenUsageRepo,
-		Preferences: preferenceRepo,
+		TokenUsage:    tokenUsageRepo,
+		Preferences:   preferenceRepo,
+		AnalysisRules: analysisRuleRepo,
 	})
 	proc.SSEBroker = sseBroker
 
@@ -162,8 +166,9 @@ func main() {
 		Resolver:    resolver,
 		SenderPrefs: senderPrefRepo,
 		Feedback:    feedbackRepo,
-		Preferences: preferenceRepo,
-		TokenUsage:  tokenUsageRepo,
+		Preferences:   preferenceRepo,
+		TokenUsage:    tokenUsageRepo,
+		AnalysisRules: analysisRuleRepo,
 	}
 	sched := digest.NewScheduler(digest.SchedulerConfig{
 		Generator:         gen,
@@ -193,6 +198,7 @@ func main() {
 		SenderPrefs:     senderPrefRepo,
 		TokenUsage:      tokenUsageRepo,
 		Preferences:     preferenceRepo,
+		AnalysisRules:   analysisRuleRepo,
 		SSEBroker:       sseBroker,
 	}
 	emailHandler := &handler.EmailHandler{
@@ -298,6 +304,9 @@ func main() {
 	savedSearchHandler := &handler.SavedSearchHandler{
 		SavedSearches: savedSearchRepo,
 	}
+	analysisRuleHandler := &handler.AnalysisRuleHandler{
+		AnalysisRules: analysisRuleRepo,
+	}
 	weeklySummaryRepo := database.NewWeeklySummaryRepo(pool)
 	weeklySummaryHandler := &handler.WeeklySummaryHandler{
 		Summaries: weeklySummaryRepo,
@@ -355,6 +364,7 @@ func main() {
 		AutoArchiveHandler:   autoArchiveHandler,
 		LabelHandler:         labelHandler,
 		SavedSearchHandler:       savedSearchHandler,
+		AnalysisRuleHandler:      analysisRuleHandler,
 		WeeklySummaryHandler:     weeklySummaryHandler,
 		EventsHandler:            &handler.EventsHandler{Broker: sseBroker},
 		UserRateLimiter:      server.NewUserRateLimiter(5, 20), // 5 req/s, 20 burst per user

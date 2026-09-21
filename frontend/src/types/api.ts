@@ -366,6 +366,14 @@ export interface AutoArchiveRule {
   UpdatedAt: string;
 }
 
+export interface AnalysisRule {
+  ID: string;
+  Rule: string;
+  IsActive: boolean;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
 export interface FailedEmail extends Email {
   UserEmail: string;
 }

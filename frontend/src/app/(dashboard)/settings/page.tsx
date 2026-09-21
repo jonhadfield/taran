@@ -20,6 +20,7 @@ import { DigestDeliverySettings } from "./digest-delivery-settings";
 import { InboxDisplaySettings } from "./inbox-display-settings";
 import { DigestStyleSettings } from "./digest-style-settings";
 import { KeywordPreferencesSettings } from "./keyword-preferences-settings";
+import { AnalysisRulesSettings } from "./analysis-rules-settings";
 import { DigestCategoriesSettings } from "./digest-categories-settings";
 import { UsageStatsCard } from "./usage-stats";
 import { ApiKeysSettings } from "./api-keys-settings";
@@ -66,6 +67,7 @@ const SECTIONS: SettingsSection[] = [
   { id: "digest-style", label: "Digest Style", group: "Digest" },
   { id: "categories", label: "Categories", group: "Digest" },
   { id: "keywords", label: "Keywords", group: "Digest" },
+  { id: "analysis-rules", label: "Analysis Rules", group: "Digest" },
   { id: "inbox", label: "Inbox", group: "Organisation" },
   { id: "labels", label: "Labels", group: "Organisation" },
   { id: "auto-archive", label: "Auto-Archive", group: "Organisation" },
@@ -310,6 +312,10 @@ export default function SettingsPage() {
             onInterestKeywordsChange={(keywords) => handlePrefChange({ InterestKeywords: keywords })}
             onExclusionKeywordsChange={(keywords) => handlePrefChange({ ExclusionKeywords: keywords })}
           />
+        </section>
+
+        <section id="analysis-rules" className="scroll-mt-24">
+          <AnalysisRulesSettings />
         </section>
 
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-4">Organisation</h2>

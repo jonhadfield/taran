@@ -18,6 +18,8 @@ func NewExtractionRepo(pool *pgxpool.Pool) *ExtractionRepo {
 	return &ExtractionRepo{pool: pool}
 }
 
+// Create stores an email's extraction, replacing any existing one: an email
+// has at most one extraction, and re-analysis overwrites it in place.
 func (r *ExtractionRepo) Create(ctx context.Context, extraction *domain.Extraction) error {
 	keyPoints, _ := json.Marshal(extraction.KeyPoints)
 	topics, _ := json.Marshal(extraction.Topics)
@@ -26,7 +28,13 @@ func (r *ExtractionRepo) Create(ctx context.Context, extraction *domain.Extracti
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO extraction (id, email_id, summary, key_points, topics, links,
 		    sentiment, source_category, provider, model, tokens_used, processed_at, created_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+		 ON CONFLICT (email_id) DO UPDATE SET
+		    summary = EXCLUDED.summary, key_points = EXCLUDED.key_points,
+		    topics = EXCLUDED.topics, links = EXCLUDED.links,
+		    sentiment = EXCLUDED.sentiment, source_category = EXCLUDED.source_category,
+		    provider = EXCLUDED.provider, model = EXCLUDED.model,
+		    tokens_used = EXCLUDED.tokens_used, processed_at = EXCLUDED.processed_at`,
 		extraction.ID, extraction.EmailID, extraction.Summary,
 		keyPoints, topics, links,
 		extraction.Sentiment, extraction.SourceCategory,

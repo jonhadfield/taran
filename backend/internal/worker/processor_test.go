@@ -30,7 +30,7 @@ func TestProcessor_ProcessEmail_Success(t *testing.T) {
 	provider := &testutil.MockProvider{
 		NameVal:  "test",
 		ModelVal: "test-model",
-		ExtractEmailFn: func(_ context.Context, subject, content, from string) (*llm.ExtractionResult, *llm.Usage, error) {
+		ExtractEmailFn: func(_ context.Context, subject, content, from string, _ *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
 			return &llm.ExtractionResult{Summary: "Extracted"}, &llm.Usage{TotalTokens: 50}, nil
 		},
 	}
@@ -66,7 +66,7 @@ func TestProcessor_ProcessEmail_LLMError(t *testing.T) {
 		},
 	}
 	provider := &testutil.MockProvider{
-		ExtractEmailFn: func(_ context.Context, _, _, _ string) (*llm.ExtractionResult, *llm.Usage, error) {
+		ExtractEmailFn: func(_ context.Context, _, _, _ string, _ *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
 			return nil, nil, fmt.Errorf("LLM unavailable")
 		},
 	}
@@ -134,7 +134,7 @@ func TestProcessor_ProcessEmail_HTMLFallback(t *testing.T) {
 		},
 	}
 	provider := &testutil.MockProvider{
-		ExtractEmailFn: func(_ context.Context, _, content, _ string) (*llm.ExtractionResult, *llm.Usage, error) {
+		ExtractEmailFn: func(_ context.Context, _, content, _ string, _ *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
 			gotContent = content
 			return &llm.ExtractionResult{Summary: "test"}, &llm.Usage{TotalTokens: 10}, nil
 		},
@@ -202,7 +202,7 @@ func TestProcessor_ProcessEmail_TriageSkips(t *testing.T) {
 		TriageEmailFn: func(_ context.Context, _, _, _ string) (*llm.TriageResult, *llm.Usage, error) {
 			return &llm.TriageResult{Extract: false, Reason: "subscription confirmation"}, &llm.Usage{TotalTokens: 5}, nil
 		},
-		ExtractEmailFn: func(_ context.Context, _, _, _ string) (*llm.ExtractionResult, *llm.Usage, error) {
+		ExtractEmailFn: func(_ context.Context, _, _, _ string, _ *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
 			extractCalled = true
 			return &llm.ExtractionResult{Summary: "test"}, &llm.Usage{TotalTokens: 10}, nil
 		},
@@ -250,7 +250,7 @@ func TestProcessor_ProcessEmail_TriageFailsOpen(t *testing.T) {
 		TriageEmailFn: func(_ context.Context, _, _, _ string) (*llm.TriageResult, *llm.Usage, error) {
 			return nil, nil, fmt.Errorf("triage API error")
 		},
-		ExtractEmailFn: func(_ context.Context, _, _, _ string) (*llm.ExtractionResult, *llm.Usage, error) {
+		ExtractEmailFn: func(_ context.Context, _, _, _ string, _ *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
 			extractCalled = true
 			return &llm.ExtractionResult{Summary: "Extracted"}, &llm.Usage{TotalTokens: 50}, nil
 		},
@@ -285,7 +285,7 @@ func TestProcessor_ConcurrentProcessing(t *testing.T) {
 		},
 	}
 	provider := &testutil.MockProvider{
-		ExtractEmailFn: func(_ context.Context, _, _, _ string) (*llm.ExtractionResult, *llm.Usage, error) {
+		ExtractEmailFn: func(_ context.Context, _, _, _ string, _ *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
 			time.Sleep(10 * time.Millisecond)
 			processedCount.Add(1)
 			return &llm.ExtractionResult{Summary: "test"}, &llm.Usage{TotalTokens: 10}, nil
@@ -303,5 +303,137 @@ func TestProcessor_ConcurrentProcessing(t *testing.T) {
 
 	if got := processedCount.Load(); got != 6 {
 		t.Errorf("processed %d emails, want 6", got)
+	}
+}
+
+func TestProcessEmail_PassesAnalysisRulesToExtraction(t *testing.T) {
+	tests := []struct {
+		name      string
+		rulesFn   func(context.Context, string) ([]string, error)
+		wantRules []string
+	}{
+		{"active rules", func(_ context.Context, userID string) ([]string, error) {
+			if userID != "user-1" {
+				t.Errorf("rules loaded for %q, want user-1", userID)
+			}
+			return []string{"More detail on Bitcoin"}, nil
+		}, []string{"More detail on Bitcoin"}},
+		{"no rules", func(context.Context, string) ([]string, error) { return nil, nil }, nil},
+		{"lookup error still extracts", func(context.Context, string) ([]string, error) {
+			return nil, fmt.Errorf("db down")
+		}, nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			emails := &testutil.MockEmailRepo{
+				GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+					return &domain.Email{ID: id, UserID: "user-1", TextBody: "content"}, nil
+				},
+			}
+			var gotOpts *llm.ExtractOptions
+			extracted := false
+			provider := &testutil.MockProvider{
+				ExtractEmailFn: func(_ context.Context, _, _, _ string, opts *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
+					extracted = true
+					gotOpts = opts
+					return &llm.ExtractionResult{Summary: "s"}, &llm.Usage{TotalTokens: 1}, nil
+				},
+			}
+
+			ProcessEmail(context.Background(), ProcessEmailParams{
+				EmailID:       "email-1",
+				Emails:        emails,
+				Extractions:   &testutil.MockExtractionRepo{},
+				Resolver:      llm.NewProviderResolver(provider, nil, nil, nil),
+				AnalysisRules: &testutil.MockAnalysisRuleRepo{ListActiveRulesFn: tt.rulesFn},
+			})
+
+			if !extracted {
+				t.Fatal("extraction did not run")
+			}
+			var gotRules []string
+			if gotOpts != nil {
+				gotRules = gotOpts.Rules
+			}
+			if fmt.Sprint(gotRules) != fmt.Sprint(tt.wantRules) {
+				t.Errorf("rules = %v, want %v", gotRules, tt.wantRules)
+			}
+		})
+	}
+}
+
+func TestProcessEmail_ReanalysisSkipsTriageAndReplacesExtraction(t *testing.T) {
+	emails := &testutil.MockEmailRepo{
+		GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+			return &domain.Email{ID: id, UserID: "user-1", TextBody: "content"}, nil
+		},
+	}
+	var stored *domain.Extraction
+	extractions := &testutil.MockExtractionRepo{
+		GetByEmailIDFn: func(_ context.Context, emailID string) (*domain.Extraction, error) {
+			return &domain.Extraction{EmailID: emailID, Summary: "old"}, nil
+		},
+		CreateFn: func(_ context.Context, e *domain.Extraction) error {
+			stored = e
+			return nil
+		},
+	}
+	provider := &testutil.MockProvider{
+		TriageEmailFn: func(context.Context, string, string, string) (*llm.TriageResult, *llm.Usage, error) {
+			t.Error("triage must not run when re-analysing")
+			return &llm.TriageResult{Extract: false}, nil, nil
+		},
+		ExtractEmailFn: func(_ context.Context, _, _, _ string, _ *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
+			return &llm.ExtractionResult{Summary: "new"}, &llm.Usage{TotalTokens: 1}, nil
+		},
+	}
+
+	ProcessEmail(context.Background(), ProcessEmailParams{
+		EmailID:     "email-1",
+		Emails:      emails,
+		Extractions: extractions,
+		Resolver:    llm.NewProviderResolver(provider, nil, nil, nil),
+	})
+
+	if stored == nil || stored.Summary != "new" {
+		t.Fatalf("stored extraction = %+v, want new summary", stored)
+	}
+	last := emails.SetStatusCalls[len(emails.SetStatusCalls)-1]
+	if last.Status != domain.EmailStatusProcessed {
+		t.Errorf("final status = %q, want processed", last.Status)
+	}
+}
+
+func TestProcessEmail_ReanalysisFailureKeepsPreviousSummary(t *testing.T) {
+	emails := &testutil.MockEmailRepo{
+		GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+			return &domain.Email{ID: id, UserID: "user-1", TextBody: "content"}, nil
+		},
+	}
+	extractions := &testutil.MockExtractionRepo{
+		GetByEmailIDFn: func(_ context.Context, emailID string) (*domain.Extraction, error) {
+			return &domain.Extraction{EmailID: emailID, Summary: "old"}, nil
+		},
+		CreateFn: func(context.Context, *domain.Extraction) error {
+			t.Error("a failed re-analysis must not overwrite the extraction")
+			return nil
+		},
+	}
+	provider := &testutil.MockProvider{
+		ExtractEmailFn: func(_ context.Context, _, _, _ string, _ *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
+			return nil, nil, fmt.Errorf("LLM unavailable")
+		},
+	}
+
+	ProcessEmail(context.Background(), ProcessEmailParams{
+		EmailID:     "email-1",
+		Emails:      emails,
+		Extractions: extractions,
+		Resolver:    llm.NewProviderResolver(provider, nil, nil, nil),
+	})
+
+	last := emails.SetStatusCalls[len(emails.SetStatusCalls)-1]
+	if last.Status != domain.EmailStatusProcessed || last.Reason != "" {
+		t.Errorf("final status = {%q, %q}, want processed with no reason", last.Status, last.Reason)
 	}
 }
