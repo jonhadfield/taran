@@ -79,6 +79,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("PATCH /api/emails/{id}", deps.EmailHandler.UpdateState)
 	api.HandleFunc("DELETE /api/emails/{id}", deps.EmailHandler.Delete)
 	api.HandleFunc("POST /api/emails/{id}/reprocess", deps.EmailHandler.Reprocess)
+	api.HandleFunc("POST /api/emails/reanalyse", deps.EmailHandler.Reanalyse)
 	api.HandleFunc("POST /api/emails/{id}/unsubscribe", deps.EmailHandler.Unsubscribe)
 	api.HandleFunc("GET /api/emails/{id}/thread", deps.EmailHandler.GetThread)
 	api.HandleFunc("GET /api/subscriptions", deps.EmailHandler.ListSubscriptions)

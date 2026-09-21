@@ -14,7 +14,7 @@ vi.mock("@/lib/api", async () => {
   };
 });
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), loading: vi.fn(() => "t1") } }));
 
 import { apiGet, apiPost, apiPatch, apiDelete, ApiError } from "@/lib/api";
 import { toast } from "sonner";
@@ -121,5 +121,35 @@ describe("AnalysisRulesSettings", () => {
 
     expect(await screen.findByRole("button", { name: /Add rule/ })).toBeDisabled();
     expect(screen.getByText("20/20 rules")).toBeInTheDocument();
+  });
+});
+
+describe("AnalysisRulesSettings: apply to recent emails", () => {
+  it("is hidden when there are no rules", async () => {
+    mockGet.mockResolvedValue([]);
+    render(<AnalysisRulesSettings />);
+    await screen.findByText(/No rules yet/);
+    expect(screen.queryByRole("button", { name: /Apply to recent emails/ })).not.toBeInTheDocument();
+  });
+
+  it("re-analyses emails from the chosen period", async () => {
+    mockGet.mockResolvedValue([rule("r1", "Rule one")]);
+    mockPost.mockResolvedValue({ queued: 50, matched: 73 });
+    render(<AnalysisRulesSettings />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Apply to recent emails/ }));
+    fireEvent.change(screen.getByLabelText("Emails received in the last"), {
+      target: { value: "30" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Re-analyse" }));
+
+    await waitFor(() =>
+      expect(mockPost).toHaveBeenCalledWith("emails/reanalyse", { Days: 30 }),
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "Re-analysing 50 emails (the 50 most recent of 73). Summaries update as each one finishes.",
+      ),
+    );
   });
 });

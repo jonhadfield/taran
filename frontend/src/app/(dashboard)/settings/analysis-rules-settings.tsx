@@ -14,13 +14,25 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { NativeSelect } from "@/components/ui/native-select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Pencil, Trash2, Plus, RefreshCw } from "lucide-react";
 import type { AnalysisRule } from "@/types/api";
 import {
   ANALYSIS_RULE_EXAMPLES,
   MAX_ANALYSIS_RULES,
   MAX_ANALYSIS_RULE_LENGTH,
+  MAX_REANALYSE_EMAILS,
+  REANALYSE_DAY_OPTIONS,
 } from "@/lib/analysis-rules";
+import { pluralize } from "@/lib/utils";
 
 function errorMessage(err: unknown, fallback: string) {
   return err instanceof ApiError && err.status === 400 ? err.message : fallback;
@@ -34,6 +46,9 @@ export function AnalysisRulesSettings() {
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [showApply, setShowApply] = useState(false);
+  const [applyDays, setApplyDays] = useState(7);
+  const [applying, setApplying] = useState(false);
 
   useEffect(() => {
     apiGet<AnalysisRule[]>("analysis-rules")
@@ -99,13 +114,38 @@ export function AnalysisRulesSettings() {
     }
   };
 
+  const handleApply = async () => {
+    setApplying(true);
+    try {
+      const { queued, matched } = await apiPost<{ queued: number; matched: number }>(
+        "emails/reanalyse",
+        { Days: applyDays },
+      );
+      setShowApply(false);
+      if (queued === 0) {
+        toast.info("No processed emails in that period");
+      } else {
+        const more =
+          matched > queued ? ` (the ${queued} most recent of ${matched})` : "";
+        toast.success(
+          `Re-analysing ${queued} ${pluralize(queued, "email")}${more}. Summaries update as each one finishes.`,
+        );
+      }
+    } catch (err) {
+      toast.error(errorMessage(err, "Failed to start re-analysis"));
+    } finally {
+      setApplying(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Analysis Rules</CardTitle>
         <CardDescription>
           Tell the AI how to analyse your emails. Rules apply to newly received
-          emails and to your digests.
+          emails and to your digests, and you can apply them to emails you
+          have already received.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -247,6 +287,17 @@ export function AnalysisRulesSettings() {
                   <Plus className="size-3.5" />
                   Add rule
                 </Button>
+                {rules.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowApply(true)}
+                    className="gap-1.5"
+                  >
+                    <RefreshCw className="size-3.5" />
+                    Apply to recent emails
+                  </Button>
+                )}
                 <span className="text-xs text-muted-foreground">
                   {rules.length}/{MAX_ANALYSIS_RULES} rules
                 </span>
@@ -255,6 +306,43 @@ export function AnalysisRulesSettings() {
           </>
         )}
       </CardContent>
+
+      <Dialog open={showApply} onOpenChange={setShowApply}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apply rules to recent emails</DialogTitle>
+            <DialogDescription>
+              Re-analyse your processed emails with your current rules. Up to{" "}
+              {MAX_REANALYSE_EMAILS} of the most
+              recent emails are re-analysed, which uses AI tokens. If an email
+              can&apos;t be re-analysed, its previous summary is kept.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reanalyse-days">Emails received in the last</Label>
+            <NativeSelect
+              id="reanalyse-days"
+              value={String(applyDays)}
+              onChange={(e) => setApplyDays(Number(e.target.value))}
+              wrapperClassName="w-full"
+            >
+              {REANALYSE_DAY_OPTIONS.map((days) => (
+                <option key={days} value={days}>
+                  {days} {pluralize(days, "day")}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowApply(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleApply} disabled={applying}>
+              Re-analyse
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

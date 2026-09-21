@@ -11,6 +11,7 @@ import { EmailActions } from "./actions";
 import { EmailLabels } from "./email-labels";
 import { FeedbackButtons } from "./feedback-buttons";
 import { AddRuleButton } from "./add-rule-button";
+import { ReanalyseButton } from "./reanalyse-button";
 import { ReprocessButton } from "./reprocess-button";
 import { UnsubscribeButton } from "./unsubscribe-button";
 import { EmailThread } from "./email-thread";
@@ -109,8 +110,16 @@ export default async function EmailDetailPage({
                 <Sparkles className="size-5 text-info" />
                 AI Summary
               </CardTitle>
-              <CardAction>
+              <CardAction className="flex flex-wrap items-center gap-1">
+                {email.Status === "processed" && (
+                  <ReanalyseButton
+                    emailId={id}
+                    processedAt={email.Extraction.ProcessedAt}
+                  />
+                )}
                 <AddRuleButton
+                  emailId={id}
+                  processedAt={email.Extraction.ProcessedAt}
                   topics={email.Extraction.Topics ?? []}
                   senderName={email.FromName || email.FromAddress}
                 />

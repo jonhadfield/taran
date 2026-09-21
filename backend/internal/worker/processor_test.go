@@ -361,3 +361,79 @@ func TestProcessEmail_PassesAnalysisRulesToExtraction(t *testing.T) {
 		})
 	}
 }
+
+func TestProcessEmail_ReanalysisSkipsTriageAndReplacesExtraction(t *testing.T) {
+	emails := &testutil.MockEmailRepo{
+		GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+			return &domain.Email{ID: id, UserID: "user-1", TextBody: "content"}, nil
+		},
+	}
+	var stored *domain.Extraction
+	extractions := &testutil.MockExtractionRepo{
+		GetByEmailIDFn: func(_ context.Context, emailID string) (*domain.Extraction, error) {
+			return &domain.Extraction{EmailID: emailID, Summary: "old"}, nil
+		},
+		CreateFn: func(_ context.Context, e *domain.Extraction) error {
+			stored = e
+			return nil
+		},
+	}
+	provider := &testutil.MockProvider{
+		TriageEmailFn: func(context.Context, string, string, string) (*llm.TriageResult, *llm.Usage, error) {
+			t.Error("triage must not run when re-analysing")
+			return &llm.TriageResult{Extract: false}, nil, nil
+		},
+		ExtractEmailFn: func(_ context.Context, _, _, _ string, _ *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
+			return &llm.ExtractionResult{Summary: "new"}, &llm.Usage{TotalTokens: 1}, nil
+		},
+	}
+
+	ProcessEmail(context.Background(), ProcessEmailParams{
+		EmailID:     "email-1",
+		Emails:      emails,
+		Extractions: extractions,
+		Resolver:    llm.NewProviderResolver(provider, nil, nil, nil),
+	})
+
+	if stored == nil || stored.Summary != "new" {
+		t.Fatalf("stored extraction = %+v, want new summary", stored)
+	}
+	last := emails.SetStatusCalls[len(emails.SetStatusCalls)-1]
+	if last.Status != domain.EmailStatusProcessed {
+		t.Errorf("final status = %q, want processed", last.Status)
+	}
+}
+
+func TestProcessEmail_ReanalysisFailureKeepsPreviousSummary(t *testing.T) {
+	emails := &testutil.MockEmailRepo{
+		GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+			return &domain.Email{ID: id, UserID: "user-1", TextBody: "content"}, nil
+		},
+	}
+	extractions := &testutil.MockExtractionRepo{
+		GetByEmailIDFn: func(_ context.Context, emailID string) (*domain.Extraction, error) {
+			return &domain.Extraction{EmailID: emailID, Summary: "old"}, nil
+		},
+		CreateFn: func(context.Context, *domain.Extraction) error {
+			t.Error("a failed re-analysis must not overwrite the extraction")
+			return nil
+		},
+	}
+	provider := &testutil.MockProvider{
+		ExtractEmailFn: func(_ context.Context, _, _, _ string, _ *llm.ExtractOptions) (*llm.ExtractionResult, *llm.Usage, error) {
+			return nil, nil, fmt.Errorf("LLM unavailable")
+		},
+	}
+
+	ProcessEmail(context.Background(), ProcessEmailParams{
+		EmailID:     "email-1",
+		Emails:      emails,
+		Extractions: extractions,
+		Resolver:    llm.NewProviderResolver(provider, nil, nil, nil),
+	})
+
+	last := emails.SetStatusCalls[len(emails.SetStatusCalls)-1]
+	if last.Status != domain.EmailStatusProcessed || last.Reason != "" {
+		t.Errorf("final status = {%q, %q}, want processed with no reason", last.Status, last.Reason)
+	}
+}

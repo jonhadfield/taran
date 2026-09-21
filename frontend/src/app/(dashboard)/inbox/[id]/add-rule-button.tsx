@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Wand2 } from "lucide-react";
 import type { AnalysisRule } from "@/types/api";
 import { MAX_ANALYSIS_RULE_LENGTH } from "@/lib/analysis-rules";
+import { reanalyseEmail, reanalysisMessage } from "@/lib/reanalyse";
 
 /** Builds an editable starting point for a rule from what the AI found in an email. */
 export function suggestRule(topics: string[], senderName: string): string {
@@ -35,20 +36,26 @@ export function suggestRule(topics: string[], senderName: string): string {
 }
 
 export function AddRuleButton({
+  emailId,
+  processedAt,
   topics,
   senderName,
 }: {
+  emailId: string;
+  processedAt: string;
   topics: string[];
   senderName: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [rule, setRule] = useState("");
+  const [reanalyse, setReanalyse] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const handleOpenChange = (next: boolean) => {
     if (next) {
       setRule(suggestRule(topics, senderName).slice(0, MAX_ANALYSIS_RULE_LENGTH));
+      setReanalyse(true);
     }
     setOpen(next);
   };
@@ -57,21 +64,37 @@ export function AddRuleButton({
     setSaving(true);
     try {
       await apiPost<AnalysisRule[]>("analysis-rules", { Rule: rule.trim() });
-      setOpen(false);
-      toast.success("Analysis rule added", {
-        action: {
-          label: "Manage rules",
-          onClick: () => router.push("/settings#analysis-rules"),
-        },
-      });
     } catch (err) {
       toast.error(
         err instanceof ApiError && err.status === 400
           ? err.message
           : "Failed to save rule",
       );
-    } finally {
       setSaving(false);
+      return;
+    }
+
+    setOpen(false);
+    setSaving(false);
+    toast.success("Analysis rule added", {
+      action: {
+        label: "Manage rules",
+        onClick: () => router.push("/settings#analysis-rules"),
+      },
+    });
+    if (!reanalyse) return;
+
+    const pending = toast.loading("Re-analysing this email with your rules...");
+    try {
+      const { ok, text } = reanalysisMessage(await reanalyseEmail(emailId, processedAt));
+      if (ok) {
+        toast.success(text, { id: pending });
+      } else {
+        toast.error(text, { id: pending });
+      }
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to re-analyse", { id: pending });
     }
   };
 
@@ -92,7 +115,8 @@ export function AddRuleButton({
             <DialogTitle>Add analysis rule</DialogTitle>
             <DialogDescription>
               Tell the AI how to handle emails like this one. The rule applies
-              to future emails and digests.
+              to future emails and digests, and you can re-analyse existing
+              emails with it.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1">
@@ -107,6 +131,15 @@ export function AddRuleButton({
               {rule.length}/{MAX_ANALYSIS_RULE_LENGTH}
             </p>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={reanalyse}
+              onChange={(e) => setReanalyse(e.target.checked)}
+              className="size-4 accent-primary"
+            />
+            Re-analyse this email now with the new rule
+          </label>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>
               Cancel

@@ -6,3 +6,7 @@ export const ANALYSIS_RULE_EXAMPLES = [
   "Keep sports newsletters to a single-sentence summary",
   "Always call out deadlines and dates I need to act on",
 ];
+
+// Mirrors the backend cap in handler/email.go (maxReanalyseEmails).
+export const MAX_REANALYSE_EMAILS = 50;
+export const REANALYSE_DAY_OPTIONS = [1, 7, 30];
