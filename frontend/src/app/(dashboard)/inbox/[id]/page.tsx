@@ -1,5 +1,5 @@
 import { serverFetch } from "@/lib/server-api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { EmailResponse } from "@/types/api";
@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import { EmailActions } from "./actions";
 import { EmailLabels } from "./email-labels";
 import { FeedbackButtons } from "./feedback-buttons";
+import { AddRuleButton } from "./add-rule-button";
 import { ReprocessButton } from "./reprocess-button";
 import { UnsubscribeButton } from "./unsubscribe-button";
 import { EmailThread } from "./email-thread";
@@ -108,6 +109,12 @@ export default async function EmailDetailPage({
                 <Sparkles className="size-5 text-info" />
                 AI Summary
               </CardTitle>
+              <CardAction>
+                <AddRuleButton
+                  topics={email.Extraction.Topics ?? []}
+                  senderName={email.FromName || email.FromAddress}
+                />
+              </CardAction>
             </CardHeader>
             <CardContent>
               <ExtractionSummary extraction={email.Extraction} />
