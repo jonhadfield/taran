@@ -1,13 +1,22 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 
+	"github.com/hadfielj/taran/backend/internal/auth"
 	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/domain"
 )
+
+// AppSettings reads and writes app-wide settings.
+type AppSettings interface {
+	GetBool(ctx context.Context, key string, fallback bool) (bool, error)
+	GetInt(ctx context.Context, key string, fallback int) (int, error)
+	Set(ctx context.Context, key, value string) error
+}
 
 type AdminStatsHandler struct {
 	AdminStats  *database.AdminStatsRepo
@@ -15,8 +24,9 @@ type AdminStatsHandler struct {
 	LLMModel    string
 	TokenUsage  database.TokenUsageRepository
 	Preferences database.PreferenceRepository
-	AppSettings *database.AppSettingRepo
+	AppSettings AppSettings
 	AuditLog    *database.AuditRepo
+	Invites     database.InviteRepository // counts open-registration sign-ups
 }
 
 func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -166,6 +176,51 @@ func (h *AdminStatsHandler) SetWaitlistEnabled(w http.ResponseWriter, r *http.Re
 		"status":          "updated",
 		"WaitlistEnabled": req.WaitlistEnabled,
 	})
+}
+
+// GetOpenRegistration reports whether open registration is on and how many
+// users have got in through it so far.
+func (h *AdminStatsHandler) GetOpenRegistration(w http.ResponseWriter, r *http.Request) {
+	h.writeOpenRegistration(w, r)
+}
+
+func (h *AdminStatsHandler) SetOpenRegistration(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		OpenRegistration *bool `json:"OpenRegistration"`
+	}
+	if err := LimitedJSONDecoder(r).Decode(&req); err != nil || req.OpenRegistration == nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	value := "false"
+	if *req.OpenRegistration {
+		value = "true"
+	}
+	if err := h.AppSettings.Set(r.Context(), auth.OpenRegistrationSetting, value); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to update open registration setting")
+		return
+	}
+	// The audit middleware records who made the change; log the new value.
+	slog.Info("open registration changed", "enabled", *req.OpenRegistration)
+
+	h.writeOpenRegistration(w, r)
+}
+
+func (h *AdminStatsHandler) writeOpenRegistration(w http.ResponseWriter, r *http.Request) {
+	enabled, err := h.AppSettings.GetBool(r.Context(), auth.OpenRegistrationSetting, false)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to read open registration setting")
+		return
+	}
+	signups := 0
+	if h.Invites != nil {
+		if signups, err = h.Invites.CountByInviter(r.Context(), auth.OpenRegistrationInviter); err != nil {
+			WriteError(w, http.StatusInternalServerError, "failed to count open registration sign-ups")
+			return
+		}
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"openRegistration": enabled, "signups": signups})
 }
 
 func (h *AdminStatsHandler) GetAuditLog(w http.ResponseWriter, r *http.Request) {

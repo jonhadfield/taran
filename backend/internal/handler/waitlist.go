@@ -21,14 +21,16 @@ type WaitlistHandler struct {
 	AppSettings  *database.AppSettingRepo
 }
 
-// Status returns whether the waitlist is open for requests.
+// Status returns whether the waitlist is open for requests and whether open
+// registration is on, so the login page can describe how to get access.
 // This endpoint is public (no auth required).
 func (h *WaitlistHandler) Status(w http.ResponseWriter, r *http.Request) {
-	enabled := false
+	enabled, open := false, false
 	if h.AppSettings != nil {
 		enabled, _ = h.AppSettings.GetBool(r.Context(), "waitlist_enabled", false)
+		open, _ = h.AppSettings.GetBool(r.Context(), auth.OpenRegistrationSetting, false)
 	}
-	WriteJSON(w, http.StatusOK, map[string]bool{"waitlistEnabled": enabled})
+	WriteJSON(w, http.StatusOK, map[string]bool{"waitlistEnabled": enabled, "openRegistration": open})
 }
 
 func (h *WaitlistHandler) Submit(w http.ResponseWriter, r *http.Request) {

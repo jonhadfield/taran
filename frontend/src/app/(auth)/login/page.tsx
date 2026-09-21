@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 import { GitHubIcon } from "@/components/github-icon";
@@ -8,6 +9,18 @@ import { Button } from "@/components/ui/button";
 import { SHOW_MARKETING } from "@/lib/config";
 
 export default function LoginPage() {
+  // null until known, so the access note doesn't flash the wrong message.
+  const [openRegistration, setOpenRegistration] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/waitlist-status")
+      .then((res) => res.json())
+      .then((data: { openRegistration?: boolean }) =>
+        setOpenRegistration(data.openRegistration === true),
+      )
+      .catch(() => setOpenRegistration(false));
+  }, []);
+
   return (
     <PublicShell>
       {SHOW_MARKETING && (
@@ -41,8 +54,11 @@ export default function LoginPage() {
           <GitHubIcon className="mr-2 size-4" />
           Continue with GitHub
         </Button>
-        <p className="text-center text-sm text-muted-foreground">
-          Invite-only — sign in to join the waitlist if you need access
+        <p className="min-h-5 text-center text-sm text-muted-foreground">
+          {openRegistration === true &&
+            "Open for sign-ups: continue with Google or GitHub to create your account"}
+          {openRegistration === false &&
+            "Invite-only — sign in to join the waitlist if you need access"}
         </p>
       </section>
 
