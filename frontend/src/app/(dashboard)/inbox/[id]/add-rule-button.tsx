@@ -105,9 +105,12 @@ export function AddRuleButton({
         size="sm"
         className="gap-1.5 text-muted-foreground"
         onClick={() => handleOpenChange(true)}
+        aria-label="Add analysis rule"
+        title="Add analysis rule"
       >
         <Wand2 className="size-4" />
-        Add analysis rule
+        {/* Icon-only on narrow screens so the card title keeps its line */}
+        <span className="hidden sm:inline">Add analysis rule</span>
       </Button>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent>

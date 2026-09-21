@@ -36,6 +36,8 @@ export function ReanalyseButton({
     }
   }
 
+  const label = busy ? "Re-analysing..." : "Re-analyse";
+
   return (
     <Button
       variant="ghost"
@@ -43,9 +45,12 @@ export function ReanalyseButton({
       className="gap-1.5 text-muted-foreground"
       onClick={handleClick}
       disabled={busy}
+      aria-label={label}
+      title={label}
     >
       <RefreshCw className={`size-4 ${busy ? "animate-spin" : ""}`} />
-      {busy ? "Re-analysing..." : "Re-analyse"}
+      {/* Icon-only on narrow screens so the card title keeps its line */}
+      <span className="hidden sm:inline">{label}</span>
     </Button>
   );
 }
