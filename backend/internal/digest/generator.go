@@ -36,6 +36,8 @@ type Generator struct {
 	Feedback    database.FeedbackRepository
 	Preferences database.PreferenceRepository
 	TokenUsage  database.TokenUsageRepository
+	// AnalysisRules supplies the user's rules for the digest prompt; nil disables them.
+	AnalysisRules database.AnalysisRuleRepository
 }
 
 // filteredResult holds the output of the shared filtering pipeline.
@@ -204,6 +206,20 @@ func (g *Generator) filterExtractions(ctx context.Context, userID string, period
 
 			digestOpts.InterestKeywords = pref.InterestKeywords
 			digestOpts.ExclusionKeywords = pref.ExclusionKeywords
+		}
+	}
+
+	// Attach the user's analysis rules. A lookup failure only loses the
+	// customisation, so the digest is still generated.
+	if g.AnalysisRules != nil {
+		rules, err := g.AnalysisRules.ListActiveRules(ctx, userID)
+		if err != nil {
+			slog.Warn("failed to load analysis rules for digest", "userID", userID, "error", err)
+		} else if len(rules) > 0 {
+			if digestOpts == nil {
+				digestOpts = &llm.DigestOptions{}
+			}
+			digestOpts.Rules = rules
 		}
 	}
 

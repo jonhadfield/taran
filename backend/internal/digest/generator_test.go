@@ -192,3 +192,41 @@ func TestGenerateForUser_ItemsSortOrder(t *testing.T) {
 		}
 	}
 }
+
+// Rules must reach the digest prompt even when no feedback or preferences
+// produced DigestOptions (applyFeedback can return nil).
+func TestGenerateForUser_PassesAnalysisRules(t *testing.T) {
+	var gotOpts *llm.DigestOptions
+	gen := &Generator{
+		Emails: &testutil.MockEmailRepo{
+			GetByIDInternalFn: func(_ context.Context, id string) (*domain.Email, error) {
+				return &domain.Email{ID: id}, nil
+			},
+		},
+		Extractions: &testutil.MockExtractionRepo{
+			ListByUserAndPeriodFn: func(_ context.Context, _ string, _, _ time.Time, _ ...string) ([]domain.Extraction, error) {
+				return []domain.Extraction{{ID: "ext-1", EmailID: "em-1", Summary: "Summary 1"}}, nil
+			},
+		},
+		Digests: &testutil.MockDigestRepo{},
+		AnalysisRules: &testutil.MockAnalysisRuleRepo{
+			ListActiveRulesFn: func(_ context.Context, _ string) ([]string, error) {
+				return []string{"More detail on ISAs"}, nil
+			},
+		},
+		Resolver: llm.NewProviderResolver(&testutil.MockProvider{
+			GenerateDigestFn: func(_ context.Context, _ []domain.Extraction, _ string, opts *llm.DigestOptions) (*llm.DigestSummary, *llm.Usage, error) {
+				gotOpts = opts
+				return &llm.DigestSummary{Title: "t"}, &llm.Usage{TotalTokens: 1}, nil
+			},
+		}, nil, nil, nil),
+	}
+
+	start := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	if _, err := gen.GenerateForUser(context.Background(), "user-1", "daily", start, start.Add(24*time.Hour)); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotOpts == nil || len(gotOpts.Rules) != 1 || gotOpts.Rules[0] != "More detail on ISAs" {
+		t.Errorf("digest options = %+v, want rules [More detail on ISAs]", gotOpts)
+	}
+}

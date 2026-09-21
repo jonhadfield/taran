@@ -36,12 +36,12 @@ func (f *FallbackProvider) TriageEmail(ctx context.Context, subject, fromAddress
 	return result, usage, err
 }
 
-func (f *FallbackProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
-	result, usage, err := f.primary.ExtractEmail(ctx, subject, content, fromAddress)
+func (f *FallbackProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string, opts *ExtractOptions) (*ExtractionResult, *Usage, error) {
+	result, usage, err := f.primary.ExtractEmail(ctx, subject, content, fromAddress, opts)
 	if err != nil && isTransient(err) {
 		slog.Warn("LLM primary failed, falling back to secondary",
 			"op", "extract", "primary", f.primary.Name(), "secondary", f.secondary.Name(), "error", err)
-		return f.secondary.ExtractEmail(ctx, subject, content, fromAddress)
+		return f.secondary.ExtractEmail(ctx, subject, content, fromAddress, opts)
 	}
 	return result, usage, err
 }

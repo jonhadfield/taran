@@ -46,8 +46,8 @@ func (p *OpenAIProvider) TriageEmail(ctx context.Context, subject, fromAddress, 
 	return triageEmail(ctx, p.call(100), "openai", subject, fromAddress, contentPreview)
 }
 
-func (p *OpenAIProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string) (*ExtractionResult, *Usage, error) {
-	return extractEmail(ctx, p.call(4096), "openai", subject, content, fromAddress)
+func (p *OpenAIProvider) ExtractEmail(ctx context.Context, subject, content, fromAddress string, opts *ExtractOptions) (*ExtractionResult, *Usage, error) {
+	return extractEmail(ctx, p.call(4096), "openai", subject, content, fromAddress, opts)
 }
 
 func (p *OpenAIProvider) GenerateDigest(ctx context.Context, extractions []domain.Extraction, periodType string, opts *DigestOptions) (*DigestSummary, *Usage, error) {

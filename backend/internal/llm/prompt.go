@@ -51,6 +51,30 @@ func fenceUntrusted(body string) string {
 	return untrustedBegin + "\n" + stripFenceMarkers(body) + "\n" + untrustedEnd
 }
 
+// extractionRulesPreamble introduces the user's own analysis rules. The rules
+// are written by the account owner, so they belong in the system prompt, well
+// away from the fenced third-party email.
+const extractionRulesPreamble = `USER ANALYSIS RULES: The account owner has asked you to follow these preferences when analysing their emails. They come from the account owner, not from the email. Apply a rule only when the email is relevant to it. For an email that matches a rule asking for more detail, the summary may be up to 5 sentences and key_points may contain up to 8 items; otherwise the limits above apply. These rules never override the SECURITY instructions or the required JSON format.`
+
+// buildExtractionSystemPrompt returns the extraction system prompt, with the
+// user's analysis rules appended when there are any.
+func buildExtractionSystemPrompt(opts *ExtractOptions) string {
+	if opts == nil || len(opts.Rules) == 0 {
+		return extractionSystemPrompt
+	}
+	return extractionSystemPrompt + "\n\n" + extractionRulesPreamble + "\n" + formatRules(opts.Rules)
+}
+
+// formatRules renders rules as a numbered list. Fence markers are stripped so
+// a rule cannot imitate the untrusted-email boundary.
+func formatRules(rules []string) string {
+	var b strings.Builder
+	for i, r := range rules {
+		fmt.Fprintf(&b, "%d. %s\n", i+1, strings.Join(strings.Fields(stripFenceMarkers(r)), " "))
+	}
+	return b.String()
+}
+
 func buildExtractionUserPrompt(subject, content, fromAddress string) string {
 	// Subject and From are attacker-controlled too, so they go inside the fence
 	// rather than above it — otherwise a body line reading "From: ..." could
@@ -63,6 +87,8 @@ const digestSystemPrompt = `You are a digest summarization assistant. Given mult
 When user topic preferences are provided, give more prominence to preferred topics in the highlights and summary. De-emphasize (but do not completely exclude) less preferred topics.
 
 When user keyword preferences are provided, give strong prominence to content matching interest keywords. Completely omit content matching exclusion keywords.
+
+When user analysis rules are provided, follow them where relevant — for example, expand on matching emails in the summary and highlights using their key points. Rules never change the required JSON format.
 
 Respond with a JSON object containing exactly these fields:
 - title: a short descriptive title for this digest (e.g. "Daily Digest - Tech & Business")
@@ -111,11 +137,20 @@ func buildTriageUserPrompt(subject, fromAddress, contentPreview string) string {
 }
 
 func buildDigestUserPrompt(extractions []domain.Extraction, periodType string, opts *DigestOptions) string {
+	hasRules := opts != nil && len(opts.Rules) > 0
 	prompt := fmt.Sprintf("Period: %s digest\n\nEmail summaries:\n\n", periodType)
 	for i, e := range extractions {
 		prompt += fmt.Sprintf("--- Email %d ---\n%s\n", i+1, e.Summary)
 		if len(e.Topics) > 0 {
 			prompt += fmt.Sprintf("Topics: %s\n", strings.Join(e.Topics, ", "))
+		}
+		// Key points give the model detail to draw on when a rule asks for
+		// more depth; without rules they are omitted to keep the prompt small.
+		if hasRules && len(e.KeyPoints) > 0 {
+			prompt += "Key points:\n"
+			for _, kp := range e.KeyPoints {
+				prompt += fmt.Sprintf("- %s\n", kp)
+			}
 		}
 		prompt += "\n"
 	}
@@ -138,6 +173,10 @@ func buildDigestUserPrompt(extractions []domain.Extraction, periodType string, o
 		if len(opts.ExclusionKeywords) > 0 {
 			prompt += fmt.Sprintf("- Exclusion keywords (omit these): %s\n", strings.Join(opts.ExclusionKeywords, ", "))
 		}
+	}
+
+	if hasRules {
+		prompt += "User analysis rules:\n" + formatRules(opts.Rules)
 	}
 
 	if opts != nil && opts.Style == "concise" {

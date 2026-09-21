@@ -35,6 +35,7 @@ type Processor struct {
 	senderPrefs database.SenderPreferenceRepository
 	tokenUsage  database.TokenUsageRepository
 	preferences database.PreferenceRepository
+	rules       database.AnalysisRuleRepository
 	wg          sync.WaitGroup
 	concurrency int
 
@@ -61,6 +62,8 @@ type ProcessorConfig struct {
 	SenderPrefs database.SenderPreferenceRepository
 	TokenUsage  database.TokenUsageRepository
 	Preferences database.PreferenceRepository
+	// AnalysisRules supplies the user's rules for the extraction prompt; nil disables them.
+	AnalysisRules database.AnalysisRuleRepository
 }
 
 func NewProcessor(cfg ProcessorConfig) *Processor {
@@ -73,6 +76,7 @@ func NewProcessor(cfg ProcessorConfig) *Processor {
 		senderPrefs: cfg.SenderPrefs,
 		tokenUsage:  cfg.TokenUsage,
 		preferences: cfg.Preferences,
+		rules:       cfg.AnalysisRules,
 		concurrency: cfg.Concurrency,
 	}
 }
@@ -210,8 +214,9 @@ func (p *Processor) processEmail(ctx context.Context, emailID string) {
 		Resolver:    p.resolver,
 		SenderPrefs: p.senderPrefs,
 		TokenUsage:  p.tokenUsage,
-		Preferences: p.preferences,
-		Broker:      p.SSEBroker,
+		Preferences:   p.preferences,
+		AnalysisRules: p.rules,
+		Broker:        p.SSEBroker,
 	})
 
 	// Check token warning after processing (best-effort, non-blocking)
@@ -232,7 +237,9 @@ type ProcessEmailParams struct {
 	SenderPrefs database.SenderPreferenceRepository
 	TokenUsage  database.TokenUsageRepository
 	Preferences database.PreferenceRepository
-	Broker      *sse.Broker
+	// AnalysisRules supplies the user's rules for the extraction prompt; nil disables them.
+	AnalysisRules database.AnalysisRuleRepository
+	Broker        *sse.Broker
 }
 
 // ProcessEmail runs LLM extraction on a single email. It can be called
@@ -344,11 +351,13 @@ func ProcessEmail(ctx context.Context, params ProcessEmailParams) {
 		return
 	}
 
+	extractOpts := loadExtractOptions(ctx, params.AnalysisRules, em.UserID, logger)
+
 	// Retry loop for extraction with exponential backoff
 	var result *llm.ExtractionResult
 	var usage *llm.Usage
 	for attempt := 1; attempt <= extractMaxRetries; attempt++ {
-		result, usage, err = provider.ExtractEmail(ctx, em.Subject, content, em.FromAddress)
+		result, usage, err = provider.ExtractEmail(ctx, em.Subject, content, em.FromAddress, extractOpts)
 		if err == nil {
 			break
 		}
@@ -541,4 +550,21 @@ func (p *Processor) sweepOrphanedDigests(ctx context.Context) {
 	if deleted > 0 {
 		slog.Info("orphaned digest sweep complete", "deleted", deleted)
 	}
+}
+
+// loadExtractOptions fetches the user's active analysis rules. Failing to load
+// them is not fatal: the email is still worth extracting with default rules.
+func loadExtractOptions(ctx context.Context, repo database.AnalysisRuleRepository, userID string, logger *slog.Logger) *llm.ExtractOptions {
+	if repo == nil {
+		return nil
+	}
+	rules, err := repo.ListActiveRules(ctx, userID)
+	if err != nil {
+		logger.Warn("failed to load analysis rules, extracting without them", "error", err)
+		return nil
+	}
+	if len(rules) == 0 {
+		return nil
+	}
+	return &llm.ExtractOptions{Rules: rules}
 }
