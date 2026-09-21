@@ -162,6 +162,49 @@ func buildWaitlistNotificationHTML(applicantEmail string) string {
 	return b.String()
 }
 
+func (m *ResendMailer) SendSignupNotification(ctx context.Context, toEmail, newUserEmail, via string) error {
+	params := &resend.SendEmailRequest{
+		From:    m.fromAddress,
+		To:      []string{toEmail},
+		Subject: signupNotificationSubject(newUserEmail),
+		Html:    buildSignupNotificationHTML(newUserEmail, via),
+	}
+
+	_, err := m.client.Emails.SendWithContext(ctx, params)
+	if err != nil {
+		return fmt.Errorf("send signup notification: %w", err)
+	}
+	return nil
+}
+
+func signupNotificationSubject(newUserEmail string) string {
+	return fmt.Sprintf("MailBrief: New sign-up from %s", newUserEmail)
+}
+
+func buildSignupNotificationHTML(newUserEmail, via string) string {
+	var b strings.Builder
+
+	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"></head>`)
+	b.WriteString(`<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;">`)
+
+	b.WriteString(`<h1 style="font-size:22px;margin-bottom:8px;">New Sign-up</h1>`)
+
+	b.WriteString(`<p style="font-size:16px;line-height:1.5;"><strong>`)
+	b.WriteString(html.EscapeString(newUserEmail))
+	b.WriteString(`</strong> has signed up to MailBrief via `)
+	b.WriteString(html.EscapeString(via))
+	b.WriteString(`.</p>`)
+
+	b.WriteString(`<a href="https://mailbrief.io/admin" style="display:inline-block;background:#0066cc;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:16px;font-weight:500;">View in Admin</a>`)
+
+	b.WriteString(`<hr style="border:none;border-top:1px solid #eee;margin-top:32px;">`)
+	b.WriteString(`<p style="color:#999;font-size:12px;">Sent by <a href="https://mailbrief.io" style="color:#999;">MailBrief</a></p>`)
+
+	b.WriteString(`</body></html>`)
+
+	return b.String()
+}
+
 func buildTokenWarningHTML(usagePercent int, tokensUsed, tokenLimit int) string {
 	var b strings.Builder
 

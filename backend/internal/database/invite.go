@@ -79,14 +79,16 @@ func (r *InviteRepo) CountByInviter(ctx context.Context, invitedBy string) (int,
 	return int(count), nil
 }
 
-func (r *InviteRepo) MarkAccepted(ctx context.Context, email string) error {
+func (r *InviteRepo) MarkAccepted(ctx context.Context, email string) (bool, error) {
 	now := time.Now().UTC()
-	_, err := r.pool.Exec(ctx,
+	// The accepted_at IS NULL guard makes this a one-time transition, so
+	// concurrent callers can't both see themselves as the first acceptance.
+	tag, err := r.pool.Exec(ctx,
 		`UPDATE invite SET accepted_at = $1 WHERE LOWER(email) = LOWER($2) AND accepted_at IS NULL`,
 		now, email,
 	)
 	if err != nil {
-		return fmt.Errorf("mark invite accepted: %w", err)
+		return false, fmt.Errorf("mark invite accepted: %w", err)
 	}
-	return nil
+	return tag.RowsAffected() > 0, nil
 }

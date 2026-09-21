@@ -103,7 +103,9 @@ type InviteRepository interface {
 	GetByEmail(ctx context.Context, email string) (*domain.Invite, error)
 	Create(ctx context.Context, invite *domain.Invite) error
 	List(ctx context.Context) ([]domain.Invite, error)
-	MarkAccepted(ctx context.Context, email string) error
+	// MarkAccepted records the first acceptance of an invite. It reports
+	// whether this call did so, which is true at most once per invite.
+	MarkAccepted(ctx context.Context, email string) (bool, error)
 	CountByInviter(ctx context.Context, invitedBy string) (int, error)
 }
 

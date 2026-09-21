@@ -577,6 +577,7 @@ type MockMailer struct {
 	SendInviteFn         func(ctx context.Context, toEmail string) error
 	SendInviteApprovedFn func(ctx context.Context, toEmail string) error
 	SendTokenWarningFn   func(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error
+	SendSignupNotificationFn func(ctx context.Context, toEmail, newUserEmail, via string) error
 }
 
 func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error {
@@ -603,6 +604,17 @@ func (m *MockMailer) SendInviteApproved(ctx context.Context, toEmail string) err
 func (m *MockMailer) SendTokenWarning(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error {
 	if m.SendTokenWarningFn != nil {
 		return m.SendTokenWarningFn(ctx, toEmail, usagePercent, tokensUsed, tokenLimit)
+	}
+	return nil
+}
+
+func (m *MockMailer) SendWaitlistNotification(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (m *MockMailer) SendSignupNotification(ctx context.Context, toEmail, newUserEmail, via string) error {
+	if m.SendSignupNotificationFn != nil {
+		return m.SendSignupNotificationFn(ctx, toEmail, newUserEmail, via)
 	}
 	return nil
 }
@@ -656,7 +668,7 @@ type MockInviteRepo struct {
 	GetByEmailFn   func(ctx context.Context, email string) (*domain.Invite, error)
 	CreateFn       func(ctx context.Context, invite *domain.Invite) error
 	ListFn         func(ctx context.Context) ([]domain.Invite, error)
-	MarkAcceptedFn func(ctx context.Context, email string) error
+	MarkAcceptedFn func(ctx context.Context, email string) (bool, error)
 	CountByInviterFn func(ctx context.Context, invitedBy string) (int, error)
 }
 
@@ -688,11 +700,11 @@ func (m *MockInviteRepo) List(ctx context.Context) ([]domain.Invite, error) {
 	return nil, nil
 }
 
-func (m *MockInviteRepo) MarkAccepted(ctx context.Context, email string) error {
+func (m *MockInviteRepo) MarkAccepted(ctx context.Context, email string) (bool, error) {
 	if m.MarkAcceptedFn != nil {
 		return m.MarkAcceptedFn(ctx, email)
 	}
-	return nil
+	return false, nil
 }
 
 // MockProvider implements llm.Provider for testing.
