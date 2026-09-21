@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -83,6 +84,32 @@ func (h *InviteHandler) List(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, ListResponse[domain.Invite]{Data: invites, Total: len(invites)})
 }
 
+// signupNotifyTimeout bounds the sign-up notification so a slow mail
+// provider can't hold up a new user's first page load for long.
+const signupNotifyTimeout = 5 * time.Second
+
+// notifySignup emails each admin about a new sign-up. It sends before the
+// response rather than in the background because Cloud Run only allocates CPU
+// while a request is in flight; it happens once per user, and failures are
+// only logged.
+func (h *InviteHandler) notifySignup(ctx context.Context, email, invitedBy string) {
+	if h.Mailer == nil || len(h.AdminEmails) == 0 {
+		return
+	}
+	via := "an invite"
+	if invitedBy == auth.OpenRegistrationInviter {
+		via = "open registration"
+	}
+	// Don't let the user navigating away cancel the notification.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), signupNotifyTimeout)
+	defer cancel()
+	for _, admin := range h.AdminEmails {
+		if err := h.Mailer.SendSignupNotification(ctx, admin, email, via); err != nil {
+			slog.Error("failed to send sign-up notification", "error", err)
+		}
+	}
+}
+
 func (h *InviteHandler) CheckAccess(w http.ResponseWriter, r *http.Request) {
 	email := strings.ToLower(auth.UserEmailFromContext(r.Context()))
 
@@ -94,10 +121,14 @@ func (h *InviteHandler) CheckAccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Mark accepted on first successful access check
+	// Mark accepted on first successful access check. That first acceptance is
+	// the moment a new person gets in, so it's when admins are told.
 	if access.Invite != nil && access.Invite.AcceptedAt == nil {
-		if err := h.Invites.MarkAccepted(r.Context(), email); err != nil {
+		first, err := h.Invites.MarkAccepted(r.Context(), email)
+		if err != nil {
 			slog.Error("failed to mark invite accepted", "email", email, "error", err)
+		} else if first {
+			h.notifySignup(r.Context(), email, access.Invite.InvitedBy)
 		}
 	}
 

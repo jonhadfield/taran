@@ -43,9 +43,9 @@ func TestInviteHandler_CheckAccess_OpenRegistration(t *testing.T) {
 				created = inv
 				return nil
 			},
-			MarkAcceptedFn: func(_ context.Context, email string) error {
+			MarkAcceptedFn: func(_ context.Context, email string) (bool, error) {
 				markedAccepted = email
-				return nil
+				return true, nil
 			},
 		},
 		Settings: memSettings{auth.OpenRegistrationSetting: "true"},
@@ -76,9 +76,9 @@ func TestInviteHandler_CheckAccess_SkipsMarkAcceptedWhenAlreadyAccepted(t *testi
 			GetByEmailFn: func(context.Context, string) (*domain.Invite, error) {
 				return &domain.Invite{Email: "old@example.com", AcceptedAt: &accepted}, nil
 			},
-			MarkAcceptedFn: func(context.Context, string) error {
+			MarkAcceptedFn: func(context.Context, string) (bool, error) {
 				t.Error("MarkAccepted must not run for an already-accepted invite")
-				return nil
+				return false, nil
 			},
 		},
 	}

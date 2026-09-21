@@ -12,5 +12,8 @@ type Mailer interface {
 	SendInviteApproved(ctx context.Context, toEmail string) error
 	SendTokenWarning(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error
 	SendWaitlistNotification(ctx context.Context, toEmail, applicantEmail string) error
+	// SendSignupNotification tells an admin that a new person has got into the
+	// app. via describes how, e.g. "open registration" or "an invite".
+	SendSignupNotification(ctx context.Context, toEmail, newUserEmail, via string) error
 	SendWeeklySummary(ctx context.Context, toEmail string, summary *domain.WeeklySummary, unsubscribeURL string) error
 }

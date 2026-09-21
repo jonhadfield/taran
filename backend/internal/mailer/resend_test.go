@@ -46,3 +46,18 @@ func TestWeeklySummarySubject(t *testing.T) {
 		t.Errorf("subject = %q, want %q", got, want)
 	}
 }
+
+func TestBuildSignupNotificationHTML(t *testing.T) {
+	body := buildSignupNotificationHTML(`evil<script>@example.com`, "open registration")
+	if strings.Contains(body, "<script>") {
+		t.Error("new user's email address was not HTML-escaped")
+	}
+	for _, want := range []string{"evil&lt;script&gt;@example.com", "via open registration.", "https://mailbrief.io/admin"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body missing %q", want)
+		}
+	}
+	if got := signupNotificationSubject("new@example.com"); got != "MailBrief: New sign-up from new@example.com" {
+		t.Errorf("subject = %q", got)
+	}
+}
