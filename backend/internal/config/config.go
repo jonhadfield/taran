@@ -26,6 +26,13 @@ type ServerConfig struct {
 	BaseURL            string
 	UnsubscribeSecret  string
 	TrustedProxies     []string
+	// APIRateLimitRPS/Burst bound API requests per client IP. Tests and other
+	// setups where every request shares one IP can raise them.
+	APIRateLimitRPS   float64
+	APIRateLimitBurst int
+	// UserRateLimitRPS/Burst bound API requests per authenticated user.
+	UserRateLimitRPS   float64
+	UserRateLimitBurst int
 }
 
 type DatabaseConfig struct {
@@ -165,6 +172,10 @@ func Load() (*Config, error) {
 			BaseURL:           os.Getenv("TARAN_BASE_URL"),
 			UnsubscribeSecret: os.Getenv("TARAN_UNSUBSCRIBE_SECRET"),
 			TrustedProxies:    trustedProxies,
+			APIRateLimitRPS:    envFloat("TARAN_API_RATE_LIMIT_RPS", 10),
+			APIRateLimitBurst:  envInt("TARAN_API_RATE_LIMIT_BURST", 30),
+			UserRateLimitRPS:   envFloat("TARAN_USER_RATE_LIMIT_RPS", 5),
+			UserRateLimitBurst: envInt("TARAN_USER_RATE_LIMIT_BURST", 20),
 		},
 		DB: DatabaseConfig{
 			URL: dbURL,
@@ -200,6 +211,15 @@ func (c *Config) Addr() string {
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func envFloat(key string, fallback float64) float64 {
+	if v := os.Getenv(key); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil && f > 0 {
+			return f
+		}
 	}
 	return fallback
 }
