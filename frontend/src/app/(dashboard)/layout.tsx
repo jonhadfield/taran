@@ -6,11 +6,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { ColorThemeProvider } from "@/components/color-theme-provider";
 import { isAdmin } from "@/lib/admin";
 import { auth } from "@/lib/auth";
-import { serverFetch } from "@/lib/server-api";
+import { checkAccess } from "@/lib/access";
+import { AccessUnavailable } from "@/components/access-unavailable";
 import { CommandPalette } from "@/components/command-palette";
 import { KeyboardHelp } from "@/components/keyboard-help";
 import { parseColorTheme } from "@/lib/constants";
-import type { AccessCheck } from "@/types/api";
 
 export default async function DashboardLayout({
   children,
@@ -29,19 +29,16 @@ export default async function DashboardLayout({
   const admin = await isAdmin();
 
   if (!admin) {
-    try {
-      const access = await serverFetch<AccessCheck>("access");
-      if (!access.hasAccess) {
-        redirect("/not-invited");
-      }
-    } catch (err) {
-      // Distinguish auth failure (expired/rotated token) from access denial.
-      // Auth failures should go to login, not the "not invited" page.
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("Not authenticated") || msg.includes("401")) {
-        redirect("/login");
-      }
+    // redirect() throws, so it must run outside the check's own error handling.
+    const access = await checkAccess();
+    if (access === "unauthenticated") {
+      redirect("/login");
+    }
+    if (access === "denied") {
       redirect("/not-invited");
+    }
+    if (access === "unavailable") {
+      return <AccessUnavailable />;
     }
   }
 

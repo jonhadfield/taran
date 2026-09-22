@@ -27,17 +27,24 @@ test.describe("Inbox filtering", () => {
       isStarred: true,
     });
 
+    // Match the list row (a button) rather than the text: opening an email
+    // repeats its subject in the preview heading, which makes a plain text
+    // match ambiguous.
+    const row = (subject: string) => page.getByRole("button", { name: new RegExp(subject) });
+
     await page.goto("/inbox");
-    await expect(page.getByText("Unread Email")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText("Starred Email")).toBeVisible();
+    await expect(row("Unread Email")).toBeVisible({ timeout: 10000 });
+    await expect(row("Starred Email")).toBeVisible();
 
-    // Switch to unread filter
-    await page.getByRole("button", { name: /Unread/i }).click();
-    await expect(page.getByText("Unread Email")).toBeVisible({ timeout: 5000 });
+    // The filters are tabs. Matching them as buttons instead picks up the
+    // email rows, so the test opened an email rather than filtering.
+    await page.getByRole("tab", { name: "unread" }).click();
+    await expect(row("Unread Email")).toBeVisible({ timeout: 5000 });
+    await expect(row("Starred Email")).toHaveCount(0);
 
-    // Switch to starred filter
-    await page.getByRole("button", { name: /Starred/i }).click();
-    await expect(page.getByText("Starred Email")).toBeVisible({ timeout: 5000 });
+    await page.getByRole("tab", { name: "starred" }).click();
+    await expect(row("Starred Email")).toBeVisible({ timeout: 5000 });
+    await expect(row("Unread Email")).toHaveCount(0);
   });
 
   test("search filters emails by subject", async ({ context, page }) => {

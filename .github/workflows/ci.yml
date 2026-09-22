@@ -106,6 +106,12 @@ jobs:
       TARAN_EMAIL_DOMAIN: mailbrief.io
       TARAN_ADMIN_EMAILS: test@example.com
       TARAN_ALLOWED_ORIGINS: http://localhost:3002
+      # Every test drives the API from one IP, so the per-IP limit would throttle
+      # parallel tests and make them flaky. Production keeps the default.
+      TARAN_API_RATE_LIMIT_RPS: "1000"
+      TARAN_API_RATE_LIMIT_BURST: "2000"
+      TARAN_USER_RATE_LIMIT_RPS: "1000"
+      TARAN_USER_RATE_LIMIT_BURST: "2000"
       GOOGLE_CLIENT_ID: ci-dummy-google-id
       GOOGLE_CLIENT_SECRET: ci-dummy-google-secret
       GITHUB_CLIENT_ID: ci-dummy-github-id

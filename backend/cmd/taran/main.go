@@ -370,13 +370,13 @@ func main() {
 		AnalysisRuleHandler:      analysisRuleHandler,
 		WeeklySummaryHandler:     weeklySummaryHandler,
 		EventsHandler:            &handler.EventsHandler{Broker: sseBroker},
-		UserRateLimiter:      server.NewUserRateLimiter(5, 20), // 5 req/s, 20 burst per user
+		UserRateLimiter:      server.NewUserRateLimiter(cfg.Server.UserRateLimitRPS, cfg.Server.UserRateLimitBurst),
 		AuditRepo:            auditRepo,
 		ClientIPResolver:     ipResolver,
 	})
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewSplitRateLimiter(
-		10, 30,  // API: 10 req/s sustained, 30 burst
+		cfg.Server.APIRateLimitRPS, cfg.Server.APIRateLimitBurst, // API, per client IP
 		50, 100, // Webhooks/cron: 50 req/s sustained, 100 burst
 		ipResolver,
 	)
