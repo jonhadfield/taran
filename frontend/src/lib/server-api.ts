@@ -1,4 +1,5 @@
 import { getSessionToken } from "@/lib/session";
+import { clientIPHeader } from "@/lib/client-ip";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 const API_KEY = process.env.API_KEY!; // Validated at startup — required env var
@@ -13,6 +14,7 @@ export async function serverFetch<T>(path: string): Promise<T> {
     headers: {
       Authorization: `Bearer ${sessionToken}`,
       "X-API-Key": API_KEY,
+      ...(await clientIPHeader()),
     },
     cache: "no-store",
   });

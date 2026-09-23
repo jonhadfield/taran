@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { requireEnv } from "@/lib/env";
+import { clientIPHeader } from "@/lib/client-ip";
 
 export const maxDuration = 300;
 
@@ -28,6 +29,7 @@ export async function GET() {
         "Authorization": `Bearer ${sessionToken}`,
         "X-API-Key": API_KEY,
         "Accept": "text/event-stream",
+        ...(await clientIPHeader()),
       },
     });
   } catch {

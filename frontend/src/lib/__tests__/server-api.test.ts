@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockCookies = vi.fn();
+const mockHeaders = vi.fn();
 
 vi.mock("next/headers", () => ({
   cookies: mockCookies,
+  headers: mockHeaders,
 }));
 
 beforeEach(() => {
+  mockHeaders.mockResolvedValue(new Headers());
   vi.stubGlobal("fetch", vi.fn());
   vi.stubEnv("BACKEND_URL", "http://localhost:8080");
   vi.stubEnv("API_KEY", "test-api-key");
@@ -106,5 +109,40 @@ describe("serverFetch", () => {
     });
     const serverFetch = await loadServerFetch();
     await expect(serverFetch("emails")).rejects.toThrow("API error: 500");
+  });
+});
+
+describe("serverFetch client IP", () => {
+  beforeEach(() => {
+    mockCookies.mockResolvedValue({
+      get: (name: string) =>
+        name === "better-auth.session_token" ? { value: "token123.sig" } : undefined,
+    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    });
+  });
+
+  function sentHeaders() {
+    const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    return init.headers as Record<string, string>;
+  }
+
+  it("forwards the visitor's address so the backend rate-limits per user", async () => {
+    mockHeaders.mockResolvedValue(new Headers({ "x-forwarded-for": "203.0.113.9, 10.0.0.1" }));
+    await (await loadServerFetch())("emails");
+    expect(sentHeaders()["X-Client-IP"]).toBe("203.0.113.9");
+  });
+
+  it("omits the header when no address is available", async () => {
+    await (await loadServerFetch())("emails");
+    expect(sentHeaders()).not.toHaveProperty("X-Client-IP");
+  });
+
+  it("still sends the request if headers are unavailable", async () => {
+    mockHeaders.mockRejectedValue(new Error("called outside a request scope"));
+    await expect((await loadServerFetch())("emails")).resolves.toEqual({});
+    expect(sentHeaders()).not.toHaveProperty("X-Client-IP");
   });
 });

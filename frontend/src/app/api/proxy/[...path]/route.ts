@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildBackendURL } from "@/lib/backend-url";
+import { CLIENT_IP_HEADER, clientIPFromHeaders } from "@/lib/client-ip";
 import {
   SECURE_SESSION_COOKIE,
   SESSION_COOKIE,
@@ -28,11 +29,15 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Authorization": `Bearer ${sessionToken}`,
     "Content-Type": "application/json",
     "X-API-Key": API_KEY,
   };
+  const clientIP = clientIPFromHeaders(request.headers);
+  if (clientIP) {
+    headers[CLIENT_IP_HEADER] = clientIP;
+  }
 
   const fetchOptions: RequestInit = {
     method: request.method,
