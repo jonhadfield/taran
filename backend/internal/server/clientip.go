@@ -1,11 +1,16 @@
 package server
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"net"
 	"net/http"
 	"strings"
 )
+
+// ClientIPHeader carries the end user's address on requests the frontend makes
+// on their behalf. It is honoured only from a caller presenting the API key.
+const ClientIPHeader = "X-Client-IP"
 
 // cloudflareRanges are Cloudflare's published edge network CIDRs. Requests
 // arriving from these addresses may set CF-Connecting-IP; requests from
@@ -29,6 +34,19 @@ var cloudflareRanges = []string{
 // trust.
 type ClientIPResolver struct {
 	trusted []*net.IPNet
+	// apiKey, when set, lets a caller holding it declare the end user's
+	// address. Without this, every browser request proxied by the frontend
+	// arrives from the frontend host, so all users would share one rate-limit
+	// bucket and throttle each other.
+	apiKey string
+}
+
+// TrustAPIKeyClientIP makes the resolver honour ClientIPHeader on requests that
+// carry this API key. The key is a shared secret between the frontend and the
+// backend, and a caller holding it can already use the whole API, so letting it
+// name the end user's address grants nothing further.
+func (c *ClientIPResolver) TrustAPIKeyClientIP(apiKey string) {
+	c.apiKey = apiKey
 }
 
 // NewClientIPResolver builds a resolver from a list of trusted proxy CIDRs.
@@ -62,6 +80,17 @@ func NewClientIPResolver(cidrs []string) (*ClientIPResolver, error) {
 // audit logging.
 func (c *ClientIPResolver) ClientIP(r *http.Request) string {
 	peer := peerIP(r)
+
+	// Our own frontend proxies every browser call, so it reports who the call
+	// is for. Checked before the peer-based path because the frontend is not
+	// one of the trusted proxy ranges.
+	if c.apiKey != "" && subtle.ConstantTimeCompare([]byte(r.Header.Get("X-API-Key")), []byte(c.apiKey)) == 1 {
+		if declared := r.Header.Get(ClientIPHeader); declared != "" {
+			if ip := net.ParseIP(strings.TrimSpace(declared)); ip != nil {
+				return ip.String()
+			}
+		}
+	}
 
 	// Only a request that genuinely arrived from a trusted proxy may override
 	// the peer address via CF-Connecting-IP. Otherwise an attacker sets the

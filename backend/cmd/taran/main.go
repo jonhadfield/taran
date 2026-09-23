@@ -374,6 +374,9 @@ func main() {
 		AuditRepo:            auditRepo,
 		ClientIPResolver:     ipResolver,
 	})
+	// The frontend proxies browser traffic, so let it report the end user's IP
+	// for rate limiting and audit logging.
+	ipResolver.TrustAPIKeyClientIP(cfg.Server.APIKey)
 	cors := server.CORSMiddleware(cfg.Server.AllowedOrigins)
 	limiter := server.NewSplitRateLimiter(
 		cfg.Server.APIRateLimitRPS, cfg.Server.APIRateLimitBurst, // API, per client IP
