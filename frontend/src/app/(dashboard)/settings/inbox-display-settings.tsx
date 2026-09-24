@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { SettingRow } from "./settings-panel";
 
 interface InboxDisplaySettingsProps {
   topicLimit: number;
@@ -23,35 +16,27 @@ export function InboxDisplaySettings({
   onTopicLimitChange,
 }: InboxDisplaySettingsProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Inbox Display</CardTitle>
-        <CardDescription>
-          Customize how your inbox looks
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="topic-limit">Topic cloud size</Label>
-          <p className="text-sm text-muted-foreground">
-            Maximum number of topics shown in your inbox word cloud
-          </p>
-          <div className="flex items-center gap-3">
-            <input
-              id="topic-limit"
-              type="range"
-              min={5}
-              max={50}
-              step={5}
-              value={topicLimit}
-              onChange={(e) => onTopicLimitChange(Number(e.target.value))}
-              disabled={prefLoading || prefSaving}
-              className="w-full max-w-xs accent-primary"
-            />
-            <span className="text-sm font-medium w-8 text-right">{topicLimit}</span>
-          </div>
+    <SettingRow
+      id="inbox-display"
+      title="Topic cloud size"
+      description="Maximum number of topics shown in your inbox word cloud"
+      control={
+        <div className="flex items-center gap-3">
+          <input
+            id="topic-limit"
+            aria-label="Topic cloud size"
+            type="range"
+            min={5}
+            max={50}
+            step={5}
+            value={topicLimit}
+            onChange={(e) => onTopicLimitChange(Number(e.target.value))}
+            disabled={prefLoading || prefSaving}
+            className="w-40 accent-primary"
+          />
+          <span className="w-8 text-right text-sm font-medium">{topicLimit}</span>
         </div>
-      </CardContent>
-    </Card>
+      }
+    />
   );
 }

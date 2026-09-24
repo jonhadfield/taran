@@ -56,6 +56,6 @@ describe("DailyTokenPill", () => {
     mockApiGet.mockResolvedValue(makeStats({ DailyTokenLimit: 1000, DailyTokensUsed: 100 }));
     render(<DailyTokenPill />);
     const link = await screen.findByRole("link");
-    expect(link).toHaveAttribute("href", "/settings");
+    expect(link).toHaveAttribute("href", "/settings/account#limits");
   });
 });

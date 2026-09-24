@@ -1,13 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SettingRow } from "./settings-panel";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
@@ -38,38 +32,28 @@ export function DailyLimitSettings({
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Daily Token Limit</CardTitle>
-        <CardDescription>
-          Limit daily AI processing to prevent burst usage. Emails exceeding the
-          daily limit are deferred to the next day.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="daily-limit" className="flex flex-col items-start gap-1">
-            <span>Enable daily limit</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              Spread token usage evenly across the month
-            </span>
-          </Label>
-          <Switch
-            id="daily-limit"
-            checked={enabled}
-            onCheckedChange={(checked) => {
+    <SettingRow
+      id="limits"
+      title="Daily AI limit"
+      description="Spread usage across the month. Emails over the limit are analysed the next day."
+      control={
+        <Switch
+          id="daily-limit"
+          aria-label="Enable daily limit"
+          checked={enabled}
+          onCheckedChange={(checked) => {
               if (checked) {
                 onDailyTokenLimitChange(customValue);
               } else {
                 onDailyTokenLimitChange(0);
               }
-            }}
-            disabled={prefLoading || prefSaving}
-          />
-        </div>
-
-        {enabled && (
-          <div className="space-y-3 border-t pt-4">
+          }}
+          disabled={prefLoading || prefSaving}
+        />
+      }
+    >
+      {enabled && (
+        <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
               {PRESET_LIMITS.filter((p) => p.value > 0).map((preset) => (
                 <button
@@ -109,11 +93,10 @@ export function DailyLimitSettings({
                 disabled={prefSaving}
                 className="flex h-9 w-28 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
-              <span className="text-sm text-muted-foreground">tokens/day</span>
-            </div>
+            <span className="text-sm text-muted-foreground">tokens/day</span>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </SettingRow>
   );
 }

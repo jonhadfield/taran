@@ -98,7 +98,7 @@ export function ApiKeysSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>API Keys (BYOK)</CardTitle>
+        <CardTitle>AI keys</CardTitle>
         <CardDescription>
           Use your own API keys for email processing and digest generation.
           Your keys are encrypted at rest and never shared.

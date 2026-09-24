@@ -69,7 +69,7 @@ export function OnboardingChecklist({
       label: "Configure your preferences",
       description: "Set your digest schedule, timezone, and notification preferences.",
       done: hasConfiguredPreferences,
-      href: "/settings",
+      href: "/settings/digest",
       icon: <Settings className="size-4" />,
     },
   ];

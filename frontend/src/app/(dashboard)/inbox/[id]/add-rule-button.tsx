@@ -79,7 +79,7 @@ export function AddRuleButton({
     toast.success("Analysis rule added", {
       action: {
         label: "Manage rules",
-        onClick: () => router.push("/settings#analysis-rules"),
+        onClick: () => router.push("/settings/digest#analysis-rules"),
       },
     });
     if (!reanalyse) return;

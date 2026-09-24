@@ -16,8 +16,8 @@ test.describe("Account deletion", () => {
     userId = user.id;
     await createEmailAccount(userId);
 
-    await page.goto("/settings");
-    await expect(page.getByRole("heading", { name: /Settings/i })).toBeVisible({ timeout: 10000 });
+    await page.goto("/settings/inbox");
+    await expect(page.getByRole("heading", { name: "Inbox", level: 1 })).toBeVisible({ timeout: 10000 });
 
     // Account section should render with the email
     const section = page.locator("section#accounts");

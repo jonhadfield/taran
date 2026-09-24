@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SettingRow } from "./settings-panel";
 
 interface DigestStyleSettingsProps {
   digestStyle: string;
@@ -23,14 +17,15 @@ export function DigestStyleSettings({
   onDigestStyleChange,
 }: DigestStyleSettingsProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Digest Style</CardTitle>
-        <CardDescription>
-          Choose how detailed your digest summaries are
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <SettingRow
+      id="digest-style"
+      title="Digest style"
+      description={
+        digestStyle === "concise"
+          ? "Shorter summaries with fewer highlights, for a quick overview"
+          : "Full summaries with detailed highlights and more context"
+      }
+      control={
         <div className="flex gap-2">
           <Button
             type="button"
@@ -51,12 +46,7 @@ export function DigestStyleSettings({
             Concise
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {digestStyle === "concise"
-            ? "Shorter summaries with fewer highlights for a quick overview."
-            : "Full summaries with detailed highlights and more context."}
-        </p>
-      </CardContent>
-    </Card>
+      }
+    />
   );
 }

@@ -24,7 +24,7 @@ export function DeliveryPrompt() {
       <Mail className="h-4 w-4 shrink-0" />
       <span>
         Want digests delivered to your inbox?{" "}
-        <Link href="/settings" className="underline text-foreground">
+        <Link href="/settings/digest#delivery" className="underline text-foreground">
           Enable in Settings
         </Link>
       </span>
