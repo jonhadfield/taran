@@ -42,6 +42,7 @@ type RouterDeps struct {
 	LabelHandler         *handler.LabelHandler
 	SavedSearchHandler       *handler.SavedSearchHandler
 	AnalysisRuleHandler      *handler.AnalysisRuleHandler
+	UserFeedbackHandler      *handler.UserFeedbackHandler
 	WeeklySummaryHandler     *handler.WeeklySummaryHandler
 	EventsHandler            *handler.EventsHandler
 	UserRateLimiter      *UserRateLimiter
@@ -134,6 +135,7 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/auto-archive-rules", deps.AutoArchiveHandler.List)
 	api.HandleFunc("PUT /api/auto-archive-rules", deps.AutoArchiveHandler.Upsert)
 	api.HandleFunc("DELETE /api/auto-archive-rules/{id}", deps.AutoArchiveHandler.Delete)
+	api.HandleFunc("POST /api/feedback", deps.UserFeedbackHandler.Send)
 	api.HandleFunc("POST /api/emails/{id}/feedback", deps.FeedbackHandler.Upsert)
 	api.HandleFunc("GET /api/emails/{id}/feedback", deps.FeedbackHandler.Get)
 	api.HandleFunc("DELETE /api/emails/{id}/feedback", deps.FeedbackHandler.Delete)

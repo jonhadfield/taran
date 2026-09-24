@@ -205,6 +205,47 @@ func buildSignupNotificationHTML(newUserEmail, via string) string {
 	return b.String()
 }
 
+func (m *ResendMailer) SendUserFeedback(ctx context.Context, toEmail, fromUserEmail, message string) error {
+	params := &resend.SendEmailRequest{
+		From:    m.fromAddress,
+		To:      []string{toEmail},
+		Subject: fmt.Sprintf("MailBrief: Feedback from %s", fromUserEmail),
+		// Replying to the notification replies to the person who wrote it.
+		ReplyTo: fromUserEmail,
+		Html:    buildUserFeedbackHTML(fromUserEmail, message),
+	}
+
+	if _, err := m.client.Emails.SendWithContext(ctx, params); err != nil {
+		return fmt.Errorf("send user feedback: %w", err)
+	}
+	return nil
+}
+
+func buildUserFeedbackHTML(fromUserEmail, message string) string {
+	var b strings.Builder
+
+	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"></head>`)
+	b.WriteString(`<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;">`)
+
+	b.WriteString(`<h1 style="font-size:22px;margin-bottom:8px;">Feedback</h1>`)
+	b.WriteString(`<p style="font-size:14px;color:#666;margin-top:0;">From <strong>`)
+	b.WriteString(html.EscapeString(fromUserEmail))
+	b.WriteString(`</strong></p>`)
+
+	// The message is whatever the person typed, so it is escaped and its line
+	// breaks are preserved rather than interpreted.
+	b.WriteString(`<div style="white-space:pre-wrap;font-size:16px;line-height:1.5;border-left:3px solid #eee;padding-left:12px;">`)
+	b.WriteString(html.EscapeString(message))
+	b.WriteString(`</div>`)
+
+	b.WriteString(`<hr style="border:none;border-top:1px solid #eee;margin-top:32px;">`)
+	b.WriteString(`<p style="color:#999;font-size:12px;">Sent by <a href="https://mailbrief.io" style="color:#999;">MailBrief</a></p>`)
+
+	b.WriteString(`</body></html>`)
+
+	return b.String()
+}
+
 func buildTokenWarningHTML(usagePercent int, tokensUsed, tokenLimit int) string {
 	var b strings.Builder
 

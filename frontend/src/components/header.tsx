@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/sidebar";
-import { Menu, LogOut, Sun, Moon, Bell, BellOff, BellRing, Bug } from "lucide-react";
+import { Menu, LogOut, Sun, Moon, Bell, BellOff, BellRing, Bug, MessageSquare } from "lucide-react";
 import { GitHubIcon } from "@/components/github-icon";
+import { FeedbackDialog } from "@/components/feedback-dialog";
 import { useTheme } from "next-themes";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
 import { DailyTokenPill } from "@/components/daily-token-pill";
@@ -32,6 +33,7 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
     router.push("/login");
   };
 
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const user = session?.user;
   const initials = user?.name
     ? user.name
@@ -133,6 +135,10 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
               <p className="text-sm font-medium">{user?.name || "User"}</p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
+            <DropdownMenuItem onClick={() => setFeedbackOpen(true)}>
+              <MessageSquare className="mr-2 size-4" />
+              Send feedback
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <a
                 href="https://github.com/jonhadfield/taran/issues"
@@ -150,6 +156,8 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </header>
   );
 }

@@ -16,4 +16,7 @@ type Mailer interface {
 	// app. via describes how, e.g. "open registration" or "an invite".
 	SendSignupNotification(ctx context.Context, toEmail, newUserEmail, via string) error
 	SendWeeklySummary(ctx context.Context, toEmail string, summary *domain.WeeklySummary, unsubscribeURL string) error
+	// SendUserFeedback passes a message from a user to an admin, with the
+	// sender's address as reply-to so the admin can simply reply.
+	SendUserFeedback(ctx context.Context, toEmail, fromUserEmail, message string) error
 }
