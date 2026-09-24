@@ -62,7 +62,7 @@
      working through mail, and the squarer corner reads as precise
      rather than friendly. */
   --radius: 0.5rem;
-  --background: oklch(1 0.004 277);
+  --background: oklch(0.984 0.004 277);
   --foreground: oklch(0.145 0.004 277);
   --card: oklch(1 0.004 277);
   --card-foreground: oklch(0.145 0.004 277);
