@@ -8,16 +8,18 @@ export function BarChart({ data, height = 80, formatValue }: BarChartProps) {
   const max = Math.max(...data.map((d) => d.value), 1);
   const fmt = formatValue || ((n: number) => String(n));
   return (
+    // A baseline gives the bars something to stand on, so a single week reads
+    // as one column rather than a block of colour filling the panel.
     <div
-      className="grid gap-1"
-      style={{ gridTemplateColumns: `repeat(${data.length}, 1fr)`, height }}
+      className="flex items-end justify-center gap-0.5 border-b"
+      style={{ height }}
     >
       {data.map((d, i) => {
         const pct = Math.max(4, (d.value / max) * 100);
         return (
-          <div key={i} className="flex flex-col justify-end">
+          <div key={i} className="flex h-full max-w-14 flex-1 flex-col justify-end">
             <div
-              className="w-full rounded-sm bg-primary/70 hover:bg-primary transition-colors"
+              className="w-full rounded-t-[4px] bg-primary/80 transition-colors hover:bg-primary"
               style={{ height: `${pct}%` }}
               title={`${d.label}: ${fmt(d.value)}`}
             />

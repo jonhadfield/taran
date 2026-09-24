@@ -6,6 +6,7 @@ import { usePolling } from "@/hooks/use-polling";
 import { apiPatch } from "@/lib/api";
 import { formatShortDate, formatTokens } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatTile } from "@/components/stat-tile";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { AdminStats } from "@/types/api";
@@ -43,19 +44,19 @@ export function AdminDashboard() {
 
   const cards = [
     {
-      title: "Total Users",
+      title: "Users",
       value: stats.TotalUsers,
       sub: `${stats.ActiveUsersWeek} active this week`,
       icon: Users,
     },
     {
-      title: "Total Emails",
+      title: "Emails",
       value: stats.TotalEmails,
       sub: `${stats.EmailsThisWeek} this week`,
       icon: Mail,
     },
     {
-      title: "Total Digests",
+      title: "Digests",
       value: stats.TotalDigests,
       sub: `${stats.DigestsThisWeek} this week`,
       icon: BookOpen,
@@ -102,18 +103,13 @@ export function AdminDashboard() {
       {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
-          <Card key={card.title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {card.title}
-              </CardTitle>
-              <card.icon className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{card.value.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
-            </CardContent>
-          </Card>
+          <StatTile
+            key={card.title}
+            label={card.title}
+            value={card.value.toLocaleString()}
+            hint={card.sub}
+            icon={card.icon}
+          />
         ))}
       </div>
 
