@@ -1,0 +1,73 @@
+# Dependabot version updates.
+#
+# Security updates are enabled separately in the repository settings and raise
+# PRs only for vulnerable dependencies. This file covers routine upgrades, so
+# releases like a Next.js patch are offered before they turn into an advisory.
+#
+# Minor and patch bumps are grouped into one PR per ecosystem to keep the noise
+# down; majors come through on their own, since they need reading.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "07:00"
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Held at 7.0.1 (PR #49): later versions add rules that fail lint until
+      # the call sites are fixed. It is also pinned in package.json overrides,
+      # so a bump here would not take effect anyway. Unpin deliberately.
+      - dependency-name: eslint-plugin-react-hooks
+    commit-message:
+      prefix: "chore(frontend)"
+
+  - package-ecosystem: gomod
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "07:00"
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    groups:
+      backend-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: "chore(backend)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "07:00"
+      timezone: Europe/London
+    open-pull-requests-limit: 3
+    groups:
+      actions-all:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(ci)"
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "07:00"
+      timezone: Europe/London
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(docker)"
