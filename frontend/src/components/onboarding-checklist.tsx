@@ -82,8 +82,11 @@ export function OnboardingChecklist({
     setDismissed(true);
   };
 
+  // Keep the card surface and let the border carry the accent. A 2% primary
+  // wash replaced bg-card entirely, which left this panel sitting at the page
+  // colour while every other card steps up from it.
   return (
-    <Card className="border-primary/20 bg-primary/[0.02]">
+    <Card className="border-primary/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">
