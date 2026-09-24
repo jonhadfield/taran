@@ -3,11 +3,32 @@ package llm
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/shared"
 )
+
+// openAIReasoningHeadroom is added to the output budget for reasoning models.
+// Their hidden reasoning is billed as output and counts against the same cap,
+// so a budget sized for the answer alone can be spent before any of the answer
+// is written — the call then returns empty and is retried for nothing.
+const openAIReasoningHeadroom = 1024
+
+// isReasoningModel reports whether the model reasons before answering. The
+// GPT-5 family and the o-series do; gpt-4.1 and earlier do not, and reject the
+// reasoning_effort parameter.
+func isReasoningModel(model string) bool {
+	m := strings.ToLower(model)
+	for _, prefix := range []string{"gpt-5", "o1", "o3", "o4"} {
+		if strings.HasPrefix(m, prefix) {
+			return true
+		}
+	}
+	return false
+}
 
 type OpenAIProvider struct {
 	client openai.Client
@@ -27,14 +48,21 @@ func (p *OpenAIProvider) Model() string { return p.model }
 
 func (p *OpenAIProvider) call(maxTokens int64) callFn {
 	return func(ctx context.Context, systemPrompt, userPrompt string) (string, *Usage, error) {
-		completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		params := openai.ChatCompletionNewParams{
 			Model: openai.ChatModel(p.model),
 			Messages: []openai.ChatCompletionMessageParamUnion{
 				openai.SystemMessage(systemPrompt),
 				openai.UserMessage(userPrompt),
 			},
 			MaxCompletionTokens: openai.Int(maxTokens),
-		})
+		}
+		if isReasoningModel(p.model) {
+			// These calls classify and summarise; they need no deliberation.
+			params.ReasoningEffort = shared.ReasoningEffortMinimal
+			params.MaxCompletionTokens = openai.Int(maxTokens + openAIReasoningHeadroom)
+		}
+
+		completion, err := p.client.Chat.Completions.New(ctx, params)
 		if err != nil {
 			return "", nil, fmt.Errorf("openai: %w", err)
 		}
