@@ -141,7 +141,7 @@ export function AnalysisRulesSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Analysis Rules</CardTitle>
+        <CardTitle>Analysis rules</CardTitle>
         <CardDescription>
           Tell the AI how to analyse your emails. Rules apply to newly received
           emails and to your digests, and you can apply them to emails you

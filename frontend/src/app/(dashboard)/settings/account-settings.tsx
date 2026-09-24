@@ -47,9 +47,9 @@ export function AccountSettings({
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Email Accounts</CardTitle>
+          <CardTitle>Your address</CardTitle>
           <CardDescription>
-            Your managed inboxes for receiving newsletters
+            Forward newsletters here and they appear in your inbox
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

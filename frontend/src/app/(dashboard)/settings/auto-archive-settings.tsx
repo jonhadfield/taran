@@ -78,7 +78,7 @@ export function AutoArchiveSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Auto-Archive Rules</CardTitle>
+        <CardTitle>Auto-archive rules</CardTitle>
         <CardDescription>
           Automatically archive old emails by category or sender
         </CardDescription>

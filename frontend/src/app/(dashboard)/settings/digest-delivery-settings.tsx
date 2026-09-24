@@ -3,18 +3,11 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { apiPost } from "@/lib/api";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SettingRow } from "./settings-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { HOUR_OPTIONS } from "@/lib/constants";
 import { NativeSelect } from "@/components/ui/native-select";
 
@@ -70,31 +63,23 @@ export function DigestDeliverySettings({
   onWebhookURLSave,
 }: DigestDeliverySettingsProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Digest Delivery</CardTitle>
-        <CardDescription>
-          Configure how and when you receive your digest
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="digest-email" className="flex flex-col items-start gap-1">
-            <span>Email delivery</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              Receive your digest as an email
-            </span>
-          </Label>
+    <>
+      <SettingRow
+        id="delivery"
+        title="Email delivery"
+        description="Receive your digest as an email"
+        control={
           <Switch
             id="digest-email"
+            aria-label="Email delivery"
             checked={digestEmail}
             onCheckedChange={onToggleDigestEmail}
             disabled={prefLoading || prefSaving}
           />
-        </div>
-
+        }
+      >
         {digestEmail && (
-          <div className="space-y-4 border-t pt-4">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="digest-frequency">Frequency</Label>
               <div className="flex gap-2">
@@ -168,25 +153,23 @@ export function DigestDeliverySettings({
             </div>
           </div>
         )}
-        <Separator className="my-2" />
+      </SettingRow>
 
-        <div className="flex items-center justify-between">
-          <Label htmlFor="digest-webhook" className="flex flex-col items-start gap-1">
-            <span>Webhook delivery</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              POST digest summaries to a URL (Slack, Zapier, etc.)
-            </span>
-          </Label>
+      <SettingRow
+        title="Webhook delivery"
+        description="POST digest summaries to a URL (Slack, Zapier and the like)"
+        control={
           <Switch
             id="digest-webhook"
+            aria-label="Webhook delivery"
             checked={digestWebhook}
             onCheckedChange={onToggleDigestWebhook}
             disabled={prefLoading || prefSaving}
           />
-        </div>
-
+        }
+      >
         {digestWebhook && (
-          <div className="space-y-2 border-t pt-4">
+          <div className="space-y-2">
             <Label htmlFor="webhook-url">Webhook URL</Label>
             <div className="flex gap-2">
               <Input
@@ -209,13 +192,12 @@ export function DigestDeliverySettings({
             </div>
             <WebhookTestButton disabled={prefSaving || !webhookURL} />
             <p className="text-xs text-muted-foreground">
-              Digest summaries will be POSTed as JSON with title, summary, highlights, and a link to view the full digest.
+              Sent as JSON with the title, summary, highlights and a link to the full digest.
             </p>
           </div>
         )}
-
-      </CardContent>
-    </Card>
+      </SettingRow>
+    </>
   );
 }
 

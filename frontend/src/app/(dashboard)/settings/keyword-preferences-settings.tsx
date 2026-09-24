@@ -126,14 +126,14 @@ export function KeywordPreferencesSettings({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Content Keywords</CardTitle>
+        <CardTitle>Content keywords</CardTitle>
         <CardDescription>
           Boost or exclude content in your digests based on keywords
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <label className="text-sm font-medium">Interest Keywords</label>
+          <label className="text-sm font-medium">Interest keywords</label>
           <p className="text-xs text-muted-foreground">
             Content matching these keywords will be given more prominence in your digests.
           </p>
@@ -146,7 +146,7 @@ export function KeywordPreferencesSettings({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Exclusion Keywords</label>
+          <label className="text-sm font-medium">Exclusion keywords</label>
           <p className="text-xs text-muted-foreground">
             Content matching these keywords will be omitted from your digests.
           </p>

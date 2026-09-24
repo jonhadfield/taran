@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SettingRow } from "./settings-panel";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { HOUR_OPTIONS } from "@/lib/constants";
@@ -34,34 +28,25 @@ export function QuietHoursSettings({
   onEndChange,
 }: QuietHoursSettingsProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Quiet Hours</CardTitle>
-        <CardDescription>
-          Defer email processing during specific hours
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="quiet-hours" className="flex flex-col items-start gap-1">
-            <span>Enable quiet hours</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              Emails received during this window are stored but processing is deferred
-            </span>
-          </Label>
-          <Switch
-            id="quiet-hours"
-            checked={enabled}
-            onCheckedChange={onEnabledChange}
-            disabled={prefLoading || prefSaving}
-          />
-        </div>
-
-        {enabled && (
-          <div className="space-y-4 border-t pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="quiet-start">From</Label>
+    <SettingRow
+      id="quiet-hours"
+      title="Quiet hours"
+      description="Emails arriving in this window are stored, and analysed once it ends"
+      control={
+        <Switch
+          id="quiet-hours"
+          aria-label="Enable quiet hours"
+          checked={enabled}
+          onCheckedChange={onEnabledChange}
+          disabled={prefLoading || prefSaving}
+        />
+      }
+    >
+      {enabled && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 sm:max-w-sm">
+            <div className="space-y-2">
+              <Label htmlFor="quiet-start">From</Label>
                 <NativeSelect
                   id="quiet-start"
                   value={start}
@@ -74,8 +59,8 @@ export function QuietHoursSettings({
                   ))}
                 </NativeSelect>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="quiet-end">Until</Label>
+            <div className="space-y-2">
+              <Label htmlFor="quiet-end">Until</Label>
                 <NativeSelect
                   id="quiet-end"
                   value={end}
@@ -89,12 +74,11 @@ export function QuietHoursSettings({
                 </NativeSelect>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Uses your digest timezone setting. Emails will be processed once quiet hours end.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          <p className="text-xs text-muted-foreground">
+            Uses your digest timezone.
+          </p>
+        </div>
+      )}
+    </SettingRow>
   );
 }

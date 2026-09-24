@@ -16,10 +16,10 @@ test.describe("Settings interactions", () => {
     userId = user.id;
     await createEmailAccount(userId);
 
-    await page.goto("/settings");
+    await page.goto("/settings/digest");
 
     // Wait for settings to load
-    await expect(page.getByRole("heading", { name: /Settings/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: "Digest", level: 1 })).toBeVisible({ timeout: 10000 });
 
     // Find and toggle digest email switch
     const emailSwitch = page.getByRole("switch", { name: /Email delivery/i });
@@ -41,12 +41,11 @@ test.describe("Settings interactions", () => {
     userId = user.id;
     await createEmailAccount(userId);
 
-    // Navigate directly to quiet hours section
-    await page.goto("/settings#quiet-hours");
-    await expect(page.getByRole("heading", { name: /Settings/i })).toBeVisible({ timeout: 10000 });
+    // Navigate directly to the quiet hours setting
+    await page.goto("/settings/digest#quiet-hours");
+    await expect(page.getByRole("heading", { name: "Digest", level: 1 })).toBeVisible({ timeout: 10000 });
 
-    // Quiet hours card title should be visible (use exact text to avoid matching nav pill and label)
-    await expect(page.getByText("Quiet Hours", { exact: true }).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("switch", { name: /Enable quiet hours/i })).toBeVisible({ timeout: 10000 });
   });
 
   test("export data button downloads file", async ({ context, page }) => {
@@ -54,8 +53,8 @@ test.describe("Settings interactions", () => {
     userId = user.id;
     await createEmailAccount(userId);
 
-    await page.goto("/settings");
-    await expect(page.getByRole("heading", { name: /Settings/i })).toBeVisible({ timeout: 10000 });
+    await page.goto("/settings/account");
+    await expect(page.getByRole("heading", { name: "Account", level: 1 })).toBeVisible({ timeout: 10000 });
 
     // Find export button
     const exportButton = page.getByRole("button", { name: /Export/i });
@@ -77,8 +76,8 @@ test.describe("Settings interactions", () => {
     userId = user.id;
     await createEmailAccount(userId);
 
-    await page.goto("/settings");
-    await expect(page.getByRole("heading", { name: /Settings/i })).toBeVisible({ timeout: 10000 });
+    await page.goto("/settings/account");
+    await expect(page.getByRole("heading", { name: "Account", level: 1 })).toBeVisible({ timeout: 10000 });
 
     // Find sign out button
     const signOutButton = page.getByRole("button", { name: /Sign Out/i });
