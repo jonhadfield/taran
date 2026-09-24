@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { usePolling } from "@/hooks/use-polling";
 import { apiPatch } from "@/lib/api";
@@ -12,16 +12,35 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { AdminUser } from "@/types/api";
-import { formatTokens } from "@/lib/utils";
-import { Pencil, Check, X } from "lucide-react";
+import type { AdminUser, ListResponse } from "@/types/api";
+import { formatTokens, pluralize } from "@/lib/utils";
+import { Pencil, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
+
+// Matches the server's default page size.
+const PAGE_SIZE = 25;
 
 export function AdminUsers() {
-  const { data: users, refresh } = usePolling<AdminUser[]>(
-    "admin/users",
-    [],
+  const [page, setPage] = useState(0);
+  // The path carries the page, so changing page refetches.
+  const { data, refresh } = usePolling<ListResponse<AdminUser>>(
+    `admin/users?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`,
+    { data: [], total: 0 },
     60_000
   );
+  const users = data.data ?? [];
+  const total = data.total ?? 0;
+  const firstOnPage = page * PAGE_SIZE + 1;
+  const lastOnPage = page * PAGE_SIZE + users.length;
+  const hasPrevious = page > 0;
+  const hasNext = lastOnPage < total;
+
+  // Users can be removed while you are on the last page; step back rather than
+  // stranding the viewer on an empty one.
+  useEffect(() => {
+    if (total > 0 && page > 0 && page * PAGE_SIZE >= total) {
+      setPage(Math.max(0, Math.ceil(total / PAGE_SIZE) - 1));
+    }
+  }, [total, page]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [limitValue, setLimitValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -60,7 +79,14 @@ export function AdminUsers() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">User Token Limits</CardTitle>
+        <CardTitle className="text-lg">
+          User token limits
+          {total > 0 && (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              {total} {pluralize(total, "user")}
+            </span>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -69,7 +95,7 @@ export function AdminUsers() {
               <tr className="border-b text-left text-muted-foreground">
                 <th className="pb-2 font-medium">User</th>
                 <th className="pb-2 font-medium text-right">Emails</th>
-                <th className="pb-2 font-medium text-right">Monthly Usage</th>
+                <th className="pb-2 font-medium text-right">Monthly usage</th>
                 <th className="pb-2 font-medium text-right">Limit</th>
                 <th className="pb-2 font-medium w-10"></th>
               </tr>
@@ -187,6 +213,34 @@ export function AdminUsers() {
             </tbody>
           </table>
         </div>
+
+        {total > PAGE_SIZE && (
+          <div className="mt-4 flex items-center justify-between gap-4 text-sm">
+            <p className="text-muted-foreground">
+              Showing {firstOnPage}&ndash;{lastOnPage} of {total}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={!hasPrevious}
+              >
+                <ChevronLeft className="size-4" />
+                Previous
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={!hasNext}
+              >
+                Next
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

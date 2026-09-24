@@ -11,6 +11,12 @@ import (
 	"github.com/hadfielj/taran/backend/internal/domain"
 )
 
+// AdminStatsSource supplies the admin dashboard's figures.
+type AdminStatsSource interface {
+	GetStats(ctx context.Context) (*domain.AdminStats, error)
+	ListUsers(ctx context.Context, limit, offset int) ([]domain.AdminUser, int, error)
+}
+
 // AppSettings reads and writes app-wide settings.
 type AppSettings interface {
 	GetBool(ctx context.Context, key string, fallback bool) (bool, error)
@@ -19,7 +25,7 @@ type AppSettings interface {
 }
 
 type AdminStatsHandler struct {
-	AdminStats  *database.AdminStatsRepo
+	AdminStats  AdminStatsSource // nil-safe only where guarded
 	LLMProvider string
 	LLMModel    string
 	TokenUsage  database.TokenUsageRepository
@@ -57,10 +63,23 @@ func (h *AdminStatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, stats)
 }
 
+// User list paging. The list is ordered by monthly token use, so the first
+// page shows the accounts worth looking at.
+const (
+	defaultUserPageSize = 25
+	maxUserPageSize     = 100
+)
+
 func (h *AdminStatsHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	users, err := h.AdminStats.ListUsers(ctx)
+	limit := clampInt(queryInt(r, "limit", defaultUserPageSize), 1, maxUserPageSize)
+	offset := queryInt(r, "offset", 0)
+	if offset < 0 {
+		offset = 0
+	}
+
+	users, total, err := h.AdminStats.ListUsers(ctx, limit, offset)
 	if err != nil {
 		slog.Error("admin: failed to query users", "error", err)
 		WriteError(w, http.StatusInternalServerError, "failed to list users")
@@ -80,7 +99,7 @@ func (h *AdminStatsHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	WriteJSON(w, http.StatusOK, users)
+	WriteJSON(w, http.StatusOK, ListResponse[domain.AdminUser]{Data: users, Total: total})
 }
 
 func (h *AdminStatsHandler) SetDefaultTokenLimit(w http.ResponseWriter, r *http.Request) {
