@@ -31,8 +31,8 @@ function WeeklyChart({ data }: { data: WeekCount[] }) {
   return (
     <div className="space-y-1">
       <div
-        className="grid gap-1.5"
-        style={{ gridTemplateColumns: `repeat(${data.length}, 1fr)`, height: 96 }}
+        className="grid gap-1.5 border-b"
+        style={{ gridTemplateColumns: `repeat(${data.length}, minmax(0, 72px))`, height: 96, justifyContent: "center" }}
       >
         {data.map((week, i) => {
           const pct = Math.max(4, (week.Count / max) * 100);
@@ -46,7 +46,7 @@ function WeeklyChart({ data }: { data: WeekCount[] }) {
                 {week.Count > 0 ? week.Count : ""}
               </span>
               <div
-                className="w-full rounded-sm bg-primary/80 hover:bg-primary animate-bar-grow"
+                className="w-full rounded-t-[4px] rounded-b-sm bg-gradient-to-t from-primary to-primary/65 transition-opacity hover:opacity-90 animate-bar-grow"
                 style={{ "--bar-height": `${pct}%`, animationDelay: `${i * 60}ms` } as React.CSSProperties}
               />
             </div>
@@ -55,7 +55,7 @@ function WeeklyChart({ data }: { data: WeekCount[] }) {
       </div>
       <div
         className="grid gap-1.5"
-        style={{ gridTemplateColumns: `repeat(${data.length}, 1fr)` }}
+        style={{ gridTemplateColumns: `repeat(${data.length}, minmax(0, 72px))`, justifyContent: "center" }}
       >
         {data.map((week, i) => {
           const label = formatShortDate(week.Week);
@@ -110,7 +110,7 @@ function CategoryBars({ categories }: { categories: CategoryCount[] }) {
             </span>
             <div className="h-5 flex-1 overflow-hidden rounded-sm bg-muted">
               <div
-                className="h-full rounded-sm bg-primary animate-bar-grow-h"
+                className="h-full rounded-sm bg-gradient-to-r from-primary/75 to-primary animate-bar-grow-h"
                 style={{ "--bar-width": `${(cat.Count / max) * 100}%`, animationDelay: `${i * 80}ms` } as React.CSSProperties}
               />
             </div>

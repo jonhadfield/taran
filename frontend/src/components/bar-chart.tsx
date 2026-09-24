@@ -19,7 +19,7 @@ export function BarChart({ data, height = 80, formatValue }: BarChartProps) {
         return (
           <div key={i} className="flex h-full max-w-14 flex-1 flex-col justify-end">
             <div
-              className="w-full rounded-t-[4px] bg-primary/80 transition-colors hover:bg-primary"
+              className="w-full rounded-t-[4px] bg-gradient-to-t from-primary to-primary/65 transition-opacity hover:opacity-90"
               style={{ height: `${pct}%` }}
               title={`${d.label}: ${fmt(d.value)}`}
             />
