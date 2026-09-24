@@ -69,7 +69,7 @@ export function Sidebar({
   return (
     <div
       className={cn(
-        "flex h-full flex-col border-r bg-card",
+        "flex h-full flex-col border-r bg-card dark:bg-background",
         className
       )}
     >
