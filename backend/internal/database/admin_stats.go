@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -188,8 +189,15 @@ func (r *AdminStatsRepo) GetStats(ctx context.Context) (*domain.AdminStats, erro
 }
 
 // ListUsers returns all users with their email counts and token usage for admin display.
-func (r *AdminStatsRepo) ListUsers(ctx context.Context) ([]domain.AdminUser, error) {
+// ListUsers returns one page of users, heaviest token users first, along with
+// the total number of users so the caller can page through them.
+func (r *AdminStatsRepo) ListUsers(ctx context.Context, limit, offset int) ([]domain.AdminUser, int, error) {
 	monthStart := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	var total int64
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count users: %w", err)
+	}
 
 	rows, err := r.pool.Query(ctx, `
 		SELECT
@@ -209,9 +217,10 @@ func (r *AdminStatsRepo) ListUsers(ctx context.Context) ([]domain.AdminUser, err
 			GROUP BY user_id
 		) tu ON tu.user_id = u.id
 		LEFT JOIN user_preference p ON p.user_id = u.id
-		ORDER BY COALESCE(tu.tokens, 0) DESC`, monthStart)
+		ORDER BY COALESCE(tu.tokens, 0) DESC, u.id
+		LIMIT $2 OFFSET $3`, monthStart, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -232,5 +241,5 @@ func (r *AdminStatsRepo) ListUsers(ctx context.Context) ([]domain.AdminUser, err
 		users = []domain.AdminUser{}
 	}
 
-	return users, nil
+	return users, int(total), nil
 }

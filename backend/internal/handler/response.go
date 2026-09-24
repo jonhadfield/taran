@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 )
 
 type ErrorResponse struct {
@@ -33,4 +34,18 @@ const maxJSONBodySize = 1 << 20 // 1 MB
 func LimitedJSONDecoder(r *http.Request) *json.Decoder {
 	r.Body = http.MaxBytesReader(nil, r.Body, maxJSONBodySize)
 	return json.NewDecoder(r.Body)
+}
+
+// queryInt reads an integer query parameter, falling back when it is absent
+// or not a number.
+func queryInt(r *http.Request, key string, fallback int) int {
+	v := r.URL.Query().Get(key)
+	if v == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return fallback
+	}
+	return n
 }
