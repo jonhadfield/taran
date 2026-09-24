@@ -578,6 +578,7 @@ type MockMailer struct {
 	SendInviteApprovedFn func(ctx context.Context, toEmail string) error
 	SendTokenWarningFn   func(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error
 	SendSignupNotificationFn func(ctx context.Context, toEmail, newUserEmail, via string) error
+	SendUserFeedbackFn       func(ctx context.Context, toEmail, fromUserEmail, message string) error
 }
 
 func (m *MockMailer) SendDigest(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error {
@@ -609,6 +610,13 @@ func (m *MockMailer) SendTokenWarning(ctx context.Context, toEmail string, usage
 }
 
 func (m *MockMailer) SendWaitlistNotification(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (m *MockMailer) SendUserFeedback(ctx context.Context, toEmail, fromUserEmail, message string) error {
+	if m.SendUserFeedbackFn != nil {
+		return m.SendUserFeedbackFn(ctx, toEmail, fromUserEmail, message)
+	}
 	return nil
 }
 

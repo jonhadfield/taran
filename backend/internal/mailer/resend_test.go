@@ -61,3 +61,16 @@ func TestBuildSignupNotificationHTML(t *testing.T) {
 		t.Errorf("subject = %q", got)
 	}
 }
+
+func TestBuildUserFeedbackHTML(t *testing.T) {
+	body := buildUserFeedbackHTML("reader@example.com", "line one\nline two <script>alert(1)</script>")
+
+	if strings.Contains(body, "<script>") {
+		t.Error("the message was not HTML-escaped")
+	}
+	for _, want := range []string{"reader@example.com", "white-space:pre-wrap", "&lt;script&gt;"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body missing %q", want)
+		}
+	}
+}

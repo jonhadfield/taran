@@ -309,6 +309,10 @@ func main() {
 	analysisRuleHandler := &handler.AnalysisRuleHandler{
 		AnalysisRules: analysisRuleRepo,
 	}
+	userFeedbackHandler := &handler.UserFeedbackHandler{
+		Mailer:      m,
+		AdminEmails: cfg.AdminEmails,
+	}
 	weeklySummaryRepo := database.NewWeeklySummaryRepo(pool)
 	weeklySummaryHandler := &handler.WeeklySummaryHandler{
 		Summaries: weeklySummaryRepo,
@@ -368,6 +372,7 @@ func main() {
 		LabelHandler:         labelHandler,
 		SavedSearchHandler:       savedSearchHandler,
 		AnalysisRuleHandler:      analysisRuleHandler,
+		UserFeedbackHandler:      userFeedbackHandler,
 		WeeklySummaryHandler:     weeklySummaryHandler,
 		EventsHandler:            &handler.EventsHandler{Broker: sseBroker},
 		UserRateLimiter:      server.NewUserRateLimiter(cfg.Server.UserRateLimitRPS, cfg.Server.UserRateLimitBurst),
