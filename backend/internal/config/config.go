@@ -187,7 +187,7 @@ func Load() (*Config, error) {
 		LLM: LLMConfig{
 			Provider:                  provider,
 			AnthropicKey:              os.Getenv("TARAN_ANTHROPIC_API_KEY"),
-			AnthropicModel:            envOr("TARAN_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+			AnthropicModel:            envOr("TARAN_ANTHROPIC_MODEL", "claude-haiku-4-5-20251001"),
 			OpenAIKey:                 os.Getenv("TARAN_OPENAI_API_KEY"),
 			OpenAIModel:              envOr("TARAN_OPENAI_MODEL", "gpt-5-mini"),
 			OllamaURL:                envOr("TARAN_OLLAMA_URL", "http://localhost:11434"),

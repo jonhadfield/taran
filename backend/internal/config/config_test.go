@@ -291,3 +291,35 @@ func TestAddr(t *testing.T) {
 		t.Errorf("Addr() = %q, want %q", got, "localhost:3000")
 	}
 }
+
+// The deployed configuration, INSTALL.md and CI all set Haiku 4.5. The default
+// used to be a deprecated Sonnet 4, so anyone who omitted the variable ran a
+// different, dearer model than the docs describe.
+func TestLoad_DefaultModels(t *testing.T) {
+	setRequiredEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.LLM.AnthropicModel != "claude-haiku-4-5-20251001" {
+		t.Errorf("default Anthropic model = %q, want claude-haiku-4-5-20251001", cfg.LLM.AnthropicModel)
+	}
+	if cfg.LLM.OpenAIModel != "gpt-5-mini" {
+		t.Errorf("default OpenAI model = %q, want gpt-5-mini", cfg.LLM.OpenAIModel)
+	}
+}
+
+func TestLoad_ModelOverrides(t *testing.T) {
+	setRequiredEnv(t)
+	t.Setenv("TARAN_ANTHROPIC_MODEL", "claude-opus-5")
+	t.Setenv("TARAN_OPENAI_MODEL", "gpt-4.1-mini")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.LLM.AnthropicModel != "claude-opus-5" || cfg.LLM.OpenAIModel != "gpt-4.1-mini" {
+		t.Errorf("overrides ignored: %q / %q", cfg.LLM.AnthropicModel, cfg.LLM.OpenAIModel)
+	}
+}

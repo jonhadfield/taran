@@ -343,7 +343,7 @@ Each user's monthly AI token budget defaults to 500,000. Once you're signed in a
 
 > **Note:** You will add `taran-resend-api-key` (as a secret) and `TARAN_EMAIL_FROM`, `TARAN_BASE_URL` (as env vars) later in Part 7, after setting up Resend.
 
-> **Optional: LLM fallback provider.** If you want automatic failover, create an additional secret (`echo -n "<key>" | gcloud secrets create taran-openai-api-key ...`) and add `TARAN_OPENAI_MODEL=gpt-4.1-mini` as an env var and `TARAN_OPENAI_API_KEY=taran-openai-api-key:latest` as a secret.
+> **Optional: LLM fallback provider.** If you want automatic failover, create an additional secret (`echo -n "<key>" | gcloud secrets create taran-openai-api-key ...`) and add `TARAN_OPENAI_MODEL=gpt-5-mini` as an env var and `TARAN_OPENAI_API_KEY=taran-openai-api-key:latest` as a secret.
 
 The first deploy will take 3 to 5 minutes. Google Cloud will:
 1. Upload your source code.
