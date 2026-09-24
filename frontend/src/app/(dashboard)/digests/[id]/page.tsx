@@ -85,7 +85,7 @@ export default async function DigestDetailPage({
               <MailX className="size-4" />
               <span>
                 Email delivery not enabled &mdash;{" "}
-                <Link href="/settings" className="underline hover:text-foreground">
+                <Link href="/settings/digest#delivery" className="underline hover:text-foreground">
                   enable in settings
                 </Link>
               </span>

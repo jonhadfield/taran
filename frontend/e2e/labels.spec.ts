@@ -16,8 +16,8 @@ test.describe("Label management", () => {
     userId = user.id;
     await createEmailAccount(userId);
 
-    await page.goto("/settings");
-    await expect(page.getByRole("heading", { name: /Settings/i })).toBeVisible({ timeout: 10000 });
+    await page.goto("/settings/organisation");
+    await expect(page.getByRole("heading", { name: "Organisation", level: 1 })).toBeVisible({ timeout: 10000 });
 
     // Click "New Label" button
     const newLabelButton = page.getByRole("button", { name: /New Label/i });

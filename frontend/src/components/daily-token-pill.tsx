@@ -46,7 +46,7 @@ export function DailyTokenPill() {
       <Tooltip>
         <TooltipTrigger asChild>
           <Link
-            href="/settings"
+            href="/settings/account#limits"
             aria-label={`${formatTokens(remaining)} of ${formatTokens(limit)} daily tokens remaining`}
             className={cn(
               "hidden sm:inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted",

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SettingRow } from "./settings-panel";
 import { cn } from "@/lib/utils";
 import type { ColorTheme } from "@/components/color-theme-provider";
 
@@ -33,15 +27,13 @@ export function ThemeColorSettings({
   onColorThemeChange,
 }: ThemeColorSettingsProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Accent Color</CardTitle>
-        <CardDescription>
-          Choose a color accent for buttons, links, and highlights
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-3">
+    <SettingRow
+      id="appearance"
+      title="Accent color"
+      description="Used for buttons, links and highlights"
+      layout="stacked"
+    >
+      <div className="flex flex-wrap gap-3">
           {THEMES.map((theme) => (
             <button
               key={theme.value}
@@ -62,9 +54,8 @@ export function ThemeColorSettings({
               />
               <span className="text-xs text-muted-foreground">{theme.label}</span>
             </button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+        ))}
+      </div>
+    </SettingRow>
   );
 }

@@ -51,7 +51,7 @@ export function DigestCategoriesSettings({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Digest Categories</CardTitle>
+        <CardTitle>Digest categories</CardTitle>
         <CardDescription>
           Choose which types of emails to include in your digests. Unchecked
           categories will be excluded.
