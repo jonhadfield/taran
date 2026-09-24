@@ -74,7 +74,7 @@ export function Sidebar({
       )}
     >
       {/* Branding */}
-      <div className={cn("flex h-14 items-center gap-2.5", collapsed ? "justify-center px-2" : "px-5")}>
+      <div className={cn("flex h-14 shrink-0 items-center gap-2.5", collapsed ? "justify-center px-2" : "px-5")}>
         <Image
           src="/logo.svg"
           alt={APP_NAME}
@@ -86,12 +86,12 @@ export function Sidebar({
       </div>
 
       {/* Main navigation */}
-      <nav className={cn("flex flex-1 flex-col gap-1 pt-2", collapsed ? "px-1.5" : "px-3")}>
+      <nav className={cn("flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pt-2", collapsed ? "px-1.5" : "px-3")}>
         {mainNav.map(navLink)}
       </nav>
 
       {/* Bottom navigation */}
-      <nav className={cn("flex flex-col gap-1 border-t py-3", collapsed ? "px-1.5" : "px-3")}>
+      <nav className={cn("flex shrink-0 flex-col gap-1 border-t py-3", collapsed ? "px-1.5" : "px-3")}>
         {isAdmin && navLink({ href: "/admin", label: "Admin", icon: Shield })}
         {bottomNav.map(navLink)}
         {onToggle && (
