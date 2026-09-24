@@ -87,11 +87,16 @@ export function AdminFailedEmails() {
           { label: "Pending", value: pipeline.pending, color: "text-info" },
           { label: "Processing", value: pipeline.processing, color: "text-warning" },
           { label: "Processed", value: pipeline.processed, color: "text-success" },
-          { label: "Skipped", value: pipeline.skipped, color: "text-muted-foreground" },
-          { label: "Payloads", value: pipeline.payloads, color: "text-muted-foreground" },
+          { label: "Skipped", value: pipeline.skipped, color: "text-foreground" },
+          { label: "Payloads", value: pipeline.payloads, color: "text-foreground" },
         ].map((item) => (
-          <div key={item.label} className="text-center">
-            <div className={`text-lg font-bold tabular-nums ${item.color}`}>
+          <div key={item.label} className="rounded-lg border bg-card px-3 py-2.5 text-center shadow-sm dark:shadow-none">
+            {/* Nothing to flag at zero, so the colour is spent only on real counts. */}
+            <div
+              className={`text-lg font-semibold tabular-nums ${
+                item.value === 0 ? "text-muted-foreground" : item.color
+              }`}
+            >
               {item.value.toLocaleString()}
             </div>
             <div className="text-xs text-muted-foreground">{item.label}</div>

@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { usePolling } from "@/hooks/use-polling";
 import { apiGet } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
+import { StatTile } from "@/components/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import type { DashboardData, UserPreference, WeekCount, TopicCount, CategoryCount, HeatmapCell } from "@/types/api";
-import { Inbox, BookOpen, Mail, TrendingUp, TrendingDown, AlertCircle, BarChart3, Tag, PieChart, Clock } from "lucide-react";
+import { Inbox, BookOpen, Mail, AlertCircle, BarChart3, Tag, PieChart, Clock } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { CopyEmailAddress } from "@/components/copy-email-address";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
@@ -16,7 +17,6 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { WidgetErrorBoundary } from "@/components/widget-error-boundary";
 import Link from "next/link";
 import { formatShortDate, pluralize } from "@/lib/utils";
-import { CATEGORY_CHART_COLORS } from "@/lib/category-constants";
 
 interface DashboardContentProps {
   initialData: DashboardData;
@@ -108,9 +108,9 @@ function CategoryBars({ categories }: { categories: CategoryCount[] }) {
             <span className="text-xs w-24 text-right truncate capitalize text-muted-foreground">
               {cat.Category || "other"}
             </span>
-            <div className="flex-1 h-5 bg-muted rounded-sm overflow-hidden">
+            <div className="h-5 flex-1 overflow-hidden rounded-sm bg-muted">
               <div
-                className={`h-full rounded-sm animate-bar-grow-h ${CATEGORY_CHART_COLORS[cat.Category] || CATEGORY_CHART_COLORS.other}`}
+                className="h-full rounded-sm bg-primary animate-bar-grow-h"
                 style={{ "--bar-width": `${(cat.Count / max) * 100}%`, animationDelay: `${i * 80}ms` } as React.CSSProperties}
               />
             </div>
@@ -162,6 +162,14 @@ function ArrivalHeatmap({ cells }: { cells: HeatmapCell[] }) {
             )}
           </div>
         ))}
+      </div>
+      {/* Legend: the shading is a count, so it needs a scale. */}
+      <div className="flex items-center justify-end gap-1.5 pb-1 text-[10px] text-muted-foreground">
+        <span>Less</span>
+        {["bg-muted", "bg-primary/20", "bg-primary/40", "bg-primary/60", "bg-primary/90"].map((c) => (
+          <span key={c} className={`size-2.5 rounded-[2px] ${c}`} />
+        ))}
+        <span>More</span>
       </div>
       {/* Grid rows */}
       {grid.map((row, day) => (
@@ -222,55 +230,16 @@ export function DashboardContent({ initialData, emailAddress }: DashboardContent
       <FaviconBadge count={unreadCount} />
       <h1 className="text-2xl font-bold text-balance">Dashboard</h1>
 
-      {/* Stat cards */}
+      {/* Headline figures */}
       <div className="grid gap-4 @sm:grid-cols-2 @lg:grid-cols-3">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-chart-1/10">
-              <Mail className="size-6 text-chart-1" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.EmailsThisWeek}</p>
-              <p className="text-sm text-muted-foreground">This Week</p>
-              {stats.EmailsLastWeek > 0 && (
-                <div className="flex items-center gap-1 mt-0.5">
-                  {weekDiff >= 0 ? (
-                    <TrendingUp className="size-3 text-success" />
-                  ) : (
-                    <TrendingDown className="size-3 text-destructive" />
-                  )}
-                  <span className={`text-xs ${weekDiff >= 0 ? "text-success" : "text-destructive"}`}>
-                    {weekDiff >= 0 ? "+" : ""}{weekDiff} vs last week
-                  </span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-chart-2/10">
-              <Inbox className="size-6 text-chart-2" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{unreadCount}</p>
-              <p className="text-sm text-muted-foreground">Unread</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-chart-3/10">
-              <BookOpen className="size-6 text-chart-3" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.TotalEmails}</p>
-              <p className="text-sm text-muted-foreground">Total Emails</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatTile
+          label="This week"
+          value={stats.EmailsThisWeek}
+          icon={Mail}
+          delta={stats.EmailsLastWeek > 0 ? { value: weekDiff, suffix: "vs last week" } : undefined}
+        />
+        <StatTile label="Unread" value={unreadCount} icon={Inbox} />
+        <StatTile label="Total emails" value={stats.TotalEmails} icon={BookOpen} />
       </div>
 
       {/* Onboarding checklist — persistent until dismissed */}
