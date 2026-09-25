@@ -20,7 +20,8 @@ interface OnboardingChecklistProps {
   emailAddress: string;
   hasEmails: boolean;
   hasDigest: boolean;
-  hasConfiguredPreferences: boolean;
+  /** null while the preferences lookup is still in flight. */
+  hasConfiguredPreferences: boolean | null;
 }
 
 export function OnboardingChecklist({
@@ -35,8 +36,6 @@ export function OnboardingChecklist({
     () => false,
   );
   const [dismissed, setDismissed] = useState(false);
-
-  if (wasDismissed || dismissed) return null;
 
   const items: ChecklistItem[] = [
     {
@@ -68,7 +67,7 @@ export function OnboardingChecklist({
       id: "settings",
       label: "Configure your preferences",
       description: "Set your digest schedule, timezone, and notification preferences.",
-      done: hasConfiguredPreferences,
+      done: hasConfiguredPreferences === true,
       href: "/settings/digest",
       icon: <Settings className="size-4" />,
     },
@@ -76,6 +75,18 @@ export function OnboardingChecklist({
 
   const completedCount = items.filter((i) => i.done).length;
   const allDone = completedCount === items.length;
+
+  // Render nothing until the preferences lookup resolves. It decides the last
+  // item, so rendering early shows a stale "3 of 4" to people who finished
+  // onboarding long ago, then rips it away once the answer arrives.
+  if (hasConfiguredPreferences === null) return null;
+
+  // Onboarding is finished, so there is nothing to guide. This also means an
+  // established account never depends on the dismissal flag below, which lives
+  // in localStorage and is therefore lost on a new browser or cleared site data.
+  if (allDone) return null;
+
+  if (wasDismissed || dismissed) return null;
 
   const handleDismiss = () => {
     localStorage.setItem("onboarding-checklist-dismissed", "1");
@@ -146,23 +157,12 @@ export function OnboardingChecklist({
           </div>
         ))}
 
-        {!allDone && emailAddress && (
+        {emailAddress && (
           <div className="pt-1">
             <p className="text-xs text-muted-foreground">Your inbox address:</p>
             <div className="mt-1">
               <CopyEmailAddress emailAddress={emailAddress} />
             </div>
-          </div>
-        )}
-
-        {allDone && (
-          <div className="pt-1 text-center">
-            <p className="text-sm text-muted-foreground">
-              You&apos;re all set! You can dismiss this checklist.
-            </p>
-            <Button variant="outline" size="sm" className="mt-2" onClick={handleDismiss}>
-              Dismiss
-            </Button>
           </div>
         )}
       </CardContent>
