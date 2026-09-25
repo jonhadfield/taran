@@ -197,18 +197,22 @@ function ArrivalHeatmap({ cells }: { cells: HeatmapCell[] }) {
 
 export function DashboardContent({ initialData, emailAddress }: DashboardContentProps) {
   const { data } = usePolling<DashboardData>("dashboard", initialData);
-  const [hasConfiguredPrefs, setHasConfiguredPrefs] = useState(false);
+  // null until the fetch resolves. The checklist renders nothing while it is
+  // unknown, so people who finished onboarding never see it flash past.
+  const [hasConfiguredPrefs, setHasConfiguredPrefs] = useState<boolean | null>(null);
 
   useEffect(() => {
     apiGet<UserPreference>("preferences")
       .then((pref) => {
         // Consider preferences "configured" if the user has enabled any delivery
         // method or changed the timezone from UTC (the default)
-        if (pref.DigestEmail || pref.DigestWebhook || pref.WeeklySummary === false || pref.DigestTimezone !== "UTC") {
-          setHasConfiguredPrefs(true);
-        }
+        setHasConfiguredPrefs(
+          !!(pref.DigestEmail || pref.DigestWebhook || pref.WeeklySummary === false || pref.DigestTimezone !== "UTC")
+        );
       })
-      .catch(() => {});
+      // Treat a failed lookup as "not configured" rather than leaving it unknown
+      // forever, so a new user still gets the checklist.
+      .catch(() => setHasConfiguredPrefs(false));
   }, []);
 
   const emails = data.Emails || [];
