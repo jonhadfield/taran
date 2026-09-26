@@ -513,4 +513,8 @@ type ListOptions struct {
 	HasAttachment *bool        `json:"HasAttachment"`
 	LabelID       *string      `json:"LabelID"`
 	Sort          string       `json:"Sort"` // "newest" (default), "oldest", "relevance"
+	// IncludeBodies fetches text_body and html_body, which live in TOAST and
+	// average tens of KB each. Left false for list views, which never show
+	// them; set only by data export, where the body is the point.
+	IncludeBodies bool         `json:"-"`
 }

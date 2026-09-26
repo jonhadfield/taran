@@ -229,8 +229,14 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 		}
 	}
 
+	// Data export wants the bodies; every other caller is a list view that
+	// would pull megabytes of TOAST and decrypt it only to discard it.
+	cols := emailListColumns
+	if opts.IncludeBodies {
+		cols = emailColumns
+	}
 	query := fmt.Sprintf(
-		`SELECT `+emailColumns+`
+		`SELECT `+cols+`
 		 FROM email WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d`,
 		whereClause, orderBy, argIdx, argIdx+1)
 	args = append(args, limit, offset)
@@ -243,7 +249,11 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 
 	var emails []domain.Email
 	for rows.Next() {
-		e, err := r.scanEmailRows(rows)
+		scan := r.scanEmailListRow
+		if opts.IncludeBodies {
+			scan = r.scanEmail
+		}
+		e, err := scan(rows)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -814,6 +824,17 @@ const emailColumns = `id, user_id, email_account_id, message_id, in_reply_to, th
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
 		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, unsubscribe_post, retry_count, encrypted, created_at, updated_at`
 
+// emailListColumns is emailColumns without text_body and html_body.
+//
+// The bodies live in TOAST and average ~74KB each, so a 50-row page pulled
+// about 5MB of them out of the database, decrypted every one, serialised them
+// to JSON and sent them to a list view that shows only sender, subject and
+// date. The inbox preview fetches the selected email separately by id, which
+// still uses emailColumns, so nothing on screen loses its body.
+const emailListColumns = `id, user_id, email_account_id, message_id, in_reply_to, thread_id, from_address, from_name,
+		    to_address, subject, received_at, date_header, status, status_reason,
+		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, unsubscribe_post, retry_count, encrypted, created_at, updated_at`
+
 func (r *EmailRepo) scanEmail(row scannable) (*domain.Email, error) {
 	var e domain.Email
 	var encrypted bool
@@ -863,6 +884,26 @@ func (r *EmailRepo) decryptEmailBody(e *domain.Email) {
 
 func (r *EmailRepo) scanEmailRows(rows interface{ Scan(dest ...any) error }) (*domain.Email, error) {
 	return r.scanEmail(rows)
+}
+
+// scanEmailListRow scans emailListColumns. TextBody and HTMLBody are left
+// empty, and no decryption is attempted because there is no ciphertext to
+// decrypt — the encrypted flag is still read so the column list matches.
+func (r *EmailRepo) scanEmailListRow(row scannable) (*domain.Email, error) {
+	var e domain.Email
+	var encrypted bool
+	err := row.Scan(
+		&e.ID, &e.UserID, &e.AccountID, &e.MessageID, &e.InReplyTo, &e.ThreadID,
+		&e.FromAddress, &e.FromName, &e.ToAddress, &e.Subject,
+		&e.ReceivedAt, &e.DateHeader,
+		&e.Status, &e.StatusReason, &e.IsRead, &e.IsStarred, &e.IsArchived,
+		&e.UnsubscribeURL, &e.UnsubscribeMailto, &e.UnsubscribePost, &e.RetryCount, &encrypted,
+		&e.CreatedAt, &e.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("scan email list row: %w", err)
+	}
+	return &e, nil
 }
 
 func (r *EmailRepo) GetThreadEmails(ctx context.Context, userID, threadID string) ([]domain.Email, error) {
