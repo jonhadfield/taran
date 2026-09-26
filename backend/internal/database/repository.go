@@ -93,6 +93,7 @@ type PreferenceRepository interface {
 	Get(ctx context.Context, userID string) (*domain.UserPreference, error)
 	Upsert(ctx context.Context, pref *domain.UserPreference) error
 	SetTokenWarningSent(ctx context.Context, userID string) error
+	ListForUsers(ctx context.Context, userIDs []string) (map[string]*domain.UserPreference, error)
 }
 
 type SessionRepository interface {
