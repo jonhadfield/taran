@@ -198,11 +198,13 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 
 	whereClause := strings.Join(where, " AND ")
 
+	// The total comes back as a window function on the page query below, so the
+	// predicate runs once rather than twice. With a search or a topic, category
+	// or label filter that predicate includes correlated EXISTS subqueries and
+	// ILIKE scans, so running it twice was the bulk of the work.
+	// countArgs is captured here because the page query appends to args.
+	countArgs := append([]any(nil), args...)
 	var total int
-	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM email WHERE "+whereClause, args...).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count emails: %w", err)
-	}
 
 	limit := opts.Limit
 	if limit <= 0 {
@@ -236,7 +238,7 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 		cols = emailColumns
 	}
 	query := fmt.Sprintf(
-		`SELECT `+cols+`
+		`SELECT `+cols+`, COUNT(*) OVER () AS total
 		 FROM email WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d`,
 		whereClause, orderBy, argIdx, argIdx+1)
 	args = append(args, limit, offset)
@@ -253,11 +255,24 @@ func (r *EmailRepo) List(ctx context.Context, userID string, opts domain.ListOpt
 		if opts.IncludeBodies {
 			scan = r.scanEmail
 		}
-		e, err := scan(rows)
+		e, err := scan(rowWithTrailing{row: rows, extra: []any{&total}})
 		if err != nil {
 			return nil, 0, err
 		}
 		emails = append(emails, *e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate emails: %w", err)
+	}
+
+	// An empty page carries no row to hold the window total, which matters
+	// past the last page: without this the caller would be told there are no
+	// matches at all rather than that this page is empty.
+	if len(emails) == 0 {
+		if err := r.pool.QueryRow(ctx,
+			"SELECT COUNT(*) FROM email WHERE "+whereClause, countArgs...).Scan(&total); err != nil {
+			return nil, 0, fmt.Errorf("count emails: %w", err)
+		}
 	}
 	return emails, total, nil
 }
@@ -820,6 +835,17 @@ type scannable interface {
 	Scan(dest ...any) error
 }
 
+// rowWithTrailing lets the existing scan functions be reused when the query
+// carries extra trailing columns, such as the windowed total in List.
+type rowWithTrailing struct {
+	row   scannable
+	extra []any
+}
+
+func (r rowWithTrailing) Scan(dest ...any) error {
+	return r.row.Scan(append(dest, r.extra...)...)
+}
+
 const emailColumns = `id, user_id, email_account_id, message_id, in_reply_to, thread_id, from_address, from_name,
 		    to_address, subject, text_body, html_body, received_at, date_header, status, status_reason,
 		    is_read, is_starred, is_archived, unsubscribe_url, unsubscribe_mailto, unsubscribe_post, retry_count, encrypted, created_at, updated_at`
@@ -906,12 +932,62 @@ func (r *EmailRepo) scanEmailListRow(row scannable) (*domain.Email, error) {
 	return &e, nil
 }
 
+// FindThreadRefs looks up several message ids at once, keyed by message id.
+//
+// The References header is supplied by whoever sent the mail, so resolving it
+// one query at a time meant an inbound message could dictate how many
+// sequential round trips the ingest path made before it returned.
+func (r *EmailRepo) FindThreadRefs(ctx context.Context, userID string, messageIDs []string) (map[string]domain.ThreadRef, error) {
+	out := make(map[string]domain.ThreadRef)
+	if len(messageIDs) == 0 {
+		return out, nil
+	}
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, message_id, COALESCE(thread_id, '')
+		   FROM email WHERE user_id = $1 AND message_id = ANY($2)`,
+		userID, messageIDs)
+	if err != nil {
+		return nil, fmt.Errorf("find thread refs: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var t domain.ThreadRef
+		if err := rows.Scan(&t.ID, &t.MessageID, &t.ThreadID); err != nil {
+			return nil, fmt.Errorf("scan thread ref: %w", err)
+		}
+		out[t.MessageID] = t
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate thread refs: %w", err)
+	}
+	return out, nil
+}
+
+// CountThreadEmails counts a thread without reading the emails. The detail
+// view only wants the number, and fetching whole rows for that pulled every
+// body in the thread out of TOAST and decrypted it — on every email opened,
+// because standalone emails get their own message id as thread_id and so are
+// threads of one.
+func (r *EmailRepo) CountThreadEmails(ctx context.Context, userID, threadID string) (int, error) {
+	if threadID == "" {
+		return 0, nil
+	}
+	var n int64
+	err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM email WHERE user_id = $1 AND thread_id = $2`,
+		userID, threadID).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("count thread emails: %w", err)
+	}
+	return int(n), nil
+}
+
 func (r *EmailRepo) GetThreadEmails(ctx context.Context, userID, threadID string) ([]domain.Email, error) {
 	if threadID == "" {
 		return nil, nil
 	}
 	rows, err := r.pool.Query(ctx,
-		`SELECT `+emailColumns+`
+		`SELECT `+emailListColumns+`
 		 FROM email WHERE user_id = $1 AND thread_id = $2
 		 ORDER BY received_at ASC`, userID, threadID)
 	if err != nil {
@@ -921,7 +997,7 @@ func (r *EmailRepo) GetThreadEmails(ctx context.Context, userID, threadID string
 
 	var emails []domain.Email
 	for rows.Next() {
-		e, err := r.scanEmailRows(rows)
+		e, err := r.scanEmailListRow(rows)
 		if err != nil {
 			return nil, err
 		}
