@@ -43,13 +43,26 @@ func resolveThreadID(ctx context.Context, emails database.EmailRepository, userI
 		}
 	}
 
-	// Walk References in reverse (most recent ancestor first)
-	for i := len(parsed.References) - 1; i >= 0; i-- {
-		ref := parsed.References[i]
-		if ref == parsed.InReplyTo {
-			continue // already checked
+	// Resolve every reference in one query, then walk them in reverse (most
+	// recent ancestor first) as before. References comes off the inbound
+	// message, so querying per entry let the sender decide how many sequential
+	// round trips the ingest path made.
+	refs := make([]string, 0, len(parsed.References))
+	for _, ref := range parsed.References {
+		if ref != "" && ref != parsed.InReplyTo {
+			refs = append(refs, ref)
 		}
-		if ancestor, _ := emails.GetByMessageID(ctx, userID, ref); ancestor != nil {
+	}
+	if len(refs) > 0 {
+		found, err := emails.FindThreadRefs(ctx, userID, refs)
+		if err != nil {
+			slog.Warn("thread reference lookup failed", "error", err)
+		}
+		for i := len(parsed.References) - 1; i >= 0; i-- {
+			ancestor, ok := found[parsed.References[i]]
+			if !ok {
+				continue
+			}
 			if ancestor.ThreadID != "" {
 				return ancestor.ThreadID
 			}
@@ -211,12 +224,12 @@ func (h *WebhookHandler) IngestEmail(w http.ResponseWriter, r *http.Request) {
 	// Process extraction synchronously so the summary is available immediately
 	if h.Resolver != nil {
 		worker.ProcessEmail(r.Context(), worker.ProcessEmailParams{
-			EmailID:     emailRecord.ID,
-			Emails:      h.Emails,
-			Extractions: h.Extractions,
-			Resolver:    h.Resolver,
-			SenderPrefs: h.SenderPrefs,
-			TokenUsage:  h.TokenUsage,
+			EmailID:       emailRecord.ID,
+			Emails:        h.Emails,
+			Extractions:   h.Extractions,
+			Resolver:      h.Resolver,
+			SenderPrefs:   h.SenderPrefs,
+			TokenUsage:    h.TokenUsage,
 			Preferences:   h.Preferences,
 			AnalysisRules: h.AnalysisRules,
 			Broker:        h.SSEBroker,

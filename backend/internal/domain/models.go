@@ -497,6 +497,15 @@ type AnalysisRule struct {
 	UpdatedAt time.Time `json:"UpdatedAt"`
 }
 
+// ThreadRef is the minimum needed to resolve a threading relationship
+// between emails. The full row is deliberately not read: the bodies are large
+// and none of this is shown to anyone.
+type ThreadRef struct {
+	ID        string
+	MessageID string
+	ThreadID  string
+}
+
 type ListOptions struct {
 	Limit         int          `json:"Limit"`
 	Offset        int          `json:"Offset"`

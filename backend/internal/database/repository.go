@@ -40,6 +40,8 @@ type EmailRepository interface {
 	CountByFilter(ctx context.Context, userID string, status *domain.EmailStatus, isRead *bool) (int, error)
 	ListSubscriptions(ctx context.Context, userID string) ([]domain.SubscriptionInfo, error)
 	GetThreadEmails(ctx context.Context, userID, threadID string) ([]domain.Email, error)
+	CountThreadEmails(ctx context.Context, userID, threadID string) (int, error)
+	FindThreadRefs(ctx context.Context, userID string, messageIDs []string) (map[string]domain.ThreadRef, error)
 	UpdateThreadID(ctx context.Context, userID, id, threadID string) error
 }
 

@@ -128,9 +128,9 @@ func (h *EmailHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 	// Include thread count if this email is part of a thread
 	if email.ThreadID != "" {
-		thread, err := h.Emails.GetThreadEmails(r.Context(), userID, email.ThreadID)
+		count, err := h.Emails.CountThreadEmails(r.Context(), userID, email.ThreadID)
 		if err == nil {
-			resp.ThreadCount = len(thread)
+			resp.ThreadCount = count
 		}
 	}
 

@@ -26,6 +26,7 @@ type MockEmailRepo struct {
 	UpdateStateFn       func(ctx context.Context, userID, id string, state domain.EmailState) error
 	DeleteFn            func(ctx context.Context, userID, id string) error
 	GetByMessageIDFn    func(ctx context.Context, userID, messageID string) (*domain.Email, error)
+	FindThreadRefsFn    func(ctx context.Context, userID string, messageIDs []string) (map[string]domain.ThreadRef, error)
 	UpdateThreadIDFn    func(ctx context.Context, userID, id, threadID string) error
 	ListPendingFn       func(ctx context.Context, limit int) ([]domain.Email, error)
 	SetStatusFn         func(ctx context.Context, id string, status domain.EmailStatus, reason string) error
@@ -34,11 +35,11 @@ type MockEmailRepo struct {
 	CountByWeekFn       func(ctx context.Context, userID string, weeks int) ([]domain.WeekCount, error)
 	TopSendersFn        func(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.SenderCount, error)
 	ListSendersFn       func(ctx context.Context, userID string) ([]domain.SenderInfo, error)
-	CountByStatusFn       func(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
-	CountBySenderWeekFn   func(ctx context.Context, userID, fromAddress string, weeks int) ([]domain.WeekCount, error)
-	BatchUpdateStateFn    func(ctx context.Context, userID string, ids []string, state domain.EmailState) error
-	BatchDeleteFn         func(ctx context.Context, userID string, ids []string) error
-	CountByFilterFn       func(ctx context.Context, userID string, status *domain.EmailStatus, isRead *bool) (int, error)
+	CountByStatusFn     func(ctx context.Context, userID string) (map[domain.EmailStatus]int, error)
+	CountBySenderWeekFn func(ctx context.Context, userID, fromAddress string, weeks int) ([]domain.WeekCount, error)
+	BatchUpdateStateFn  func(ctx context.Context, userID string, ids []string, state domain.EmailState) error
+	BatchDeleteFn       func(ctx context.Context, userID string, ids []string) error
+	CountByFilterFn     func(ctx context.Context, userID string, status *domain.EmailStatus, isRead *bool) (int, error)
 
 	mu             sync.Mutex
 	SetStatusCalls []SetStatusCall
@@ -254,6 +255,25 @@ func (m *MockEmailRepo) GetThreadEmails(ctx context.Context, userID, threadID st
 	return nil, nil
 }
 
+func (m *MockEmailRepo) CountThreadEmails(ctx context.Context, userID, threadID string) (int, error) {
+	emails, err := m.GetThreadEmails(ctx, userID, threadID)
+	return len(emails), err
+}
+
+func (m *MockEmailRepo) FindThreadRefs(ctx context.Context, userID string, messageIDs []string) (map[string]domain.ThreadRef, error) {
+	if m.FindThreadRefsFn != nil {
+		return m.FindThreadRefsFn(ctx, userID, messageIDs)
+	}
+	out := make(map[string]domain.ThreadRef)
+	for _, mid := range messageIDs {
+		e, _ := m.GetByMessageID(ctx, userID, mid)
+		if e != nil {
+			out[mid] = domain.ThreadRef{ID: e.ID, MessageID: e.MessageID, ThreadID: e.ThreadID}
+		}
+	}
+	return out, nil
+}
+
 func (m *MockEmailRepo) UpdateThreadID(ctx context.Context, userID, id, threadID string) error {
 	if m.UpdateThreadIDFn != nil {
 		return m.UpdateThreadIDFn(ctx, userID, id, threadID)
@@ -341,11 +361,11 @@ func (m *MockExtractionRepo) GetSummariesByEmailIDs(ctx context.Context, emailID
 
 // MockFeedbackRepo implements database.FeedbackRepository for testing.
 type MockFeedbackRepo struct {
-	UpsertFn          func(ctx context.Context, fb *domain.EmailFeedback) error
-	DeleteFn          func(ctx context.Context, userID, emailID string) error
-	GetByEmailIDFn    func(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error)
-	GetSenderStatsFn  func(ctx context.Context, userID string) ([]domain.SenderFeedbackStat, error)
-	GetTopicStatsFn   func(ctx context.Context, userID string) ([]domain.TopicFeedbackStat, error)
+	UpsertFn         func(ctx context.Context, fb *domain.EmailFeedback) error
+	DeleteFn         func(ctx context.Context, userID, emailID string) error
+	GetByEmailIDFn   func(ctx context.Context, userID, emailID string) (*domain.EmailFeedback, error)
+	GetSenderStatsFn func(ctx context.Context, userID string) ([]domain.SenderFeedbackStat, error)
+	GetTopicStatsFn  func(ctx context.Context, userID string) ([]domain.TopicFeedbackStat, error)
 }
 
 func (m *MockFeedbackRepo) Upsert(ctx context.Context, fb *domain.EmailFeedback) error {
@@ -385,17 +405,17 @@ func (m *MockFeedbackRepo) GetTopicStats(ctx context.Context, userID string) ([]
 
 // MockDigestRepo implements database.DigestRepository for testing.
 type MockDigestRepo struct {
-	CreateFn            func(ctx context.Context, digest *domain.Digest) error
-	GetByIDFn           func(ctx context.Context, userID, id string) (*domain.Digest, error)
-	GetByIDInternalFn   func(ctx context.Context, id string) (*domain.Digest, error)
-	ListFn              func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
-	DeleteFn            func(ctx context.Context, userID, id string) error
-	SetSentAtFn         func(ctx context.Context, id string, sentAt time.Time) error
-	SetShareTokenFn     func(ctx context.Context, id, userID, token string) error
-	ClearShareTokenFn   func(ctx context.Context, id, userID string) error
-	GetByShareTokenFn   func(ctx context.Context, token string) (*domain.Digest, error)
-	ExistsForPeriodFn   func(ctx context.Context, userID string, periodStart, periodEnd time.Time) (bool, error)
-	ListUnsentFn        func(ctx context.Context, olderThan time.Time, limit int) ([]domain.Digest, error)
+	CreateFn          func(ctx context.Context, digest *domain.Digest) error
+	GetByIDFn         func(ctx context.Context, userID, id string) (*domain.Digest, error)
+	GetByIDInternalFn func(ctx context.Context, id string) (*domain.Digest, error)
+	ListFn            func(ctx context.Context, userID string, opts domain.ListOptions) ([]domain.Digest, int, error)
+	DeleteFn          func(ctx context.Context, userID, id string) error
+	SetSentAtFn       func(ctx context.Context, id string, sentAt time.Time) error
+	SetShareTokenFn   func(ctx context.Context, id, userID, token string) error
+	ClearShareTokenFn func(ctx context.Context, id, userID string) error
+	GetByShareTokenFn func(ctx context.Context, token string) (*domain.Digest, error)
+	ExistsForPeriodFn func(ctx context.Context, userID string, periodStart, periodEnd time.Time) (bool, error)
+	ListUnsentFn      func(ctx context.Context, olderThan time.Time, limit int) ([]domain.Digest, error)
 }
 
 func (m *MockDigestRepo) Create(ctx context.Context, digest *domain.Digest) error {
@@ -573,10 +593,10 @@ func (m *MockPreferenceRepo) SetTokenWarningSent(ctx context.Context, userID str
 
 // MockMailer implements mailer.Mailer for testing.
 type MockMailer struct {
-	SendDigestFn         func(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error
-	SendInviteFn         func(ctx context.Context, toEmail string) error
-	SendInviteApprovedFn func(ctx context.Context, toEmail string) error
-	SendTokenWarningFn   func(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error
+	SendDigestFn             func(ctx context.Context, toEmail, toName string, digest *domain.Digest, unsubscribeURL string) error
+	SendInviteFn             func(ctx context.Context, toEmail string) error
+	SendInviteApprovedFn     func(ctx context.Context, toEmail string) error
+	SendTokenWarningFn       func(ctx context.Context, toEmail string, usagePercent int, tokensUsed, tokenLimit int) error
 	SendSignupNotificationFn func(ctx context.Context, toEmail, newUserEmail, via string) error
 	SendUserFeedbackFn       func(ctx context.Context, toEmail, fromUserEmail, message string) error
 }
@@ -633,9 +653,9 @@ func (m *MockMailer) SendWeeklySummary(_ context.Context, _ string, _ *domain.We
 
 // MockSenderPreferenceRepo implements database.SenderPreferenceRepository for testing.
 type MockSenderPreferenceRepo struct {
-	UpsertFn              func(ctx context.Context, pref *domain.SenderPreference) error
-	GetByAddressFn        func(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error)
-	ListByUserFn          func(ctx context.Context, userID string) ([]domain.SenderPreference, error)
+	UpsertFn               func(ctx context.Context, pref *domain.SenderPreference) error
+	GetByAddressFn         func(ctx context.Context, userID, fromAddress string) (*domain.SenderPreference, error)
+	ListByUserFn           func(ctx context.Context, userID string) ([]domain.SenderPreference, error)
 	ListBlockedAddressesFn func(ctx context.Context, userID string) ([]string, error)
 }
 
@@ -673,10 +693,10 @@ func (m *MockSenderPreferenceRepo) MarkUnsubscribed(ctx context.Context, userID,
 
 // MockInviteRepo implements database.InviteRepository for testing.
 type MockInviteRepo struct {
-	GetByEmailFn   func(ctx context.Context, email string) (*domain.Invite, error)
-	CreateFn       func(ctx context.Context, invite *domain.Invite) error
-	ListFn         func(ctx context.Context) ([]domain.Invite, error)
-	MarkAcceptedFn func(ctx context.Context, email string) (bool, error)
+	GetByEmailFn     func(ctx context.Context, email string) (*domain.Invite, error)
+	CreateFn         func(ctx context.Context, invite *domain.Invite) error
+	ListFn           func(ctx context.Context) ([]domain.Invite, error)
+	MarkAcceptedFn   func(ctx context.Context, email string) (bool, error)
 	CountByInviterFn func(ctx context.Context, invitedBy string) (int, error)
 }
 
@@ -797,8 +817,8 @@ func (m *MockWaitlistRepo) Delete(ctx context.Context, id string) error {
 
 // MockDigestFeedbackRepo implements database.DigestFeedbackRepository for testing.
 type MockDigestFeedbackRepo struct {
-	UpsertFn       func(ctx context.Context, fb *domain.DigestFeedback) error
-	DeleteFn       func(ctx context.Context, userID, digestID string) error
+	UpsertFn        func(ctx context.Context, fb *domain.DigestFeedback) error
+	DeleteFn        func(ctx context.Context, userID, digestID string) error
 	GetByDigestIDFn func(ctx context.Context, userID, digestID string) (*domain.DigestFeedback, error)
 }
 
