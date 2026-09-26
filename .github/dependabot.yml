@@ -18,6 +18,14 @@ updates:
       timezone: Europe/London
     open-pull-requests-limit: 5
     groups:
+      # The CLI generates the client, so the two halves have to move together.
+      # Listed first because the first matching group wins: this keeps prisma
+      # out of the minor-and-patch group at every semver level. PR #98 bumped
+      # @prisma/client to 7 on its own and could not build.
+      prisma:
+        patterns:
+          - prisma
+          - "@prisma/client"
       frontend-minor-and-patch:
         update-types:
           - minor
@@ -27,6 +35,13 @@ updates:
       # the call sites are fixed. It is also pinned in package.json overrides,
       # so a bump here would not take effect anyway. Unpin deliberately.
       - dependency-name: eslint-plugin-react-hooks
+      # ESLint 10 changed the rule context API and eslint-plugin-react has not
+      # caught up: it throws "contextOrFilename.getFilename is not a function"
+      # on every file (PR #95). Minor and patch updates still come through.
+      # Remove this once the plugin supports ESLint 10.
+      - dependency-name: eslint
+        update-types:
+          - version-update:semver-major
     commit-message:
       prefix: "chore(frontend)"
 
