@@ -37,7 +37,7 @@ type Generator struct {
 	Preferences database.PreferenceRepository
 	TokenUsage  database.TokenUsageRepository
 	// AnalysisRules supplies the user's rules for the digest prompt; nil disables them.
-	AnalysisRules database.AnalysisRuleRepository
+	AnalysisRules database.ActiveAnalysisRules
 }
 
 // filteredResult holds the output of the shared filtering pipeline.

@@ -9,10 +9,14 @@ import { AnalysisRulesSettings } from "../analysis-rules-settings";
 import { SettingsHeader, SettingsPanel } from "../settings-panel";
 import { settingsGroupBySlug } from "../settings-groups";
 import { usePreferences } from "../use-preferences";
+import { useIsAdmin } from "@/components/admin-context";
 
 const group = settingsGroupBySlug("digest")!;
 
 export default function DigestSettingsPage() {
+  // Analysis rules steer the model's prompts, so the feature is admin-only.
+  // The API enforces it; this just keeps the section out of the page.
+  const admin = useIsAdmin();
   const { pref, setPref, prefLoading, prefSaving, updatePreference, handlePrefChange, timezoneOptions } =
     usePreferences();
 
@@ -81,9 +85,11 @@ export default function DigestSettingsPage() {
         />
       </section>
 
-      <section id="analysis-rules" className="scroll-mt-24">
-        <AnalysisRulesSettings />
-      </section>
+      {admin && (
+        <section id="analysis-rules" className="scroll-mt-24">
+          <AnalysisRulesSettings />
+        </section>
+      )}
     </>
   );
 }

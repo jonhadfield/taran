@@ -35,7 +35,7 @@ type Processor struct {
 	senderPrefs database.SenderPreferenceRepository
 	tokenUsage  database.TokenUsageRepository
 	preferences database.PreferenceRepository
-	rules       database.AnalysisRuleRepository
+	rules       database.ActiveAnalysisRules
 	wg          sync.WaitGroup
 	concurrency int
 
@@ -63,7 +63,7 @@ type ProcessorConfig struct {
 	TokenUsage  database.TokenUsageRepository
 	Preferences database.PreferenceRepository
 	// AnalysisRules supplies the user's rules for the extraction prompt; nil disables them.
-	AnalysisRules database.AnalysisRuleRepository
+	AnalysisRules database.ActiveAnalysisRules
 }
 
 func NewProcessor(cfg ProcessorConfig) *Processor {
@@ -238,7 +238,7 @@ type ProcessEmailParams struct {
 	TokenUsage  database.TokenUsageRepository
 	Preferences database.PreferenceRepository
 	// AnalysisRules supplies the user's rules for the extraction prompt; nil disables them.
-	AnalysisRules database.AnalysisRuleRepository
+	AnalysisRules database.ActiveAnalysisRules
 	Broker        *sse.Broker
 }
 
@@ -574,7 +574,7 @@ func (p *Processor) sweepOrphanedDigests(ctx context.Context) {
 
 // loadExtractOptions fetches the user's active analysis rules. Failing to load
 // them is not fatal: the email is still worth extracting with default rules.
-func loadExtractOptions(ctx context.Context, repo database.AnalysisRuleRepository, userID string, logger *slog.Logger) *llm.ExtractOptions {
+func loadExtractOptions(ctx context.Context, repo database.ActiveAnalysisRules, userID string, logger *slog.Logger) *llm.ExtractOptions {
 	if repo == nil {
 		return nil
 	}

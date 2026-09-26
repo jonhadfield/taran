@@ -11,6 +11,7 @@ import { EmailActions } from "./actions";
 import { EmailLabels } from "./email-labels";
 import { FeedbackButtons } from "./feedback-buttons";
 import { AddRuleButton } from "./add-rule-button";
+import { isAdmin } from "@/lib/admin";
 import { ReanalyseButton } from "./reanalyse-button";
 import { ReprocessButton } from "./reprocess-button";
 import { UnsubscribeButton } from "./unsubscribe-button";
@@ -24,6 +25,8 @@ export default async function EmailDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // Analysis rules are admin-only, so the shortcut to add one is too.
+  const admin = await isAdmin();
 
   let email: EmailResponse;
   try {
@@ -117,12 +120,14 @@ export default async function EmailDetailPage({
                     processedAt={email.Extraction.ProcessedAt}
                   />
                 )}
-                <AddRuleButton
-                  emailId={id}
-                  processedAt={email.Extraction.ProcessedAt}
-                  topics={email.Extraction.Topics ?? []}
-                  senderName={email.FromName || email.FromAddress}
-                />
+                {admin && (
+                  <AddRuleButton
+                    emailId={id}
+                    processedAt={email.Extraction.ProcessedAt}
+                    topics={email.Extraction.Topics ?? []}
+                    senderName={email.FromName || email.FromAddress}
+                  />
+                )}
               </CardAction>
             </CardHeader>
             <CardContent>

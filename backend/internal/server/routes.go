@@ -128,10 +128,12 @@ func NewRouter(deps RouterDeps) *http.ServeMux {
 	api.HandleFunc("GET /api/saved-searches", deps.SavedSearchHandler.List)
 	api.HandleFunc("POST /api/saved-searches", deps.SavedSearchHandler.Create)
 	api.HandleFunc("DELETE /api/saved-searches/{id}", deps.SavedSearchHandler.Delete)
-	api.HandleFunc("GET /api/analysis-rules", deps.AnalysisRuleHandler.List)
-	api.HandleFunc("POST /api/analysis-rules", deps.AnalysisRuleHandler.Create)
-	api.HandleFunc("PATCH /api/analysis-rules/{id}", deps.AnalysisRuleHandler.Update)
-	api.HandleFunc("DELETE /api/analysis-rules/{id}", deps.AnalysisRuleHandler.Delete)
+	// Analysis rules steer the model's prompts, so they are admin-only. The
+	// paths stay under /api so the client is unchanged; non-admins get 403.
+	api.Handle("GET /api/analysis-rules", deps.SessionAuth.AdminOnly(http.HandlerFunc(deps.AnalysisRuleHandler.List)))
+	api.Handle("POST /api/analysis-rules", deps.SessionAuth.AdminOnly(http.HandlerFunc(deps.AnalysisRuleHandler.Create)))
+	api.Handle("PATCH /api/analysis-rules/{id}", deps.SessionAuth.AdminOnly(http.HandlerFunc(deps.AnalysisRuleHandler.Update)))
+	api.Handle("DELETE /api/analysis-rules/{id}", deps.SessionAuth.AdminOnly(http.HandlerFunc(deps.AnalysisRuleHandler.Delete)))
 	api.HandleFunc("GET /api/auto-archive-rules", deps.AutoArchiveHandler.List)
 	api.HandleFunc("PUT /api/auto-archive-rules", deps.AutoArchiveHandler.Upsert)
 	api.HandleFunc("DELETE /api/auto-archive-rules/{id}", deps.AutoArchiveHandler.Delete)
