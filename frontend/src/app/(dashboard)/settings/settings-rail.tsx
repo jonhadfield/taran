@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SETTINGS_GROUPS } from "./settings-groups";
+import { useIsAdmin } from "@/components/admin-context";
 
 /**
  * Settings navigation, down the side rather than across the top.
@@ -12,8 +13,12 @@ import { SETTINGS_GROUPS } from "./settings-groups";
  * off-screen. A column fits every entry at once in space the page was not
  * using, and the sections of the current page sit under it as anchors.
  */
+/** Sections only an admin can see, so the rail does not link to nothing. */
+const ADMIN_ONLY_SECTIONS = new Set(["analysis-rules"]);
+
 export function SettingsRail() {
   const pathname = usePathname();
+  const admin = useIsAdmin();
 
   return (
     <nav aria-label="Settings" className="w-48 shrink-0">
@@ -37,7 +42,9 @@ export function SettingsRail() {
               </Link>
               {current && (
                 <ul className="mt-1 mb-2 space-y-0.5 border-l pl-3 ml-3">
-                  {group.sections.map((section) => (
+                  {group.sections
+                    .filter((section) => admin || !ADMIN_ONLY_SECTIONS.has(section.id))
+                    .map((section) => (
                     <li key={section.id}>
                       <a
                         href={`${href}#${section.id}`}

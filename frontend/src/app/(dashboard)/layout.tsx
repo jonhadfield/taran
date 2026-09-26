@@ -5,6 +5,7 @@ import { TitleUpdater } from "@/components/title-updater";
 import { Toaster } from "@/components/ui/sonner";
 import { ColorThemeProvider } from "@/components/color-theme-provider";
 import { isAdmin } from "@/lib/admin";
+import { AdminProvider } from "@/components/admin-context";
 import { auth } from "@/lib/auth";
 import { checkAccess } from "@/lib/access";
 import { AccessUnavailable } from "@/components/access-unavailable";
@@ -46,9 +47,11 @@ export default async function DashboardLayout({
     <ColorThemeProvider initialTheme={colorTheme}>
       <div className="min-h-screen">
         <TitleUpdater />
-        <DashboardShell isAdmin={admin}>
-          {children}
-        </DashboardShell>
+        <AdminProvider isAdmin={admin}>
+          <DashboardShell isAdmin={admin}>
+            {children}
+          </DashboardShell>
+        </AdminProvider>
         <CommandPalette isAdmin={admin} />
         <KeyboardHelp />
         <Toaster />

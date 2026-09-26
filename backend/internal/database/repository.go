@@ -180,10 +180,16 @@ type SavedSearchRepository interface {
 	CountByUser(ctx context.Context, userID string) (int, error)
 }
 
+// ActiveAnalysisRules is the read-only slice of AnalysisRuleRepository that
+// the background paths need, so they can be handed a gated implementation.
+type ActiveAnalysisRules interface {
+	ListActiveRules(ctx context.Context, userID string) ([]string, error)
+}
+
 type AnalysisRuleRepository interface {
+	ActiveAnalysisRules
 	Create(ctx context.Context, rule *domain.AnalysisRule) error
 	ListByUser(ctx context.Context, userID string) ([]domain.AnalysisRule, error)
-	ListActiveRules(ctx context.Context, userID string) ([]string, error)
 	Update(ctx context.Context, userID, id string, rule *string, isActive *bool) error
 	Delete(ctx context.Context, userID, id string) error
 	CountByUser(ctx context.Context, userID string) (int, error)

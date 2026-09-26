@@ -108,6 +108,14 @@ func main() {
 
 	// User-defined rules that steer LLM analysis of emails and digests
 	analysisRuleRepo := database.NewAnalysisRuleRepo(pool)
+	// Analysis rules are admin-only. The API routes enforce that for new rules;
+	// this gate stops rules created before the restriction from still reaching
+	// the model, and covers every background path from one place.
+	adminAnalysisRules := &database.AdminOnlyAnalysisRules{
+		Rules:       analysisRuleRepo,
+		Users:       sessionRepo,
+		AdminEmails: cfg.AdminEmails,
+	}
 
 	// Provider resolver (BYOK → platform fallback)
 	resolver := llm.NewProviderResolver(provider, userLLMKeyRepo, encryptor, &cfg.LLM)
@@ -125,7 +133,7 @@ func main() {
 		SenderPrefs: senderPrefRepo,
 		TokenUsage:    tokenUsageRepo,
 		Preferences:   preferenceRepo,
-		AnalysisRules: analysisRuleRepo,
+		AnalysisRules: adminAnalysisRules,
 	})
 	proc.SSEBroker = sseBroker
 
@@ -168,7 +176,7 @@ func main() {
 		Feedback:    feedbackRepo,
 		Preferences:   preferenceRepo,
 		TokenUsage:    tokenUsageRepo,
-		AnalysisRules: analysisRuleRepo,
+		AnalysisRules: adminAnalysisRules,
 	}
 	sched := digest.NewScheduler(digest.SchedulerConfig{
 		Generator:         gen,
@@ -198,7 +206,7 @@ func main() {
 		SenderPrefs:     senderPrefRepo,
 		TokenUsage:      tokenUsageRepo,
 		Preferences:     preferenceRepo,
-		AnalysisRules:   analysisRuleRepo,
+		AnalysisRules:   adminAnalysisRules,
 		SSEBroker:       sseBroker,
 	}
 	emailHandler := &handler.EmailHandler{

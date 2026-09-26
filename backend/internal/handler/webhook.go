@@ -110,7 +110,7 @@ type WebhookHandler struct {
 	SenderPrefs     database.SenderPreferenceRepository
 	TokenUsage      database.TokenUsageRepository
 	Preferences     database.PreferenceRepository
-	AnalysisRules   database.AnalysisRuleRepository
+	AnalysisRules   database.ActiveAnalysisRules
 	SSEBroker       *sse.Broker
 }
 
