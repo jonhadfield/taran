@@ -171,13 +171,23 @@ func (s *Scheduler) generateDigests() {
 		return
 	}
 
+	// One read for everyone, rather than one per user inside the loop. Whether
+	// a user is actually due is still decided in Go: shouldGenerateForUser
+	// works in the user's own IANA timezone, and expressing that as SQL would
+	// be harder to get right than it is worth.
+	prefs, err := s.preferences.ListForUsers(ctx, userIDs)
+	if err != nil {
+		slog.Error("failed to load user preferences", "error", err)
+		return
+	}
+
 	generated := 0
 	sent := 0
 	var failures []failedUser
 	for _, userID := range userIDs {
-		pref, err := s.preferences.Get(ctx, userID)
-		if err != nil {
-			slog.Error("failed to get user preferences", "userID", userID, "error", err)
+		pref := prefs[userID]
+		if pref == nil {
+			slog.Error("no preferences returned for user", "userID", userID)
 			continue
 		}
 

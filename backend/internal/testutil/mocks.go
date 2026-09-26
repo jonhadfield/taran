@@ -580,6 +580,18 @@ func (m *MockPreferenceRepo) Get(ctx context.Context, userID string) (*domain.Us
 	return &domain.UserPreference{UserID: userID}, nil
 }
 
+func (m *MockPreferenceRepo) ListForUsers(ctx context.Context, userIDs []string) (map[string]*domain.UserPreference, error) {
+	out := make(map[string]*domain.UserPreference, len(userIDs))
+	for _, id := range userIDs {
+		p, err := m.Get(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		out[id] = p
+	}
+	return out, nil
+}
+
 func (m *MockPreferenceRepo) Upsert(ctx context.Context, pref *domain.UserPreference) error {
 	if m.UpsertFn != nil {
 		return m.UpsertFn(ctx, pref)

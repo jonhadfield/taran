@@ -50,14 +50,13 @@ type filteredResult struct {
 // filterExtractions runs the full filtering pipeline: loads extractions for the
 // period, removes muted/blocked senders, applies feedback-based filtering,
 // keyword exclusions, and sorts by priority. Shared by GenerateForUser and PreviewForUser.
-func (g *Generator) filterExtractions(ctx context.Context, userID string, periodStart, periodEnd time.Time) (*filteredResult, error) {
-	// Load user's excluded categories (or use defaults)
+// pref is the caller's already-loaded preference, or nil when it could not be
+// read. It used to be fetched here, and again twice more in GenerateForUser,
+// for the same user in the same run.
+func (g *Generator) filterExtractions(ctx context.Context, userID string, pref *domain.UserPreference, periodStart, periodEnd time.Time) (*filteredResult, error) {
 	var excludedCategories []string
-	if g.Preferences != nil {
-		pref, err := g.Preferences.Get(ctx, userID)
-		if err == nil && len(pref.ExcludedCategories) > 0 {
-			excludedCategories = pref.ExcludedCategories
-		}
+	if pref != nil && len(pref.ExcludedCategories) > 0 {
+		excludedCategories = pref.ExcludedCategories
 	}
 
 	extractions, err := g.Extractions.ListByUserAndPeriod(ctx, userID, periodStart, periodEnd, excludedCategories...)
@@ -171,9 +170,8 @@ func (g *Generator) filterExtractions(ctx context.Context, userID string, period
 	}
 
 	// Apply user preferences (digest style + keyword filtering)
-	if g.Preferences != nil {
-		pref, err := g.Preferences.Get(ctx, userID)
-		if err == nil {
+	if pref != nil {
+		{
 			if digestOpts == nil {
 				digestOpts = &llm.DigestOptions{}
 			}
@@ -230,10 +228,28 @@ func (g *Generator) filterExtractions(ctx context.Context, userID string, period
 	}, nil
 }
 
+// loadPreference reads the user's preferences once per run. The generator
+// used to fetch the same row three times for one digest — for excluded
+// categories, for style and keywords, and for the token limit — and the
+// scheduler had already fetched it a fourth time before calling in.
+// A read failure is not fatal: the caller falls back to defaults.
+func (g *Generator) loadPreference(ctx context.Context, userID string) *domain.UserPreference {
+	if g.Preferences == nil {
+		return nil
+	}
+	pref, err := g.Preferences.Get(ctx, userID)
+	if err != nil {
+		slog.Warn("failed to load preferences, using defaults", "userID", userID, "error", err)
+		return nil
+	}
+	return pref
+}
+
 // PreviewForUser returns which emails would be included in a digest
 // after all filtering, without calling the LLM or persisting anything.
 func (g *Generator) PreviewForUser(ctx context.Context, userID string, periodType string, periodStart, periodEnd time.Time) (*domain.DigestPreview, error) {
-	result, err := g.filterExtractions(ctx, userID, periodStart, periodEnd)
+	pref := g.loadPreference(ctx, userID)
+	result, err := g.filterExtractions(ctx, userID, pref, periodStart, periodEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -266,6 +282,8 @@ func (g *Generator) PreviewForUser(ctx context.Context, userID string, periodTyp
 }
 
 func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodType string, periodStart, periodEnd time.Time) (*domain.Digest, error) {
+	pref := g.loadPreference(ctx, userID)
+
 	// Skip if a digest already exists for this exact period (dedup against concurrent triggers)
 	if g.Digests != nil {
 		exists, err := g.Digests.ExistsForPeriod(ctx, userID, periodStart, periodEnd)
@@ -279,9 +297,8 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 	}
 
 	// Check monthly token limit before making LLM call
-	if g.TokenUsage != nil && g.Preferences != nil {
-		pref, err := g.Preferences.Get(ctx, userID)
-		if err == nil && pref.MonthlyTokenLimit > 0 {
+	if g.TokenUsage != nil && pref != nil {
+		if pref.MonthlyTokenLimit > 0 {
 			used, err := g.TokenUsage.GetMonthlyTotal(ctx, userID)
 			if err != nil {
 				slog.Warn("failed to check token limit, proceeding", "error", err)
@@ -293,7 +310,7 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		}
 	}
 
-	result, err := g.filterExtractions(ctx, userID, periodStart, periodEnd)
+	result, err := g.filterExtractions(ctx, userID, pref, periodStart, periodEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -366,11 +383,11 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 	for _, ext := range extractions {
 		if em, ok := emailMap[ext.EmailID]; ok {
 			digest.EmailSummaries = append(digest.EmailSummaries, domain.DigestEmailSummary{
-				EmailID:     ext.EmailID,
-				Subject:     em.Subject,
-				SenderName:  em.FromName,
-				Summary:     ext.Summary,
-				Category:    ext.SourceCategory,
+				EmailID:    ext.EmailID,
+				Subject:    em.Subject,
+				SenderName: em.FromName,
+				Summary:    ext.Summary,
+				Category:   ext.SourceCategory,
 			})
 		}
 	}
