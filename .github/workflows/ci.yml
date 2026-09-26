@@ -134,7 +134,7 @@ jobs:
         run: cd frontend && npm ci
 
       - name: Create Better Auth tables
-        run: cd frontend && npx prisma db push --skip-generate
+        run: cd frontend && npx prisma db push
 
       - name: Build and start backend
         run: |

@@ -1,10 +1,20 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
+// Prisma 7 requires a driver adapter. The adapter inherits the pg driver's
+// pool settings, and pg defaults to no connection timeout at all, where
+// Prisma 6 used 5 seconds — without this a database stall would hang requests
+// instead of failing fast.
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 5000,
+});
+
+const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
