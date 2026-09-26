@@ -42,6 +42,13 @@ updates:
       - dependency-name: eslint
         update-types:
           - version-update:semver-major
+      # typescript-eslint does not support TS 7.0 and refuses to load, so lint
+      # cannot run at all (PR #102). The code itself type-checks fine under 7 —
+      # it is only the lint toolchain that lags. Support is tracked in
+      # typescript-eslint#10940; remove this once it lands.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
     commit-message:
       prefix: "chore(frontend)"
 
