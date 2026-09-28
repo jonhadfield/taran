@@ -16,10 +16,10 @@ test.describe("Login page", () => {
     await expect(page.getByText("AI breakthroughs")).toBeVisible();
   });
 
-  test("redirects unauthenticated users to login", async ({ page }) => {
-    await page.goto("/inbox");
+  test("redirects unauthenticated users to login with return path", async ({ page }) => {
+    await page.goto("/inbox/example-id");
 
-    // Should redirect to login or not-invited
-    await expect(page).toHaveURL(/\/(login|not-invited)/);
+    await expect(page).toHaveURL(/\/login\?callbackURL=/);
+    expect(page.url()).toContain(encodeURIComponent("/inbox/example-id"));
   });
 });

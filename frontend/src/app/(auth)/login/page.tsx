@@ -3,10 +3,16 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
+import { safeCallbackURL } from "@/lib/auth-callback";
 import { GitHubIcon } from "@/components/github-icon";
 import { PublicShell } from "@/components/public-shell";
 import { Button } from "@/components/ui/button";
 import { SHOW_MARKETING } from "@/lib/config";
+
+function callbackURLFromPage(): string {
+  if (typeof window === "undefined") return "/";
+  return safeCallbackURL(new URLSearchParams(window.location.search).get("callbackURL"));
+}
 
 export default function LoginPage() {
   // null until known, so the access note doesn't flash the wrong message.
@@ -20,6 +26,10 @@ export default function LoginPage() {
       )
       .catch(() => setOpenRegistration(false));
   }, []);
+
+  const signIn = (provider: "google" | "github") => {
+    authClient.signIn.social({ provider, callbackURL: callbackURLFromPage() });
+  };
 
   return (
     <PublicShell>
@@ -37,9 +47,7 @@ export default function LoginPage() {
         <Button
           variant="outline"
           className="w-full bg-background"
-          onClick={() =>
-            authClient.signIn.social({ provider: "google", callbackURL: "/" })
-          }
+          onClick={() => signIn("google")}
         >
           <GoogleIcon />
           Continue with Google
@@ -47,9 +55,7 @@ export default function LoginPage() {
         <Button
           variant="outline"
           className="w-full bg-background"
-          onClick={() =>
-            authClient.signIn.social({ provider: "github", callbackURL: "/" })
-          }
+          onClick={() => signIn("github")}
         >
           <GitHubIcon className="mr-2 size-4" />
           Continue with GitHub
