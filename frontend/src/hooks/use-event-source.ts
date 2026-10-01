@@ -55,9 +55,16 @@ export function useEventSource(onEvent: (event: SSEEvent) => void): SSEStatus {
         es?.close();
         if (unmounted) return;
 
+        // Server closes the stream on purpose near maxDuration; reconnect
+        // quickly instead of backing off as if the backend were unhealthy.
         setStatus("reconnecting");
-        retryTimer = setTimeout(connect, retryDelay);
-        retryDelay = Math.min(retryDelay * 2, 30000);
+        const delay = wasConnected ? 250 : retryDelay;
+        retryTimer = setTimeout(connect, delay);
+        if (!wasConnected) {
+          retryDelay = Math.min(retryDelay * 2, 30000);
+        } else {
+          retryDelay = 1000;
+        }
       };
     }
 

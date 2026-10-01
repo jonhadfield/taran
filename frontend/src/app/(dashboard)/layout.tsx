@@ -12,6 +12,7 @@ import { AccessUnavailable } from "@/components/access-unavailable";
 import { CommandPalette } from "@/components/command-palette";
 import { KeyboardHelp } from "@/components/keyboard-help";
 import { parseColorTheme } from "@/lib/constants";
+import { loginPathWithCallback } from "@/lib/auth-callback";
 
 export default async function DashboardLayout({
   children,
@@ -20,11 +21,12 @@ export default async function DashboardLayout({
 }) {
   const cookieStore = await cookies();
   const colorTheme = parseColorTheme(cookieStore.get("color-theme")?.value);
+  const pathname = (await headers()).get("x-pathname") ?? "/";
 
   // Validate session first — redirect to login if expired or missing
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
-    redirect("/login");
+    redirect(loginPathWithCallback(pathname));
   }
 
   const admin = await isAdmin();
@@ -33,7 +35,7 @@ export default async function DashboardLayout({
     // redirect() throws, so it must run outside the check's own error handling.
     const access = await checkAccess();
     if (access === "unauthenticated") {
-      redirect("/login");
+      redirect(loginPathWithCallback(pathname));
     }
     if (access === "denied") {
       redirect("/not-invited");

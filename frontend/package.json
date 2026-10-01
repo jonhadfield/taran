@@ -16,6 +16,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "@sentry/nextjs": "^11.0.0",
     "@testing-library/dom": "^10.4.2",
     "@types/sanitize-html": "^2.16.0",
     "better-auth": "^1.7.6",
