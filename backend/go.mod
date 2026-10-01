@@ -10,7 +10,7 @@ require (
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/jhillyerd/enmime v1.3.0
 	github.com/joho/godotenv v1.5.1
-	github.com/openai/openai-go/v3 v3.65.0
+	github.com/openai/openai-go/v3 v3.66.0
 	github.com/resend/resend-go/v2 v2.28.0
 	golang.org/x/crypto v0.57.0
 	golang.org/x/net v0.59.0
