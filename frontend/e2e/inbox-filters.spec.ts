@@ -73,13 +73,16 @@ test.describe("Inbox filtering", () => {
     await createTestEmail(userId, account);
 
     await page.goto("/inbox");
-    await expect(page.getByText("Test Newsletter")).toBeVisible({ timeout: 10000 });
+    const search = page.getByRole("textbox", { name: "Search emails" });
+    await expect(search).toBeVisible({ timeout: 10000 });
 
-    // Click body to ensure page has focus, then press /
-    await page.locator("body").click();
-    await page.keyboard.press("/");
-
-    // Search input should be focused (allow time for event handler)
-    await expect(page.getByPlaceholder(/Search/i)).toBeFocused({ timeout: 3000 });
+    // Retry until the keydown listener is attached. Click the Inbox
+    // heading (not body) so we don't land on the sort <select>, which
+    // would make the handler ignore "/".
+    await expect(async () => {
+      await page.getByRole("heading", { name: "Inbox" }).click();
+      await page.keyboard.press("/");
+      await expect(search).toBeFocused({ timeout: 500 });
+    }).toPass({ timeout: 5000 });
   });
 });
