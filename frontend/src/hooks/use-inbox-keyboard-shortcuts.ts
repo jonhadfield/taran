@@ -42,14 +42,16 @@ export function useInboxKeyboardShortcuts({
   const setSelectedIdsRef = useRef(setSelectedIds);
   const setPreviewIdRef = useRef(setPreviewId);
 
-  emailsRef.current = emails;
-  focusedIndexRef.current = focusedIndex;
-  isDesktopRef.current = isDesktop;
-  toggleSelectRef.current = toggleSelect;
-  refreshRef.current = refresh;
-  setFocusedIndexRef.current = setFocusedIndex;
-  setSelectedIdsRef.current = setSelectedIds;
-  setPreviewIdRef.current = setPreviewId;
+  useEffect(() => {
+    emailsRef.current = emails;
+    focusedIndexRef.current = focusedIndex;
+    isDesktopRef.current = isDesktop;
+    toggleSelectRef.current = toggleSelect;
+    refreshRef.current = refresh;
+    setFocusedIndexRef.current = setFocusedIndex;
+    setSelectedIdsRef.current = setSelectedIds;
+    setPreviewIdRef.current = setPreviewId;
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
