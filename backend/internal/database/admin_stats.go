@@ -28,164 +28,187 @@ func (r *AdminStatsRepo) GetStats(ctx context.Context) (*domain.AdminStats, erro
 
 	// Total users
 	var totalUsers int64
-	r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&totalUsers)
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&totalUsers); err != nil {
+		return nil, fmt.Errorf("count users: %w", err)
+	}
 	stats.TotalUsers = int(totalUsers)
 
 	// Active users this week (users who received emails)
 	var activeUsersWeek int64
-	r.pool.QueryRow(ctx,
+	if err := r.pool.QueryRow(ctx,
 		`SELECT COUNT(DISTINCT user_id) FROM email WHERE received_at >= $1`, weekAgo,
-	).Scan(&activeUsersWeek)
+	).Scan(&activeUsersWeek); err != nil {
+		return nil, fmt.Errorf("count active users: %w", err)
+	}
 	stats.ActiveUsersWeek = int(activeUsersWeek)
 
 	// Total emails
 	var totalEmails int64
-	r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email`).Scan(&totalEmails)
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email`).Scan(&totalEmails); err != nil {
+		return nil, fmt.Errorf("count emails: %w", err)
+	}
 	stats.TotalEmails = int(totalEmails)
 
 	// Emails this week
 	var emailsThisWeek int64
-	r.pool.QueryRow(ctx,
+	if err := r.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM email WHERE received_at >= $1`, weekAgo,
-	).Scan(&emailsThisWeek)
+	).Scan(&emailsThisWeek); err != nil {
+		return nil, fmt.Errorf("count emails this week: %w", err)
+	}
 	stats.EmailsThisWeek = int(emailsThisWeek)
 
 	// Total digests
 	var totalDigests int64
-	r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM digest`).Scan(&totalDigests)
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM digest`).Scan(&totalDigests); err != nil {
+		return nil, fmt.Errorf("count digests: %w", err)
+	}
 	stats.TotalDigests = int(totalDigests)
 
 	// Digests this week
 	var digestsThisWeek int64
-	r.pool.QueryRow(ctx,
+	if err := r.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM digest WHERE generated_at >= $1`, weekAgo,
-	).Scan(&digestsThisWeek)
+	).Scan(&digestsThisWeek); err != nil {
+		return nil, fmt.Errorf("count digests this week: %w", err)
+	}
 	stats.DigestsThisWeek = int(digestsThisWeek)
 
 	// Top 5 global senders this week
-	rows, err := r.pool.Query(ctx,
-		`SELECT from_address, from_name, COUNT(*) as cnt
-		 FROM email WHERE received_at >= $1
-		 GROUP BY from_address, from_name ORDER BY cnt DESC LIMIT 5`, weekAgo)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var s domain.SenderCount
-			var cnt int64
-			if err := rows.Scan(&s.FromAddress, &s.FromName, &cnt); err == nil {
-				s.Count = int(cnt)
-				stats.TopGlobalSenders = append(stats.TopGlobalSenders, s)
-			}
-		}
+	topSenders, err := scanSenderCounts(ctx, r.pool, weekAgo)
+	if err != nil {
+		return nil, err
 	}
-	if stats.TopGlobalSenders == nil {
-		stats.TopGlobalSenders = []domain.SenderCount{}
-	}
+	stats.TopGlobalSenders = topSenders
 
 	// Processing status breakdown (all time)
-	statusRows, err := r.pool.Query(ctx,
-		`SELECT status, COUNT(*) FROM email GROUP BY status`)
-	if err == nil {
-		defer statusRows.Close()
-		for statusRows.Next() {
-			var status string
-			var count int64
-			if err := statusRows.Scan(&status, &count); err == nil {
-				switch status {
-				case "processed":
-					stats.ProcessedCount = int(count)
-				case "failed":
-					stats.FailedCount = int(count)
-				case "skipped":
-					stats.SkippedCount = int(count)
-				case "pending", "processing":
-					stats.PendingCount += int(count)
-				}
-			}
-		}
+	if err := scanStatusCounts(ctx, r.pool, &stats); err != nil {
+		return nil, err
 	}
 
 	// Feedback summary (all time)
 	var feedbackUseful, feedbackNotUseful int64
-	r.pool.QueryRow(ctx,
+	if err := r.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FILTER (WHERE rating = 'useful'), COUNT(*) FILTER (WHERE rating = 'not_useful') FROM email_feedback`,
-	).Scan(&feedbackUseful, &feedbackNotUseful)
+	).Scan(&feedbackUseful, &feedbackNotUseful); err != nil {
+		return nil, fmt.Errorf("count feedback: %w", err)
+	}
 	stats.FeedbackUseful = int(feedbackUseful)
 	stats.FeedbackNotUseful = int(feedbackNotUseful)
 
 	// Weekly email trend (last 8 weeks)
-	weeklyEmailRows, err := r.pool.Query(ctx,
+	weeklyEmails, err := scanWeekCounts(ctx, r.pool,
 		`SELECT DATE_TRUNC('week', received_at) AS week, COUNT(*)
 		 FROM email WHERE received_at >= NOW() - INTERVAL '8 weeks'
-		 GROUP BY week ORDER BY week`)
+		 GROUP BY week ORDER BY week`,
+		"weekly emails")
 	if err != nil {
-		slog.Error("admin stats: weekly emails query failed", "error", err)
-	} else {
-		defer weeklyEmailRows.Close()
-		for weeklyEmailRows.Next() {
-			var wc domain.WeekCount
-			var count int64
-			if err := weeklyEmailRows.Scan(&wc.Week, &count); err != nil {
-				slog.Error("admin stats: weekly emails scan failed", "error", err)
-			} else {
-				wc.Count = int(count)
-				stats.WeeklyEmails = append(stats.WeeklyEmails, wc)
-			}
-		}
+		return nil, err
 	}
-	slog.Info("admin stats: weekly emails", "count", len(stats.WeeklyEmails))
-	if stats.WeeklyEmails == nil {
-		stats.WeeklyEmails = []domain.WeekCount{}
-	}
+	stats.WeeklyEmails = weeklyEmails
 
 	// Weekly digest trend (last 8 weeks)
-	weeklyDigestRows, err := r.pool.Query(ctx,
+	weeklyDigests, err := scanWeekCounts(ctx, r.pool,
 		`SELECT DATE_TRUNC('week', generated_at) AS week, COUNT(*)
 		 FROM digest WHERE generated_at >= NOW() - INTERVAL '8 weeks'
-		 GROUP BY week ORDER BY week`)
+		 GROUP BY week ORDER BY week`,
+		"weekly digests")
 	if err != nil {
-		slog.Error("admin stats: weekly digests query failed", "error", err)
-	} else {
-		defer weeklyDigestRows.Close()
-		for weeklyDigestRows.Next() {
-			var wc domain.WeekCount
-			var count int64
-			if err := weeklyDigestRows.Scan(&wc.Week, &count); err != nil {
-				slog.Error("admin stats: weekly digests scan failed", "error", err)
-			} else {
-				wc.Count = int(count)
-				stats.WeeklyDigests = append(stats.WeeklyDigests, wc)
-			}
-		}
+		return nil, err
 	}
-	if stats.WeeklyDigests == nil {
-		stats.WeeklyDigests = []domain.WeekCount{}
-	}
+	stats.WeeklyDigests = weeklyDigests
 
 	// Weekly token usage trend (last 8 weeks)
-	weeklyTokenRows, err := r.pool.Query(ctx,
+	weeklyTokens, err := scanWeekCounts(ctx, r.pool,
 		`SELECT DATE_TRUNC('week', created_at) AS week, COALESCE(SUM(total_tokens), 0)
 		 FROM token_usage WHERE created_at >= NOW() - INTERVAL '8 weeks'
-		 GROUP BY week ORDER BY week`)
+		 GROUP BY week ORDER BY week`,
+		"weekly tokens")
 	if err != nil {
-		slog.Error("admin stats: weekly tokens query failed", "error", err)
+		return nil, err
 	}
-	if err == nil {
-		defer weeklyTokenRows.Close()
-		for weeklyTokenRows.Next() {
-			var wc domain.WeekCount
-			var tokens int64
-			if err := weeklyTokenRows.Scan(&wc.Week, &tokens); err == nil {
-				wc.Count = int(tokens)
-				stats.WeeklyTokens = append(stats.WeeklyTokens, wc)
-			}
-		}
-	}
-	if stats.WeeklyTokens == nil {
-		stats.WeeklyTokens = []domain.WeekCount{}
-	}
+	stats.WeeklyTokens = weeklyTokens
 
 	return &stats, nil
+}
+
+func scanSenderCounts(ctx context.Context, pool *pgxpool.Pool, weekAgo time.Time) ([]domain.SenderCount, error) {
+	rows, err := pool.Query(ctx,
+		`SELECT from_address, from_name, COUNT(*) as cnt
+		 FROM email WHERE received_at >= $1
+		 GROUP BY from_address, from_name ORDER BY cnt DESC LIMIT 5`, weekAgo)
+	if err != nil {
+		return nil, fmt.Errorf("top global senders: %w", err)
+	}
+	defer rows.Close()
+
+	senders := []domain.SenderCount{}
+	for rows.Next() {
+		var s domain.SenderCount
+		var cnt int64
+		if err := rows.Scan(&s.FromAddress, &s.FromName, &cnt); err != nil {
+			return nil, fmt.Errorf("scan top sender: %w", err)
+		}
+		s.Count = int(cnt)
+		senders = append(senders, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate top senders: %w", err)
+	}
+	return senders, nil
+}
+
+func scanStatusCounts(ctx context.Context, pool *pgxpool.Pool, stats *domain.AdminStats) error {
+	rows, err := pool.Query(ctx, `SELECT status, COUNT(*) FROM email GROUP BY status`)
+	if err != nil {
+		return fmt.Errorf("status breakdown: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var status string
+		var count int64
+		if err := rows.Scan(&status, &count); err != nil {
+			return fmt.Errorf("scan status count: %w", err)
+		}
+		switch status {
+		case "processed":
+			stats.ProcessedCount = int(count)
+		case "failed":
+			stats.FailedCount = int(count)
+		case "skipped":
+			stats.SkippedCount = int(count)
+		case "pending", "processing":
+			stats.PendingCount += int(count)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate status counts: %w", err)
+	}
+	return nil
+}
+
+func scanWeekCounts(ctx context.Context, pool *pgxpool.Pool, query, label string) ([]domain.WeekCount, error) {
+	rows, err := pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("%s query: %w", label, err)
+	}
+	defer rows.Close()
+
+	counts := []domain.WeekCount{}
+	for rows.Next() {
+		var wc domain.WeekCount
+		var count int64
+		if err := rows.Scan(&wc.Week, &count); err != nil {
+			return nil, fmt.Errorf("scan %s: %w", label, err)
+		}
+		wc.Count = int(count)
+		counts = append(counts, wc)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate %s: %w", label, err)
+	}
+	return counts, nil
 }
 
 // ListUsers returns all users with their email counts and token usage for admin display.
