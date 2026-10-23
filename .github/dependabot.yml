@@ -26,6 +26,7 @@ updates:
         patterns:
           - prisma
           - "@prisma/client"
+          - "@prisma/adapter-pg"
       frontend-minor-and-patch:
         update-types:
           - minor
@@ -47,6 +48,11 @@ updates:
       # it is only the lint toolchain that lags. Support is tracked in
       # typescript-eslint#10940; remove this once it lands.
       - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
+      # CI runs Node 22; @types/node 26 is the Node 26 typings (PR #126).
+      # Minor and patch updates on the 22 line still come through.
+      - dependency-name: "@types/node"
         update-types:
           - version-update:semver-major
     commit-message:
