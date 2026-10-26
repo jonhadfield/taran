@@ -16,7 +16,7 @@ describe("robots.txt", () => {
     const rule = Array.isArray(rules) ? rules[0] : rules;
     const disallow = [rule?.disallow].flat();
     expect(disallow).toEqual(
-      expect.arrayContaining(["/api/", "/inbox", "/shared"]),
+      expect.arrayContaining(["/api/", "/inbox", "/shared", "/login?"]),
     );
   });
 
