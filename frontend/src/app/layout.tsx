@@ -35,6 +35,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: `${APP_NAME} - Email Digest Dashboard`,
   description: "AI-powered email digest dashboard for your newsletters",
+  robots: { index: false, follow: false },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "48x48" },

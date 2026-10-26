@@ -35,6 +35,12 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Hashed build artifacts are not pages. Without this, Search Console
+        // lists old `/_next/static/*` URLs as 404 "pages" after each deploy.
+        source: "/_next/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
     ];
   },
 };
