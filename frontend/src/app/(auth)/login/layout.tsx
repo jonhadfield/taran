@@ -5,7 +5,7 @@ const origin = siteUrl();
 const loginUrl = `${origin}/login`;
 
 export const metadata: Metadata = {
-  title: SITE_TITLE,
+  title: { absolute: SITE_TITLE },
   description: SITE_DESCRIPTION,
   robots: { index: true, follow: true },
   alternates: { canonical: "/login" },
