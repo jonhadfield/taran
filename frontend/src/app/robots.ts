@@ -1,8 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const siteUrl = (
-  process.env.NEXT_PUBLIC_APP_URL || "https://mailbrief.io"
-).replace(/\/$/, "");
+import { siteUrl } from "@/lib/config";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -21,8 +18,9 @@ export default function robots(): MetadataRoute.Robots {
         "/onboarding",
         "/shared",
         "/not-invited",
+        "/login?",
       ],
     },
-    sitemap: `${siteUrl}/sitemap.xml`,
+    sitemap: `${siteUrl()}/sitemap.xml`,
   };
 }

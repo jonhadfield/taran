@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Instrument_Sans, Newsreader, Geist_Mono } from "next/font/google";
-import { APP_NAME } from "@/lib/config";
+import { APP_NAME, SITE_DESCRIPTION, SITE_TITLE, siteUrl } from "@/lib/config";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { parseColorTheme } from "@/lib/constants";
@@ -33,8 +33,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} - Email Digest Dashboard`,
-  description: "AI-powered email digest dashboard for your newsletters",
+  metadataBase: new URL(siteUrl()),
+  applicationName: APP_NAME,
+  title: {
+    default: SITE_TITLE,
+    template: `%s · ${APP_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
   robots: { index: false, follow: false },
   icons: {
     icon: [
