@@ -31,6 +31,9 @@ describe("proxy matcher", () => {
     "/logo-512.png",
     "/digest-flow.png",
     "/sentry-tunnel",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/.well-known/security.txt",
   ])("skips static asset or API path %s", (path) => {
     expect(runsProxy(path)).toBe(false);
   });

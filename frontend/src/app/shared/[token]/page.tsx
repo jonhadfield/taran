@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import type { Digest } from "@/types/api";
 import { notFound } from "next/navigation";
@@ -10,6 +11,10 @@ import Image from "next/image";
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 async function fetchPublicDigest(token: string): Promise<Digest | null> {
   try {
