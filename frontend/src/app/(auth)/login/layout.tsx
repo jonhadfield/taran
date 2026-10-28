@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { APP_NAME, SITE_DESCRIPTION, SITE_TITLE, siteUrl } from "@/lib/config";
-
-const origin = siteUrl();
-const loginUrl = `${origin}/login`;
+import { JsonLd } from "@/components/json-ld";
+import { siteJsonLd } from "@/lib/json-ld";
+import { APP_NAME, SITE_DESCRIPTION, SITE_TITLE } from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: { absolute: SITE_TITLE },
+  title: "Sign in",
   description: SITE_DESCRIPTION,
   robots: { index: true, follow: true },
   alternates: { canonical: "/login" },
@@ -33,48 +32,12 @@ export const metadata: Metadata = {
   },
 };
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "WebSite",
-      name: APP_NAME,
-      url: origin,
-    },
-    {
-      "@type": "SoftwareApplication",
-      name: APP_NAME,
-      url: loginUrl,
-      applicationCategory: "ProductivityApplication",
-      operatingSystem: "Web",
-      description: SITE_DESCRIPTION,
-      offers: {
-        "@type": "Offer",
-        price: "0",
-        priceCurrency: "USD",
-      },
-    },
-    {
-      "@type": "Organization",
-      name: APP_NAME,
-      url: origin,
-      logo: `${origin}/logo-512.png`,
-      sameAs: ["https://github.com/jonhadfield/taran"],
-    },
-  ],
-};
-
 export default function LoginLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
-        }}
-      />
+      <JsonLd data={siteJsonLd()} />
       {children}
     </>
   );

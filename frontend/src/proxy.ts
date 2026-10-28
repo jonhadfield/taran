@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 import { loginPathWithCallback } from "@/lib/auth-callback";
+import { SHOW_MARKETING } from "@/lib/config";
+
+export function isPublicPath(pathname: string): boolean {
+  if (pathname.startsWith("/login")) return true;
+  if (pathname.startsWith("/not-invited")) return true;
+  if (pathname.startsWith("/api/auth")) return true;
+  if (pathname.startsWith("/shared")) return true;
+  // `/` is rewritten to `/home` for signed-out visitors. `/home` stays public
+  // so the rewrite target is reachable; robots.txt keeps it out of the index.
+  if (SHOW_MARKETING && (pathname === "/" || pathname === "/home")) return true;
+  return false;
+}
 
 export async function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
@@ -14,17 +26,24 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (
-    !sessionCookie &&
-    !pathname.startsWith("/login") &&
-    !pathname.startsWith("/not-invited") &&
-    !pathname.startsWith("/api/auth") &&
-    !pathname.startsWith("/shared")
-  ) {
+  // Internal marketing route. Signed-out / is rewritten here; send anyone
+  // who requests /home directly back to the canonical homepage.
+  if (pathname === "/home" && (sessionCookie || SHOW_MARKETING)) {
+    return NextResponse.redirect(
+      new URL("/", request.url),
+      sessionCookie ? 307 : 308,
+    );
+  }
+
+  if (!sessionCookie && !isPublicPath(pathname)) {
     // Preserve the deep link (e.g. /inbox/{id} from a digest "View full email"
     // link) so login can send the user back after OAuth.
     const loginPath = loginPathWithCallback(pathname + search);
     return NextResponse.redirect(new URL(loginPath, request.url));
+  }
+
+  if (!sessionCookie && SHOW_MARKETING && pathname === "/") {
+    return NextResponse.rewrite(new URL("/home", request.url));
   }
 
   // Expose the path to server layouts so mid-session expiry can redirect with

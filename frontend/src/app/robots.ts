@@ -18,6 +18,7 @@ export default function robots(): MetadataRoute.Robots {
         "/onboarding",
         "/shared",
         "/not-invited",
+        "/home",
         "/login?",
       ],
     },
