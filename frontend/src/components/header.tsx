@@ -19,6 +19,7 @@ import { FeedbackDialog } from "@/components/feedback-dialog";
 import { useTheme } from "next-themes";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
 import { DailyTokenPill } from "@/components/daily-token-pill";
+import { GITHUB_REPO_URL } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 export function Header({ isAdmin }: { isAdmin?: boolean }) {
@@ -66,7 +67,7 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
       <div className="flex items-center gap-1">
         <DailyTokenPill />
         <a
-          href="https://github.com/jonhadfield/taran"
+          href={GITHUB_REPO_URL}
           target="_blank"
           rel="noopener noreferrer"
           title="View on GitHub"
@@ -141,7 +142,7 @@ export function Header({ isAdmin }: { isAdmin?: boolean }) {
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <a
-                href="https://github.com/jonhadfield/taran/issues"
+                href={`${GITHUB_REPO_URL}/issues`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

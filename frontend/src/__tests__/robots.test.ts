@@ -16,7 +16,7 @@ describe("robots.txt", () => {
     const rule = Array.isArray(rules) ? rules[0] : rules;
     const disallow = [rule?.disallow].flat();
     expect(disallow).toEqual(
-      expect.arrayContaining(["/api/", "/inbox", "/shared", "/login?"]),
+      expect.arrayContaining(["/api/", "/inbox", "/shared", "/home", "/login?"]),
     );
   });
 
@@ -26,10 +26,12 @@ describe("robots.txt", () => {
 });
 
 describe("sitemap", () => {
-  it("lists the public login page", () => {
+  it("lists the public homepage first, then login", () => {
     const entries = sitemap();
-    expect(entries.map((entry) => entry.url)).toEqual(
-      expect.arrayContaining([expect.stringMatching(/\/login$/)]),
-    );
+    expect(entries.map((entry) => entry.url)).toEqual([
+      "https://mailbrief.io",
+      "https://mailbrief.io/login",
+    ]);
+    expect(entries[0]?.priority).toBe(1);
   });
 });
