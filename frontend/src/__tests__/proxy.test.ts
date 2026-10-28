@@ -6,7 +6,7 @@ import { getSessionCookie } from "better-auth/cookies";
 import { config, isPublicPath, proxy } from "../proxy";
 
 vi.mock("better-auth/cookies", () => ({
-  getSessionCookie: vi.fn(() => undefined),
+  getSessionCookie: vi.fn(() => null),
 }));
 
 const sessionCookie = vi.mocked(getSessionCookie);
@@ -77,7 +77,7 @@ describe("isPublicPath", () => {
 
 describe("proxy", () => {
   beforeEach(() => {
-    sessionCookie.mockReturnValue(undefined);
+    sessionCookie.mockReturnValue(null);
   });
 
   it("rewrites signed-out / to the marketing homepage", async () => {
