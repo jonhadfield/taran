@@ -7,10 +7,10 @@ toolchain go1.26.10
 require (
 	github.com/anthropics/anthropic-sdk-go v1.84.0
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.11.0
+	github.com/jackc/pgx/v5 v5.12.0
 	github.com/jhillyerd/enmime v1.3.0
 	github.com/joho/godotenv v1.5.1
-	github.com/openai/openai-go/v3 v3.86.0
+	github.com/openai/openai-go/v3 v3.94.0
 	github.com/resend/resend-go/v2 v2.28.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.62.0
@@ -33,7 +33,7 @@ require (
 	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/jackc/puddle/v2 v2.2.3 // indirect
 	github.com/jaytaylor/html2text v0.0.0-20260303211410-1a4bdc82ecec // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
@@ -46,7 +46,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/standard-webhooks/standard-webhooks/libraries v0.0.1 // indirect
-	github.com/tidwall/gjson v1.19.0 // indirect
+	github.com/tidwall/gjson v1.20.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
