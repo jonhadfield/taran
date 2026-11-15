@@ -192,7 +192,7 @@ MailBrief stores everything -- user accounts, emails, digests, settings -- in a 
 
 1. After creation, Neon will show you a connection string. It looks like this:
    ```
-   postgresql://neondb_owner:abc123xyz@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
+   postgresql://neondb_owner:abc123xyz@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require  # ggignore — example placeholder, not a real credential
    ```
 2. **Copy this entire string and save it somewhere safe.** You will need it in both Part 4 (backend) and Part 5 (frontend).
 3. If you need to find it later: go to your Neon project dashboard, click **Connection Details** in the sidebar, and copy the connection string.

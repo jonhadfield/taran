@@ -5,7 +5,7 @@ import { signSessionCookieValue } from "../session";
 vi.mock("next/headers", () => ({ cookies: vi.fn() }));
 
 const SECRET = "test-better-auth-secret";
-const TOKEN = "9f8c1d2e-4b6a-4c3d-8e7f-1a2b3c4d5e6f";
+const TOKEN = "9f8c1d2e-4b6a-4c3d-8e7f-1a2b3c4d5e6f"; // ggignore — test fixture, not a real secret
 
 /**
  * Faithful reimplementation of better-call's `getSignedCookie`, which is what
