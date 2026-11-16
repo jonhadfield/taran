@@ -12,9 +12,9 @@ import (
 // exactly what Get returns, including the defaults for a user with no row.
 // Two implementations of the same defaults would drift silently.
 func TestListForUsersMatchesGet(t *testing.T) {
-	dsn := os.Getenv("TEST_DB_URL")
+	dsn := os.Getenv("TARAN_TEST_DB_URL")
 	if dsn == "" {
-		t.Skip("TEST_DB_URL not set")
+		t.Skip("TARAN_TEST_DB_URL not set; skipping database-backed test")
 	}
 	ctx := context.Background()
 	pool, err := pgxpool.New(ctx, dsn)
@@ -50,6 +50,9 @@ func TestListForUsersMatchesGet(t *testing.T) {
 			b.DigestDay != one.DigestDay ||
 			b.DigestTimezone != one.DigestTimezone ||
 			b.DigestStyle != one.DigestStyle ||
+			b.DigestIncludeHighlights != one.DigestIncludeHighlights ||
+			b.DigestIncludeTopics != one.DigestIncludeTopics ||
+			b.DigestIncludeEmails != one.DigestIncludeEmails ||
 			b.TopicLimit != one.TopicLimit ||
 			b.MonthlyTokenLimit != one.MonthlyTokenLimit ||
 			b.DigestEmail != one.DigestEmail ||

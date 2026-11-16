@@ -192,7 +192,7 @@ MailBrief stores everything -- user accounts, emails, digests, settings -- in a 
 
 1. After creation, Neon will show you a connection string. It looks like this:
    ```
-   postgresql://neondb_owner:abc123xyz@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
+   postgresql://neondb_owner:abc123xyz@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require  # ggignore — example placeholder, not a real credential
    ```
 2. **Copy this entire string and save it somewhere safe.** You will need it in both Part 4 (backend) and Part 5 (frontend).
 3. If you need to find it later: go to your Neon project dashboard, click **Connection Details** in the sidebar, and copy the connection string.
@@ -934,6 +934,30 @@ Neon.tech handles database backups automatically. The free tier includes 7 days 
 ```bash
 pg_dump "<your-neon-connection-string>" > mailbrief-backup.sql
 ```
+
+### Encrypting Existing Email Bodies
+
+New emails are encrypted at rest when `TARAN_ENCRYPTION_KEY` is set. Rows written before that key was configured stay in plaintext until migrated.
+
+The running backend migrates them automatically: every few minutes the worker encrypts a small batch of leftover plaintext email bodies and webhook payloads. No action is required for a normal deploy.
+
+To migrate everything in one shot (for example after first enabling the key), run the CLI against the same database and key the server uses:
+
+```bash
+cd backend
+
+# Report how many rows would change
+go run ./cmd/backfill-encryption -dry-run
+
+# Encrypt all remaining plaintext email bodies and webhook payloads
+go run ./cmd/backfill-encryption
+
+# Or target one table
+go run ./cmd/backfill-encryption -target emails
+go run ./cmd/backfill-encryption -target payloads
+```
+
+Requires `TARAN_DB_URL` and `TARAN_ENCRYPTION_KEY` (from the environment or `backend/.env`). The key must match the one the server runs with. The command is idempotent: already-encrypted rows are skipped, and each value is verified to decrypt before it is written.
 
 ---
 

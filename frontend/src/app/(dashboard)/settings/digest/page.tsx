@@ -3,6 +3,7 @@
 import { DigestDeliverySettings } from "../digest-delivery-settings";
 import { QuietHoursSettings } from "../quiet-hours-settings";
 import { DigestStyleSettings } from "../digest-style-settings";
+import { DigestSectionsSettings } from "../digest-sections-settings";
 import { DigestCategoriesSettings } from "../digest-categories-settings";
 import { KeywordPreferencesSettings } from "../keyword-preferences-settings";
 import { AnalysisRulesSettings } from "../analysis-rules-settings";
@@ -62,6 +63,19 @@ export default function DigestSettingsPage() {
           prefLoading={prefLoading}
           prefSaving={prefSaving}
           onDigestStyleChange={(value) => handlePrefChange({ DigestStyle: value as "detailed" | "concise" })}
+        />
+
+        <DigestSectionsSettings
+          includeHighlights={pref.DigestIncludeHighlights}
+          includeTopics={pref.DigestIncludeTopics}
+          includeEmails={pref.DigestIncludeEmails}
+          prefLoading={prefLoading}
+          prefSaving={prefSaving}
+          onIncludeHighlightsChange={(checked) =>
+            handlePrefChange({ DigestIncludeHighlights: checked })
+          }
+          onIncludeTopicsChange={(checked) => handlePrefChange({ DigestIncludeTopics: checked })}
+          onIncludeEmailsChange={(checked) => handlePrefChange({ DigestIncludeEmails: checked })}
         />
       </SettingsPanel>
 

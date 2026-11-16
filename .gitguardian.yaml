@@ -1,0 +1,6 @@
+version: 2
+secret:
+  # Test/example credentials only — not production secrets.
+  ignored-matches:
+    - name: historical CI BETTER_AUTH_SECRET dummy (replaced with ci-only-not-a-real-secret-do-not-reuse)
+      match: 07245bf00ca566834fb90bb53f304d8ea1c6a74dd1663a5f544d965df785c49e

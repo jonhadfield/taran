@@ -178,6 +178,12 @@ func (g *Generator) filterExtractions(ctx context.Context, userID string, pref *
 			if pref.DigestStyle != "" {
 				digestOpts.Style = pref.DigestStyle
 			}
+			includeHighlights := pref.DigestIncludeHighlights
+			includeTopics := pref.DigestIncludeTopics
+			includeEmails := pref.DigestIncludeEmails
+			digestOpts.IncludeHighlights = &includeHighlights
+			digestOpts.IncludeTopics = &includeTopics
+			digestOpts.IncludeEmails = &includeEmails
 
 			// Hard-filter extractions matching exclusion keywords
 			if len(pref.ExclusionKeywords) > 0 {
@@ -350,14 +356,25 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		}
 	}
 
+	highlights := summary.Highlights
+	topics := summary.TopTopics
+	if result.digestOpts != nil {
+		if result.digestOpts.IncludeHighlights != nil && !*result.digestOpts.IncludeHighlights {
+			highlights = nil
+		}
+		if result.digestOpts.IncludeTopics != nil && !*result.digestOpts.IncludeTopics {
+			topics = nil
+		}
+	}
+
 	now := time.Now()
 	digest := &domain.Digest{
 		ID:          uuid.New().String(),
 		UserID:      userID,
 		Title:       summary.Title,
 		Summary:     summary.Summary,
-		Highlights:  summary.Highlights,
-		TopTopics:   summary.TopTopics,
+		Highlights:  highlights,
+		TopTopics:   topics,
 		PeriodStart: periodStart,
 		PeriodEnd:   periodEnd,
 		PeriodType:  periodType,
@@ -369,14 +386,20 @@ func (g *Generator) GenerateForUser(ctx context.Context, userID string, periodTy
 		CreatedAt:   now,
 	}
 
-	for i, ext := range extractions {
-		digest.Items = append(digest.Items, domain.DigestItem{
-			ID:           uuid.New().String(),
-			DigestID:     digest.ID,
-			EmailID:      ext.EmailID,
-			ExtractionID: ext.ID,
-			SortOrder:    i,
-		})
+	includeEmails := true
+	if result.digestOpts != nil && result.digestOpts.IncludeEmails != nil {
+		includeEmails = *result.digestOpts.IncludeEmails
+	}
+	if includeEmails {
+		for i, ext := range extractions {
+			digest.Items = append(digest.Items, domain.DigestItem{
+				ID:           uuid.New().String(),
+				DigestID:     digest.ID,
+				EmailID:      ext.EmailID,
+				ExtractionID: ext.ID,
+				SortOrder:    i,
+			})
+		}
 	}
 
 	// Build email summaries from pre-fetched emailMap

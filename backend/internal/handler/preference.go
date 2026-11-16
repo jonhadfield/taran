@@ -39,18 +39,21 @@ type updatePreferenceRequest struct {
 	DigestDay       *int    `json:"DigestDay"`
 	DigestTimezone  *string `json:"DigestTimezone"`
 	TopicLimit      *int    `json:"TopicLimit"`
-	DigestStyle        *string   `json:"DigestStyle"`
-	InterestKeywords   *[]string `json:"InterestKeywords"`
-	ExclusionKeywords  *[]string `json:"ExclusionKeywords"`
-	ColorTheme         *string   `json:"ColorTheme"`
-	ExcludedCategories *[]string `json:"ExcludedCategories"`
-	DailyTokenLimit    *int      `json:"DailyTokenLimit"`
-	QuietHoursEnabled  *bool     `json:"QuietHoursEnabled"`
-	QuietHoursStart    *int      `json:"QuietHoursStart"`
-	QuietHoursEnd      *int      `json:"QuietHoursEnd"`
-	DigestWebhook      *bool     `json:"DigestWebhook"`
-	WebhookURL         *string   `json:"WebhookURL"`
-	WeeklySummary      *bool     `json:"WeeklySummary"`
+	DigestStyle             *string   `json:"DigestStyle"`
+	DigestIncludeHighlights *bool     `json:"DigestIncludeHighlights"`
+	DigestIncludeTopics     *bool     `json:"DigestIncludeTopics"`
+	DigestIncludeEmails     *bool     `json:"DigestIncludeEmails"`
+	InterestKeywords        *[]string `json:"InterestKeywords"`
+	ExclusionKeywords       *[]string `json:"ExclusionKeywords"`
+	ColorTheme              *string   `json:"ColorTheme"`
+	ExcludedCategories      *[]string `json:"ExcludedCategories"`
+	DailyTokenLimit         *int      `json:"DailyTokenLimit"`
+	QuietHoursEnabled       *bool     `json:"QuietHoursEnabled"`
+	QuietHoursStart         *int      `json:"QuietHoursStart"`
+	QuietHoursEnd           *int      `json:"QuietHoursEnd"`
+	DigestWebhook           *bool     `json:"DigestWebhook"`
+	WebhookURL              *string   `json:"WebhookURL"`
+	WeeklySummary           *bool     `json:"WeeklySummary"`
 }
 
 func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -210,6 +213,15 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DigestStyle != nil {
 		existing.DigestStyle = *req.DigestStyle
+	}
+	if req.DigestIncludeHighlights != nil {
+		existing.DigestIncludeHighlights = *req.DigestIncludeHighlights
+	}
+	if req.DigestIncludeTopics != nil {
+		existing.DigestIncludeTopics = *req.DigestIncludeTopics
+	}
+	if req.DigestIncludeEmails != nil {
+		existing.DigestIncludeEmails = *req.DigestIncludeEmails
 	}
 	if req.InterestKeywords != nil {
 		existing.InterestKeywords = *req.InterestKeywords

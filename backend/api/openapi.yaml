@@ -2369,6 +2369,15 @@ components:
         DigestStyle:
           type: string
           enum: [concise, detailed]
+        DigestIncludeHighlights:
+          type: boolean
+          description: Include the highlights section in generated digests.
+        DigestIncludeTopics:
+          type: boolean
+          description: Include the top topics section in generated digests.
+        DigestIncludeEmails:
+          type: boolean
+          description: Include the list of source emails on the digest.
         InterestKeywords:
           type: array
           items:

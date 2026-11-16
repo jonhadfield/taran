@@ -16,6 +16,22 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: taran
+          POSTGRES_PASSWORD: taran
+          POSTGRES_DB: taran
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U taran"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TARAN_TEST_DB_URL: postgresql://taran:taran@localhost:5432/taran?sslmode=disable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

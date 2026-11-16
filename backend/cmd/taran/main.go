@@ -163,6 +163,11 @@ func main() {
 	proc.Digests = digestRepo
 	proc.WebhookPayloads = webhookPayloadRepo
 	proc.PayloadRetention = time.Duration(cfg.Webhook.PayloadRetentionDays) * 24 * time.Hour
+	if encryptor != nil {
+		// Background migration for rows written before encryption was enabled.
+		proc.EmailEncryption = emailRepo
+		proc.PayloadEncryption = webhookPayloadRepo
+	}
 	proc.Start(ctx)
 
 	// Digest scheduler

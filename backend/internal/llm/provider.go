@@ -51,6 +51,10 @@ type DigestOptions struct {
 	InterestKeywords    []string
 	ExclusionKeywords   []string
 	Rules               []string // user-defined analysis rules
+	// Section toggles; nil means include (legacy callers). false omits the section.
+	IncludeHighlights *bool
+	IncludeTopics     *bool
+	IncludeEmails     *bool
 }
 
 // ExtractOptions carries per-user settings that shape email extraction.

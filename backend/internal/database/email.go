@@ -1044,11 +1044,16 @@ func (r *EmailRepo) CountUnencrypted(ctx context.Context) (int, error) {
 // the original before the write is issued — the email table is on the read path
 // for the whole application, and a body rewritten with something that will not
 // decrypt is unrecoverable.
+//
+// limit caps how many rows are scanned in this call (0 = no limit). The
+// background worker uses a small limit so each sweeper tick migrates a slice
+// without blocking other sweeps.
 func (r *EmailRepo) BackfillEncryption(
 	ctx context.Context,
 	batchSize int,
 	dryRun bool,
 	onProgress func(BackfillStats),
+	limit int,
 ) (BackfillStats, error) {
 	var stats BackfillStats
 
@@ -1057,6 +1062,9 @@ func (r *EmailRepo) BackfillEncryption(
 	}
 	if batchSize <= 0 {
 		batchSize = 100
+	}
+	if limit > 0 && batchSize > limit {
+		batchSize = limit
 	}
 
 	lastID := ""
@@ -1105,6 +1113,9 @@ func (r *EmailRepo) BackfillEncryption(
 						stats.Failed++
 					}
 				}
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 
@@ -1112,17 +1123,26 @@ func (r *EmailRepo) BackfillEncryption(
 			if err != nil {
 				slog.Error("backfill: failed to encrypt text_body", "email_id", rw.id, "error", err)
 				stats.Failed++
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 			encHTML, err := r.encryptBodyColumn(rw.htmlBody)
 			if err != nil {
 				slog.Error("backfill: failed to encrypt html_body", "email_id", rw.id, "error", err)
 				stats.Failed++
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 
 			if dryRun {
 				stats.Encrypted++
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 
@@ -1133,13 +1153,22 @@ func (r *EmailRepo) BackfillEncryption(
 			if err != nil {
 				slog.Error("backfill: failed to update email", "email_id", rw.id, "error", err)
 				stats.Failed++
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 			if tag.RowsAffected() == 0 {
 				// Encrypted by a concurrent run between select and update.
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 			stats.Encrypted++
+			if limit > 0 && stats.Scanned >= limit {
+				break
+			}
 		}
 
 		if onProgress != nil {
@@ -1147,6 +1176,9 @@ func (r *EmailRepo) BackfillEncryption(
 		}
 		if ctx.Err() != nil {
 			return stats, ctx.Err()
+		}
+		if limit > 0 && stats.Scanned >= limit {
+			break
 		}
 	}
 

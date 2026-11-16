@@ -156,6 +156,15 @@ type WebhookPayloadRepository interface {
 	Count(ctx context.Context) (int, error)
 }
 
+// EncryptionBackfill migrates plaintext rows written before encryption at rest
+// was enabled. Implemented by EmailRepo and WebhookPayloadRepo when an
+// encryptor is configured. limit 0 means no cap (CLI); the worker passes a
+// small limit per sweeper tick.
+type EncryptionBackfill interface {
+	CountUnencrypted(ctx context.Context) (int, error)
+	BackfillEncryption(ctx context.Context, batchSize int, dryRun bool, onProgress func(BackfillStats), limit int) (BackfillStats, error)
+}
+
 type LabelRepository interface {
 	Create(ctx context.Context, label *domain.Label) error
 	GetByID(ctx context.Context, userID, id string) (*domain.Label, error)

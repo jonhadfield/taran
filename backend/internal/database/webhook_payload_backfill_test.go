@@ -61,7 +61,7 @@ func TestBackfillEncryption(t *testing.T) {
 	insertPlaintext(t, repo, ctx, "p3", "")
 
 	t.Run("dry run changes nothing", func(t *testing.T) {
-		stats, err := repo.BackfillEncryption(ctx, 10, true, nil)
+		stats, err := repo.BackfillEncryption(ctx, 10, true, nil, 0)
 		if err != nil {
 			t.Fatalf("dry run: %v", err)
 		}
@@ -78,7 +78,7 @@ func TestBackfillEncryption(t *testing.T) {
 	})
 
 	t.Run("encrypts and stays readable", func(t *testing.T) {
-		stats, err := repo.BackfillEncryption(ctx, 10, false, nil)
+		stats, err := repo.BackfillEncryption(ctx, 10, false, nil, 0)
 		if err != nil {
 			t.Fatalf("backfill: %v", err)
 		}
@@ -106,7 +106,7 @@ func TestBackfillEncryption(t *testing.T) {
 	})
 
 	t.Run("is idempotent", func(t *testing.T) {
-		stats, err := repo.BackfillEncryption(ctx, 10, false, nil)
+		stats, err := repo.BackfillEncryption(ctx, 10, false, nil, 0)
 		if err != nil {
 			t.Fatalf("second run: %v", err)
 		}
@@ -117,7 +117,7 @@ func TestBackfillEncryption(t *testing.T) {
 
 	t.Run("picks up newly added plaintext rows", func(t *testing.T) {
 		insertPlaintext(t, repo, ctx, "p4", "Subject: Later Secret")
-		stats, err := repo.BackfillEncryption(ctx, 10, false, nil)
+		stats, err := repo.BackfillEncryption(ctx, 10, false, nil, 0)
 		if err != nil {
 			t.Fatalf("third run: %v", err)
 		}
@@ -129,7 +129,7 @@ func TestBackfillEncryption(t *testing.T) {
 
 func TestBackfillEncryption_RequiresEncryptor(t *testing.T) {
 	repo := &WebhookPayloadRepo{}
-	if _, err := repo.BackfillEncryption(context.Background(), 10, false, nil); err == nil {
+	if _, err := repo.BackfillEncryption(context.Background(), 10, false, nil, 0); err == nil {
 		t.Error("expected an error when no encryptor is configured")
 	}
 }
@@ -142,7 +142,7 @@ func TestBackfillEncryption_PaginatesPastMultipleBatches(t *testing.T) {
 	}
 
 	// A batch size smaller than the row count exercises the keyset cursor.
-	stats, err := repo.BackfillEncryption(ctx, 2, false, nil)
+	stats, err := repo.BackfillEncryption(ctx, 2, false, nil, 0)
 	if err != nil {
 		t.Fatalf("backfill: %v", err)
 	}
