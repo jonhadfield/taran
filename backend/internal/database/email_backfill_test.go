@@ -31,8 +31,8 @@ func newEmailBackfillTestRepo(t *testing.T) (*EmailRepo, context.Context) {
 	for _, stmt := range []string{
 		`DELETE FROM email`,
 		`DELETE FROM email_account`,
-		`DELETE FROM "user"`,
-		`INSERT INTO "user"(id, email) VALUES ('bf-user', 'bf@test')`,
+		`DELETE FROM "user" WHERE id = 'bf-user'`,
+		`INSERT INTO "user"(id, name, email) VALUES ('bf-user', 'Backfill', 'bf@test')`,
 		`INSERT INTO email_account(id, user_id, email_address) VALUES ('bf-acct', 'bf-user', 'bf@mail.test')`,
 	} {
 		if _, err := pool.Exec(ctx, stmt); err != nil {
@@ -69,7 +69,7 @@ func TestEmailBackfillEncryption(t *testing.T) {
 	insertPlaintextEmail(t, repo, ctx, "e4", "", "") // no bodies at all
 
 	t.Run("dry run changes nothing", func(t *testing.T) {
-		stats, err := repo.BackfillEncryption(ctx, 10, true, nil)
+		stats, err := repo.BackfillEncryption(ctx, 10, true, nil, 0)
 		if err != nil {
 			t.Fatalf("dry run: %v", err)
 		}
@@ -86,7 +86,7 @@ func TestEmailBackfillEncryption(t *testing.T) {
 	})
 
 	t.Run("encrypts and bodies survive the round trip", func(t *testing.T) {
-		stats, err := repo.BackfillEncryption(ctx, 10, false, nil)
+		stats, err := repo.BackfillEncryption(ctx, 10, false, nil, 0)
 		if err != nil {
 			t.Fatalf("backfill: %v", err)
 		}
@@ -134,7 +134,7 @@ func TestEmailBackfillEncryption(t *testing.T) {
 	})
 
 	t.Run("is idempotent", func(t *testing.T) {
-		stats, err := repo.BackfillEncryption(ctx, 10, false, nil)
+		stats, err := repo.BackfillEncryption(ctx, 10, false, nil, 0)
 		if err != nil {
 			t.Fatalf("second run: %v", err)
 		}
@@ -146,7 +146,7 @@ func TestEmailBackfillEncryption(t *testing.T) {
 
 func TestEmailBackfillEncryption_RequiresEncryptor(t *testing.T) {
 	repo := &EmailRepo{}
-	if _, err := repo.BackfillEncryption(context.Background(), 10, false, nil); err == nil {
+	if _, err := repo.BackfillEncryption(context.Background(), 10, false, nil, 0); err == nil {
 		t.Error("expected an error when no encryptor is configured")
 	}
 }
@@ -158,7 +158,7 @@ func TestEmailBackfillEncryption_PaginatesPastMultipleBatches(t *testing.T) {
 		insertPlaintextEmail(t, repo, ctx, id, "body "+id, "")
 	}
 
-	stats, err := repo.BackfillEncryption(ctx, 2, false, nil)
+	stats, err := repo.BackfillEncryption(ctx, 2, false, nil, 0)
 	if err != nil {
 		t.Fatalf("backfill: %v", err)
 	}

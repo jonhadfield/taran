@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hadfielj/taran/backend/internal/database"
 	"github.com/hadfielj/taran/backend/internal/domain"
 	"github.com/hadfielj/taran/backend/internal/llm"
 	"github.com/hadfielj/taran/backend/internal/testutil"
@@ -435,5 +436,50 @@ func TestProcessEmail_ReanalysisFailureKeepsPreviousSummary(t *testing.T) {
 	last := emails.SetStatusCalls[len(emails.SetStatusCalls)-1]
 	if last.Status != domain.EmailStatusProcessed || last.Reason != "" {
 		t.Errorf("final status = {%q, %q}, want processed with no reason", last.Status, last.Reason)
+	}
+}
+
+
+type stubEncryptionBackfill struct {
+	remaining int
+	calls     int
+	limit     int
+}
+
+func (s *stubEncryptionBackfill) CountUnencrypted(context.Context) (int, error) {
+	return s.remaining, nil
+}
+
+func (s *stubEncryptionBackfill) BackfillEncryption(_ context.Context, _ int, _ bool, _ func(database.BackfillStats), limit int) (database.BackfillStats, error) {
+	s.calls++
+	s.limit = limit
+	n := s.remaining
+	if limit > 0 && limit < n {
+		n = limit
+	}
+	s.remaining -= n
+	return database.BackfillStats{Scanned: n, Encrypted: n}, nil
+}
+
+func TestProcessor_sweepEncryptionBackfill(t *testing.T) {
+	emails := &stubEncryptionBackfill{remaining: 120}
+	payloads := &stubEncryptionBackfill{remaining: 0}
+	proc := &Processor{
+		EmailEncryption:   emails,
+		PayloadEncryption: payloads,
+	}
+	proc.sweepEncryptionBackfill(context.Background())
+
+	if emails.calls != 1 {
+		t.Fatalf("email backfill calls = %d, want 1", emails.calls)
+	}
+	if emails.limit != encryptionBackfillLimit {
+		t.Errorf("limit = %d, want %d", emails.limit, encryptionBackfillLimit)
+	}
+	if emails.remaining != 120-encryptionBackfillLimit {
+		t.Errorf("remaining = %d, want %d", emails.remaining, 120-encryptionBackfillLimit)
+	}
+	if payloads.calls != 0 {
+		t.Errorf("payload backfill should skip when remaining is 0, got %d calls", payloads.calls)
 	}
 }

@@ -67,6 +67,21 @@ func TestBuildDigestUserPrompt_RulesAddKeyPoints(t *testing.T) {
 	}
 }
 
+func TestBuildDigestUserPrompt_SectionToggles(t *testing.T) {
+	extractions := []domain.Extraction{{Summary: "News"}}
+	off := false
+	prompt := buildDigestUserPrompt(extractions, "daily", &DigestOptions{
+		IncludeHighlights: &off,
+		IncludeTopics:     &off,
+	})
+	if !strings.Contains(prompt, "disabled highlights") {
+		t.Errorf("expected highlights-off instruction:\n%s", prompt)
+	}
+	if !strings.Contains(prompt, "disabled top topics") {
+		t.Errorf("expected topics-off instruction:\n%s", prompt)
+	}
+}
+
 func TestExtractEmail_UsesRulesInSystemPrompt(t *testing.T) {
 	var gotSystem string
 	fn := func(_ context.Context, system, _ string) (string, *Usage, error) {

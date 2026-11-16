@@ -935,6 +935,30 @@ Neon.tech handles database backups automatically. The free tier includes 7 days 
 pg_dump "<your-neon-connection-string>" > mailbrief-backup.sql
 ```
 
+### Encrypting Existing Email Bodies
+
+New emails are encrypted at rest when `TARAN_ENCRYPTION_KEY` is set. Rows written before that key was configured stay in plaintext until migrated.
+
+The running backend migrates them automatically: every few minutes the worker encrypts a small batch of leftover plaintext email bodies and webhook payloads. No action is required for a normal deploy.
+
+To migrate everything in one shot (for example after first enabling the key), run the CLI against the same database and key the server uses:
+
+```bash
+cd backend
+
+# Report how many rows would change
+go run ./cmd/backfill-encryption -dry-run
+
+# Encrypt all remaining plaintext email bodies and webhook payloads
+go run ./cmd/backfill-encryption
+
+# Or target one table
+go run ./cmd/backfill-encryption -target emails
+go run ./cmd/backfill-encryption -target payloads
+```
+
+Requires `TARAN_DB_URL` and `TARAN_ENCRYPTION_KEY` (from the environment or `backend/.env`). The key must match the one the server runs with. The command is idempotent: already-encrypted rows are skipped, and each value is verified to decrypt before it is written.
+
 ---
 
 ## Part 12: Troubleshooting

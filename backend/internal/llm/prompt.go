@@ -183,5 +183,14 @@ func buildDigestUserPrompt(extractions []domain.Extraction, periodType string, o
 		prompt += "\nIMPORTANT: The user prefers a concise digest. Keep the summary to 1-2 sentences and limit highlights to 2-3 items maximum.\n"
 	}
 
+	if opts != nil {
+		if opts.IncludeHighlights != nil && !*opts.IncludeHighlights {
+			prompt += "\nIMPORTANT: The user disabled highlights. Return an empty highlights array.\n"
+		}
+		if opts.IncludeTopics != nil && !*opts.IncludeTopics {
+			prompt += "\nIMPORTANT: The user disabled top topics. Return an empty top_topics array.\n"
+		}
+	}
+
 	return prompt
 }

@@ -54,6 +54,9 @@ certs/
 # Playwright MCP logs/snapshots
 .playwright-mcp/
 
+# GitGuardian / ggshield local scan cache
+.cache_ggshield
+
 # Log files
 *.log
 

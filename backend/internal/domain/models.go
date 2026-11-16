@@ -194,6 +194,10 @@ type UserPreference struct {
 	DigestTimezone     string     `json:"DigestTimezone"`  // IANA timezone
 	TopicLimit         int        `json:"TopicLimit"`      // max topics shown in inbox cloud (default 15)
 	DigestStyle        string     `json:"DigestStyle"`     // "detailed" or "concise"
+	// Digest section toggles control which parts appear in generated digests.
+	DigestIncludeHighlights bool `json:"DigestIncludeHighlights"`
+	DigestIncludeTopics     bool `json:"DigestIncludeTopics"`
+	DigestIncludeEmails     bool `json:"DigestIncludeEmails"`
 	InterestKeywords   []string   `json:"InterestKeywords"`
 	ExclusionKeywords  []string   `json:"ExclusionKeywords"`
 	ColorTheme         string     `json:"ColorTheme"`

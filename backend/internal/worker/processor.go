@@ -16,14 +16,15 @@ import (
 )
 
 const (
-	extractMaxRetries    = 3
-	extractBaseDelay     = 2 * time.Second
-	sweepInterval        = 5 * time.Minute
-	sweepBatchSize       = 100
-	startupRequeueMax    = 500
-	retryMaxAttempts     = 5 // max auto-retries for failed emails (backoff: 5m, 20m, 80m, 320m, 1280m)
-	retryBatchSize       = 20
-	triagePreviewMaxLen  = 1500 // max characters of content sent to triage LLM call
+	extractMaxRetries         = 3
+	extractBaseDelay          = 2 * time.Second
+	sweepInterval             = 5 * time.Minute
+	sweepBatchSize            = 100
+	startupRequeueMax         = 500
+	retryMaxAttempts          = 5 // max auto-retries for failed emails (backoff: 5m, 20m, 80m, 320m, 1280m)
+	retryBatchSize            = 20
+	triagePreviewMaxLen       = 1500 // max characters of content sent to triage LLM call
+	encryptionBackfillLimit   = 50   // plaintext rows to encrypt per sweeper tick
 )
 
 type Processor struct {
@@ -50,6 +51,11 @@ type Processor struct {
 	// messages. Zero retention disables the sweep.
 	WebhookPayloads  database.WebhookPayloadRepository
 	PayloadRetention time.Duration
+
+	// Optional encryption backfills for rows written before TARAN_ENCRYPTION_KEY
+	// was configured. Nil when encryption is disabled.
+	EmailEncryption   database.EncryptionBackfill
+	PayloadEncryption database.EncryptionBackfill
 }
 
 // ProcessorConfig groups the dependencies for NewProcessor.
@@ -145,7 +151,45 @@ func (p *Processor) sweeper(ctx context.Context) {
 			p.sweepAutoArchive(ctx)
 			p.sweepOrphanedDigests(ctx)
 			p.sweepWebhookPayloads(ctx)
+			p.sweepEncryptionBackfill(ctx)
 		}
+	}
+}
+
+// sweepEncryptionBackfill encrypts a slice of plaintext email bodies and
+// webhook payloads left over from before encryption at rest was enabled.
+// Each tick only migrates encryptionBackfillLimit rows so the sweeper stays
+// responsive; remaining rows are picked up on later ticks.
+func (p *Processor) sweepEncryptionBackfill(ctx context.Context) {
+	p.runEncryptionBackfill(ctx, "email bodies", p.EmailEncryption)
+	p.runEncryptionBackfill(ctx, "webhook payloads", p.PayloadEncryption)
+}
+
+func (p *Processor) runEncryptionBackfill(ctx context.Context, name string, backfill database.EncryptionBackfill) {
+	if backfill == nil {
+		return
+	}
+	remaining, err := backfill.CountUnencrypted(ctx)
+	if err != nil {
+		slog.Error("sweeper: failed to count unencrypted "+name, "error", err)
+		return
+	}
+	if remaining == 0 {
+		return
+	}
+
+	stats, err := backfill.BackfillEncryption(ctx, encryptionBackfillLimit, false, nil, encryptionBackfillLimit)
+	if err != nil {
+		slog.Error("sweeper: encryption backfill failed", "target", name, "error", err)
+		return
+	}
+	if stats.Encrypted > 0 || stats.SkippedEmpty > 0 || stats.Failed > 0 {
+		slog.Info("sweeper: encryption backfill",
+			"target", name,
+			"encrypted", stats.Encrypted,
+			"empty", stats.SkippedEmpty,
+			"failed", stats.Failed,
+			"remainingBefore", remaining)
 	}
 }
 

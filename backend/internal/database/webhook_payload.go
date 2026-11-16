@@ -133,11 +133,15 @@ type BackfillStats struct {
 // decrypt is unrecoverable, so it is better to leave it in plaintext and report
 // it. The update is additionally guarded on `encrypted = FALSE` so a concurrent
 // run cannot double-encrypt a row.
+// limit caps how many rows are scanned in this call (0 = no limit). The
+// background worker uses a small limit so each sweeper tick migrates a slice
+// without blocking other sweeps.
 func (r *WebhookPayloadRepo) BackfillEncryption(
 	ctx context.Context,
 	batchSize int,
 	dryRun bool,
 	onProgress func(BackfillStats),
+	limit int,
 ) (BackfillStats, error) {
 	var stats BackfillStats
 
@@ -146,6 +150,9 @@ func (r *WebhookPayloadRepo) BackfillEncryption(
 	}
 	if batchSize <= 0 {
 		batchSize = 100
+	}
+	if limit > 0 && batchSize > limit {
+		batchSize = limit
 	}
 
 	lastID := ""
@@ -187,6 +194,9 @@ func (r *WebhookPayloadRepo) BackfillEncryption(
 
 			if len(rw.rawBody) == 0 {
 				stats.SkippedEmpty++
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 
@@ -194,6 +204,9 @@ func (r *WebhookPayloadRepo) BackfillEncryption(
 			if err != nil {
 				slog.Error("backfill: failed to encrypt payload", "payloadID", rw.id, "error", err)
 				stats.Failed++
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 
@@ -203,11 +216,17 @@ func (r *WebhookPayloadRepo) BackfillEncryption(
 				slog.Error("backfill: verification failed, leaving row untouched",
 					"payloadID", rw.id, "error", err)
 				stats.Failed++
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 
 			if dryRun {
 				stats.Encrypted++
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 
@@ -218,13 +237,22 @@ func (r *WebhookPayloadRepo) BackfillEncryption(
 			if err != nil {
 				slog.Error("backfill: failed to update payload", "payloadID", rw.id, "error", err)
 				stats.Failed++
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 			if tag.RowsAffected() == 0 {
 				// Encrypted by a concurrent run between select and update.
+				if limit > 0 && stats.Scanned >= limit {
+					break
+				}
 				continue
 			}
 			stats.Encrypted++
+			if limit > 0 && stats.Scanned >= limit {
+				break
+			}
 		}
 
 		if onProgress != nil {
@@ -232,6 +260,9 @@ func (r *WebhookPayloadRepo) BackfillEncryption(
 		}
 		if ctx.Err() != nil {
 			return stats, ctx.Err()
+		}
+		if limit > 0 && stats.Scanned >= limit {
+			break
 		}
 	}
 

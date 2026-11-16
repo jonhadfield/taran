@@ -35,6 +35,7 @@ function detectTimezone(): string {
 export const DEFAULT_PREF: UserPreference = {
   UserID: "", DigestEmail: false, DigestFrequency: "daily", DigestHour: 7,
   DigestDay: 1, DigestTimezone: "UTC", TopicLimit: 15, DigestStyle: "detailed",
+  DigestIncludeHighlights: true, DigestIncludeTopics: true, DigestIncludeEmails: true,
   InterestKeywords: [], ExclusionKeywords: [], ColorTheme: "neutral",
   ExcludedCategories: ["notification", "transactional", "marketing"],
   DailyTokenLimit: 0, QuietHoursEnabled: false, QuietHoursStart: 22,

@@ -30,6 +30,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
       { id: "delivery", label: "Delivery" },
       { id: "quiet-hours", label: "Quiet hours" },
       { id: "digest-style", label: "Style" },
+      { id: "digest-sections", label: "Sections" },
       { id: "categories", label: "Categories" },
       { id: "keywords", label: "Keywords" },
       { id: "analysis-rules", label: "Analysis rules" },

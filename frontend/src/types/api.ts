@@ -124,6 +124,9 @@ export interface UserPreference {
   DigestTimezone: string;
   TopicLimit: number;
   DigestStyle: "detailed" | "concise";
+  DigestIncludeHighlights: boolean;
+  DigestIncludeTopics: boolean;
+  DigestIncludeEmails: boolean;
   InterestKeywords: string[];
   ExclusionKeywords: string[];
   ColorTheme: string;

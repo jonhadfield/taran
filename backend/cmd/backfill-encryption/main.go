@@ -40,7 +40,7 @@ import (
 type backfiller struct {
 	name    string
 	count   func(context.Context) (int, error)
-	migrate func(context.Context, int, bool, func(database.BackfillStats)) (database.BackfillStats, error)
+	migrate func(context.Context, int, bool, func(database.BackfillStats), int) (database.BackfillStats, error)
 }
 
 func main() {
@@ -111,7 +111,7 @@ func main() {
 		stats, err := job.migrate(ctx, *batchSize, *dryRun, func(s database.BackfillStats) {
 			fmt.Printf("  scanned %d, encrypted %d, empty %d, failed %d\n",
 				s.Scanned, s.Encrypted, s.SkippedEmpty, s.Failed)
-		})
+		}, 0)
 		if err != nil {
 			log.Fatalf("%s: backfill failed after %d row(s): %v", job.name, stats.Scanned, err)
 		}
