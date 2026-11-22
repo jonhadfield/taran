@@ -47,6 +47,8 @@ func (r *PreferenceRepo) defaultPreference(ctx context.Context, userID string) *
 		DigestIncludeHighlights: true,
 		DigestIncludeTopics:     true,
 		DigestIncludeEmails:     true,
+		DigestSectionOrder:      append([]string(nil), domain.DefaultDigestSectionOrder...),
+		DigestDensity:           domain.DigestDensityComfortable,
 		InterestKeywords:        []string{},
 		ExclusionKeywords:       []string{},
 		ColorTheme:              "brand",
@@ -65,13 +67,15 @@ func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPr
 	row := r.pool.QueryRow(ctx,
 		`SELECT user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, topic_limit, digest_style,
 		        digest_include_highlights, digest_include_topics, digest_include_emails,
+		        digest_section_order, digest_density,
 		        interest_keywords, exclusion_keywords, color_theme, monthly_token_limit, excluded_categories, token_warning_sent_at, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, daily_token_limit, weekly_summary, digest_webhook, webhook_url, created_at, updated_at
 		 FROM user_preference WHERE user_id = $1`, userID)
 
 	var p domain.UserPreference
-	var interestRaw, exclusionRaw, excludedCatsRaw []byte
+	var interestRaw, exclusionRaw, excludedCatsRaw, sectionOrderRaw []byte
 	err := row.Scan(&p.UserID, &p.DigestEmail, &p.DigestFrequency, &p.DigestHour, &p.DigestDay, &p.DigestTimezone, &p.TopicLimit, &p.DigestStyle,
 		&p.DigestIncludeHighlights, &p.DigestIncludeTopics, &p.DigestIncludeEmails,
+		&sectionOrderRaw, &p.DigestDensity,
 		&interestRaw, &exclusionRaw, &p.ColorTheme, &p.MonthlyTokenLimit, &excludedCatsRaw, &p.TokenWarningSentAt, &p.QuietHoursEnabled, &p.QuietHoursStart, &p.QuietHoursEnd, &p.DailyTokenLimit, &p.WeeklySummary, &p.DigestWebhook, &p.WebhookURL, &p.CreatedAt, &p.UpdatedAt)
 	if err == pgx.ErrNoRows {
 		return r.defaultPreference(ctx, userID), nil
@@ -79,14 +83,14 @@ func (r *PreferenceRepo) Get(ctx context.Context, userID string) (*domain.UserPr
 	if err != nil {
 		return nil, fmt.Errorf("get preference: %w", err)
 	}
-	r.hydratePreference(ctx, &p, interestRaw, exclusionRaw, excludedCatsRaw)
+	r.hydratePreference(ctx, &p, interestRaw, exclusionRaw, excludedCatsRaw, sectionOrderRaw)
 	return &p, nil
 }
 
 // hydratePreference decodes the JSONB columns and fills in the global token
 // limit. Shared by Get and ListForUsers so a scanned row is finished the same
 // way whichever path read it.
-func (r *PreferenceRepo) hydratePreference(ctx context.Context, p *domain.UserPreference, interestRaw, exclusionRaw, excludedCatsRaw []byte) {
+func (r *PreferenceRepo) hydratePreference(ctx context.Context, p *domain.UserPreference, interestRaw, exclusionRaw, excludedCatsRaw, sectionOrderRaw []byte) {
 	p.InterestKeywords = []string{}
 	p.ExclusionKeywords = []string{}
 	p.ExcludedCategories = []string{"notification", "transactional", "marketing"}
@@ -99,6 +103,12 @@ func (r *PreferenceRepo) hydratePreference(ctx context.Context, p *domain.UserPr
 	if len(excludedCatsRaw) > 0 {
 		_ = json.Unmarshal(excludedCatsRaw, &p.ExcludedCategories)
 	}
+	var order []string
+	if len(sectionOrderRaw) > 0 {
+		_ = json.Unmarshal(sectionOrderRaw, &order)
+	}
+	p.DigestSectionOrder = domain.NormalizeDigestSectionOrder(order)
+	p.DigestDensity = domain.NormalizeDigestDensity(p.DigestDensity)
 	// If user has no custom limit set, use the global default
 	if p.MonthlyTokenLimit == 0 {
 		p.MonthlyTokenLimit = r.defaultTokenLimit(ctx)
@@ -122,21 +132,30 @@ func (r *PreferenceRepo) Upsert(ctx context.Context, pref *domain.UserPreference
 	if err != nil {
 		return fmt.Errorf("marshal excluded categories: %w", err)
 	}
+	pref.DigestSectionOrder = domain.NormalizeDigestSectionOrder(pref.DigestSectionOrder)
+	pref.DigestDensity = domain.NormalizeDigestDensity(pref.DigestDensity)
+	sectionOrderJSON, err := json.Marshal(pref.DigestSectionOrder)
+	if err != nil {
+		return fmt.Errorf("marshal digest section order: %w", err)
+	}
 
 	_, err = r.pool.Exec(ctx,
 		`INSERT INTO user_preference (user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, topic_limit, digest_style,
 		        digest_include_highlights, digest_include_topics, digest_include_emails,
+		        digest_section_order, digest_density,
 		        interest_keywords, exclusion_keywords, color_theme, monthly_token_limit, excluded_categories, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, daily_token_limit, weekly_summary, digest_webhook, webhook_url, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW(), NOW())
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, NOW(), NOW())
 		 ON CONFLICT (user_id) DO UPDATE SET
 		     digest_email = $2, digest_frequency = $3, digest_hour = $4, digest_day = $5, digest_timezone = $6, topic_limit = $7, digest_style = $8,
 		     digest_include_highlights = $9, digest_include_topics = $10, digest_include_emails = $11,
-		     interest_keywords = $12, exclusion_keywords = $13, color_theme = $14, monthly_token_limit = $15, excluded_categories = $16,
-		     quiet_hours_enabled = $17, quiet_hours_start = $18, quiet_hours_end = $19, daily_token_limit = $20, weekly_summary = $21,
-		     digest_webhook = $22, webhook_url = $23,
+		     digest_section_order = $12, digest_density = $13,
+		     interest_keywords = $14, exclusion_keywords = $15, color_theme = $16, monthly_token_limit = $17, excluded_categories = $18,
+		     quiet_hours_enabled = $19, quiet_hours_start = $20, quiet_hours_end = $21, daily_token_limit = $22, weekly_summary = $23,
+		     digest_webhook = $24, webhook_url = $25,
 		     updated_at = NOW()`,
 		pref.UserID, pref.DigestEmail, pref.DigestFrequency, pref.DigestHour, pref.DigestDay, pref.DigestTimezone, pref.TopicLimit, pref.DigestStyle,
 		pref.DigestIncludeHighlights, pref.DigestIncludeTopics, pref.DigestIncludeEmails,
+		sectionOrderJSON, pref.DigestDensity,
 		interestJSON, exclusionJSON, pref.ColorTheme, pref.MonthlyTokenLimit, excludedCatsJSON, pref.QuietHoursEnabled, pref.QuietHoursStart, pref.QuietHoursEnd, pref.DailyTokenLimit, pref.WeeklySummary, pref.DigestWebhook, pref.WebhookURL)
 	if err != nil {
 		return fmt.Errorf("upsert preference: %w", err)
@@ -168,6 +187,7 @@ func (r *PreferenceRepo) ListForUsers(ctx context.Context, userIDs []string) (ma
 	rows, err := r.pool.Query(ctx,
 		`SELECT user_id, digest_email, digest_frequency, digest_hour, digest_day, digest_timezone, topic_limit, digest_style,
 		        digest_include_highlights, digest_include_topics, digest_include_emails,
+		        digest_section_order, digest_density,
 		        interest_keywords, exclusion_keywords, color_theme, monthly_token_limit, excluded_categories, token_warning_sent_at, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, daily_token_limit, weekly_summary, digest_webhook, webhook_url, created_at, updated_at
 		 FROM user_preference WHERE user_id = ANY($1)`, userIDs)
 	if err != nil {
@@ -177,13 +197,14 @@ func (r *PreferenceRepo) ListForUsers(ctx context.Context, userIDs []string) (ma
 
 	for rows.Next() {
 		var p domain.UserPreference
-		var interestRaw, exclusionRaw, excludedCatsRaw []byte
+		var interestRaw, exclusionRaw, excludedCatsRaw, sectionOrderRaw []byte
 		if err := rows.Scan(&p.UserID, &p.DigestEmail, &p.DigestFrequency, &p.DigestHour, &p.DigestDay, &p.DigestTimezone, &p.TopicLimit, &p.DigestStyle,
 			&p.DigestIncludeHighlights, &p.DigestIncludeTopics, &p.DigestIncludeEmails,
+			&sectionOrderRaw, &p.DigestDensity,
 			&interestRaw, &exclusionRaw, &p.ColorTheme, &p.MonthlyTokenLimit, &excludedCatsRaw, &p.TokenWarningSentAt, &p.QuietHoursEnabled, &p.QuietHoursStart, &p.QuietHoursEnd, &p.DailyTokenLimit, &p.WeeklySummary, &p.DigestWebhook, &p.WebhookURL, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan preference: %w", err)
 		}
-		r.hydratePreference(ctx, &p, interestRaw, exclusionRaw, excludedCatsRaw)
+		r.hydratePreference(ctx, &p, interestRaw, exclusionRaw, excludedCatsRaw, sectionOrderRaw)
 		out[p.UserID] = &p
 	}
 	if err := rows.Err(); err != nil {

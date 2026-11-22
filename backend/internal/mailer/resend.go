@@ -310,12 +310,27 @@ var categoryBgColors = map[string]string{
 
 func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 	var b strings.Builder
+	compact := domain.NormalizeDigestDensity(digest.Density) == domain.DigestDensityCompact
+	sectionGap := "24px"
+	cardPad := "16px"
+	cardMargin := "16px"
+	bodyPad := "24px 16px"
+	if compact {
+		sectionGap = "14px"
+		cardPad = "10px"
+		cardMargin = "10px"
+		bodyPad = "16px 12px"
+	}
 
 	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>`)
-	b.WriteString(`<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:24px 16px;color:#1a1a1a;background:#ffffff;">`)
+	b.WriteString(`<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:`)
+	b.WriteString(bodyPad)
+	b.WriteString(`;color:#1a1a1a;background:#ffffff;">`)
 
 	// Header bar
-	b.WriteString(`<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;"><tr>`)
+	b.WriteString(`<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:`)
+	b.WriteString(sectionGap)
+	b.WriteString(`;"><tr>`)
 	b.WriteString(`<td><span style="font-size:13px;font-weight:600;color:#6b7280;letter-spacing:0.05em;text-transform:uppercase;">MailBrief</span></td>`)
 	b.WriteString(`<td align="right">`)
 	if digest.ShareToken != nil {
@@ -338,14 +353,22 @@ func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 	b.WriteString(fmt.Sprintf(` · %d emails`, digest.EmailCount))
 	b.WriteString(`</p>`)
 
-	// Summary
-	b.WriteString(`<p style="font-size:15px;line-height:1.6;color:#374151;margin:0 0 24px 0;">`)
+	// Summary is always first
+	b.WriteString(`<p style="font-size:15px;line-height:1.6;color:#374151;margin:0 0 `)
+	b.WriteString(sectionGap)
+	b.WriteString(` 0;">`)
 	b.WriteString(html.EscapeString(digest.Summary))
 	b.WriteString(`</p>`)
 
-	// Highlights
-	if len(digest.Highlights) > 0 {
-		b.WriteString(`<div style="background:#f8fafc;border-radius:8px;padding:16px;margin-bottom:24px;">`)
+	writeHighlights := func() {
+		if len(digest.Highlights) == 0 {
+			return
+		}
+		b.WriteString(`<div style="background:#f8fafc;border-radius:8px;padding:`)
+		b.WriteString(cardPad)
+		b.WriteString(`;margin-bottom:`)
+		b.WriteString(sectionGap)
+		b.WriteString(`;">`)
 		b.WriteString(`<h2 style="font-size:14px;font-weight:600;color:#374151;margin:0 0 10px 0;text-transform:uppercase;letter-spacing:0.03em;">Key Highlights</h2>`)
 		b.WriteString(`<ul style="padding-left:18px;margin:0;line-height:1.6;color:#374151;font-size:14px;">`)
 		for _, h := range digest.Highlights {
@@ -356,9 +379,13 @@ func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 		b.WriteString(`</ul></div>`)
 	}
 
-	// Topics
-	if len(digest.TopTopics) > 0 {
-		b.WriteString(`<div style="margin-bottom:24px;">`)
+	writeTopics := func() {
+		if len(digest.TopTopics) == 0 {
+			return
+		}
+		b.WriteString(`<div style="margin-bottom:`)
+		b.WriteString(sectionGap)
+		b.WriteString(`;">`)
 		for _, topic := range digest.TopTopics {
 			b.WriteString(`<span style="display:inline-block;background:#f1f5f9;color:#475569;border-radius:100px;padding:4px 12px;margin:2px 4px 2px 0;font-size:12px;font-weight:500;">`)
 			b.WriteString(html.EscapeString(topic))
@@ -367,16 +394,21 @@ func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 		b.WriteString(`</div>`)
 	}
 
-	// Divider before emails
-	b.WriteString(`<hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 24px 0;">`)
-
-	// Email summaries
-	if len(digest.EmailSummaries) > 0 {
+	writeEmails := func() {
+		if len(digest.EmailSummaries) == 0 {
+			return
+		}
+		b.WriteString(`<hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 `)
+		b.WriteString(sectionGap)
+		b.WriteString(` 0;">`)
 		b.WriteString(`<h2 style="font-size:15px;font-weight:600;color:#374151;margin:0 0 16px 0;">Email Summaries</h2>`)
 		for _, es := range digest.EmailSummaries {
-			b.WriteString(`<div style="margin-bottom:16px;padding:14px 16px;border:1px solid #e5e7eb;border-radius:8px;">`)
+			b.WriteString(`<div style="margin-bottom:`)
+			b.WriteString(cardMargin)
+			b.WriteString(`;padding:`)
+			b.WriteString(cardPad)
+			b.WriteString(`;border:1px solid #e5e7eb;border-radius:8px;">`)
 
-			// Subject line with category badge
 			b.WriteString(`<div style="margin-bottom:6px;">`)
 			b.WriteString(`<span style="font-weight:600;font-size:14px;color:#111827;">`)
 			b.WriteString(html.EscapeString(es.Subject))
@@ -396,24 +428,32 @@ func buildDigestHTML(digest *domain.Digest, unsubscribeURL string) string {
 			}
 			b.WriteString(`</div>`)
 
-			// Sender
 			if es.SenderName != "" {
 				b.WriteString(`<div style="font-size:12px;color:#6b7280;margin-bottom:8px;">`)
 				b.WriteString(html.EscapeString(es.SenderName))
 				b.WriteString(`</div>`)
 			}
 
-			// Summary
 			b.WriteString(`<div style="font-size:13px;line-height:1.5;color:#374151;">`)
 			b.WriteString(html.EscapeString(es.Summary))
 			b.WriteString(`</div>`)
 
-			// Link to dashboard
 			b.WriteString(`<a href="https://mailbrief.io/inbox/`)
 			b.WriteString(html.EscapeString(es.EmailID))
 			b.WriteString(`" style="display:inline-block;margin-top:8px;font-size:12px;color:#0066cc;text-decoration:none;">View full email &rarr;</a>`)
 
 			b.WriteString(`</div>`)
+		}
+	}
+
+	for _, section := range domain.NormalizeDigestSectionOrder(digest.SectionOrder) {
+		switch section {
+		case domain.DigestSectionHighlights:
+			writeHighlights()
+		case domain.DigestSectionTopics:
+			writeTopics()
+		case domain.DigestSectionEmails:
+			writeEmails()
 		}
 	}
 

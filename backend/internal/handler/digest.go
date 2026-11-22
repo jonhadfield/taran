@@ -262,6 +262,16 @@ func (h *DigestHandler) SendEmail(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	if h.Preferences != nil {
+		if pref, err := h.Preferences.Get(r.Context(), d.UserID); err == nil {
+			domain.ApplyDigestRenderPrefs(d, pref)
+		} else {
+			domain.ApplyDigestRenderPrefs(d, nil)
+		}
+	} else {
+		domain.ApplyDigestRenderPrefs(d, nil)
+	}
+
 	var unsubURL string
 	if h.BaseURL != "" && h.UnsubscribeSecret != "" {
 		unsubURL = mailer.GenerateUnsubscribeURL(h.BaseURL, d.UserID, h.UnsubscribeSecret)

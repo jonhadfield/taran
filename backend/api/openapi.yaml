@@ -2378,6 +2378,16 @@ components:
         DigestIncludeEmails:
           type: boolean
           description: Include the list of source emails on the digest.
+        DigestSectionOrder:
+          type: array
+          description: Display order for optional digest sections (summary is always first).
+          items:
+            type: string
+            enum: [highlights, topics, emails]
+        DigestDensity:
+          type: string
+          enum: [comfortable, compact]
+          description: Spacing density for rendered digests.
         InterestKeywords:
           type: array
           items:

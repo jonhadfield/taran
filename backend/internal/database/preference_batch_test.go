@@ -53,6 +53,7 @@ func TestListForUsersMatchesGet(t *testing.T) {
 			b.DigestIncludeHighlights != one.DigestIncludeHighlights ||
 			b.DigestIncludeTopics != one.DigestIncludeTopics ||
 			b.DigestIncludeEmails != one.DigestIncludeEmails ||
+			b.DigestDensity != one.DigestDensity ||
 			b.TopicLimit != one.TopicLimit ||
 			b.MonthlyTokenLimit != one.MonthlyTokenLimit ||
 			b.DigestEmail != one.DigestEmail ||
