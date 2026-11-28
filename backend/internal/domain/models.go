@@ -118,8 +118,10 @@ type Digest struct {
 	ShareTokenCreatedAt *time.Time   `json:"ShareTokenCreatedAt"`
 	Items               []DigestItem `json:"Items"`
 
-	// Transient — populated at generation time for email rendering, not persisted
+	// Transient — populated at generation/send time for email rendering, not persisted
 	EmailSummaries []DigestEmailSummary `json:"-"`
+	SectionOrder   []string             `json:"-"`
+	Density        string               `json:"-"`
 }
 
 type DigestEmailSummary struct {
@@ -198,6 +200,11 @@ type UserPreference struct {
 	DigestIncludeHighlights bool `json:"DigestIncludeHighlights"`
 	DigestIncludeTopics     bool `json:"DigestIncludeTopics"`
 	DigestIncludeEmails     bool `json:"DigestIncludeEmails"`
+	// DigestSectionOrder is the display order for optional sections.
+	// Allowed values: highlights, topics, emails. Summary is always first.
+	DigestSectionOrder []string `json:"DigestSectionOrder"`
+	// DigestDensity controls spacing in rendered digests: comfortable or compact.
+	DigestDensity string `json:"DigestDensity"`
 	InterestKeywords   []string   `json:"InterestKeywords"`
 	ExclusionKeywords  []string   `json:"ExclusionKeywords"`
 	ColorTheme         string     `json:"ColorTheme"`

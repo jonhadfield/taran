@@ -136,6 +136,7 @@ func (s *Scheduler) sendOrphanedDigests() {
 			unsubURL = mailer.GenerateUnsubscribeURL(s.baseURL, d.UserID, s.unsubscribeSecret)
 		}
 
+		domain.ApplyDigestRenderPrefs(d, pref)
 		if err := s.mailer.SendDigest(ctx, email, "", d, unsubURL); err != nil {
 			slog.Error("failed to send orphaned digest", "digestID", d.ID, "error", err)
 			continue
@@ -269,6 +270,7 @@ func (s *Scheduler) generateAndSendForUser(ctx context.Context, userID string, p
 			if s.baseURL != "" && s.unsubscribeSecret != "" {
 				unsubURL = mailer.GenerateUnsubscribeURL(s.baseURL, userID, s.unsubscribeSecret)
 			}
+			domain.ApplyDigestRenderPrefs(digest, pref)
 			if err := s.mailer.SendDigest(ctx, email, "", digest, unsubURL); err != nil {
 				slog.Error("failed to send digest email", "userID", userID, "error", err)
 			} else {

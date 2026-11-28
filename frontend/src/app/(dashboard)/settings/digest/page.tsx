@@ -69,6 +69,8 @@ export default function DigestSettingsPage() {
           includeHighlights={pref.DigestIncludeHighlights}
           includeTopics={pref.DigestIncludeTopics}
           includeEmails={pref.DigestIncludeEmails}
+          sectionOrder={pref.DigestSectionOrder}
+          density={pref.DigestDensity}
           prefLoading={prefLoading}
           prefSaving={prefSaving}
           onIncludeHighlightsChange={(checked) =>
@@ -76,6 +78,8 @@ export default function DigestSettingsPage() {
           }
           onIncludeTopicsChange={(checked) => handlePrefChange({ DigestIncludeTopics: checked })}
           onIncludeEmailsChange={(checked) => handlePrefChange({ DigestIncludeEmails: checked })}
+          onSectionOrderChange={(order) => handlePrefChange({ DigestSectionOrder: order })}
+          onDensityChange={(value) => handlePrefChange({ DigestDensity: value })}
         />
       </SettingsPanel>
 

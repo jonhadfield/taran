@@ -3,21 +3,27 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { DigestSectionsSettings } from "../digest-sections-settings";
 
 describe("DigestSectionsSettings", () => {
-  it("toggles each section", () => {
+  it("toggles each section and reorders", () => {
     const onHighlights = vi.fn();
     const onTopics = vi.fn();
     const onEmails = vi.fn();
+    const onOrder = vi.fn();
+    const onDensity = vi.fn();
 
     render(
       <DigestSectionsSettings
         includeHighlights
         includeTopics
         includeEmails
+        sectionOrder={["highlights", "topics", "emails"]}
+        density="comfortable"
         prefLoading={false}
         prefSaving={false}
         onIncludeHighlightsChange={onHighlights}
         onIncludeTopicsChange={onTopics}
         onIncludeEmailsChange={onEmails}
+        onSectionOrderChange={onOrder}
+        onDensityChange={onDensity}
       />,
     );
 
@@ -28,5 +34,11 @@ describe("DigestSectionsSettings", () => {
     expect(onHighlights).toHaveBeenCalledWith(false);
     expect(onTopics).toHaveBeenCalledWith(false);
     expect(onEmails).toHaveBeenCalledWith(false);
+
+    fireEvent.click(screen.getByRole("button", { name: /Move Highlights down/i }));
+    expect(onOrder).toHaveBeenCalledWith(["topics", "highlights", "emails"]);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Compact$/i }));
+    expect(onDensity).toHaveBeenCalledWith("compact");
   });
 });

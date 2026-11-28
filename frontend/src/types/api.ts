@@ -127,6 +127,8 @@ export interface UserPreference {
   DigestIncludeHighlights: boolean;
   DigestIncludeTopics: boolean;
   DigestIncludeEmails: boolean;
+  DigestSectionOrder: Array<"highlights" | "topics" | "emails">;
+  DigestDensity: "comfortable" | "compact";
   InterestKeywords: string[];
   ExclusionKeywords: string[];
   ColorTheme: string;

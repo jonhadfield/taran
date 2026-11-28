@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import { apiGet, apiPatch } from "@/lib/api";
 import { useColorTheme } from "@/components/color-theme-provider";
 import type { UserPreference } from "@/types/api";
+import {
+  normalizeDigestDensity,
+  normalizeDigestSectionOrder,
+} from "@/lib/digest-template";
 
 const COMMON_TIMEZONES = [
   "America/New_York",
@@ -36,6 +40,7 @@ export const DEFAULT_PREF: UserPreference = {
   UserID: "", DigestEmail: false, DigestFrequency: "daily", DigestHour: 7,
   DigestDay: 1, DigestTimezone: "UTC", TopicLimit: 15, DigestStyle: "detailed",
   DigestIncludeHighlights: true, DigestIncludeTopics: true, DigestIncludeEmails: true,
+  DigestSectionOrder: ["highlights", "topics", "emails"], DigestDensity: "comfortable",
   InterestKeywords: [], ExclusionKeywords: [], ColorTheme: "neutral",
   ExcludedCategories: ["notification", "transactional", "marketing"],
   DailyTokenLimit: 0, QuietHoursEnabled: false, QuietHoursStart: 22,
@@ -62,6 +67,8 @@ export function usePreferences() {
         ...DEFAULT_PREF,
         ...data,
         DigestTimezone: data.DigestTimezone || detectTimezone(),
+        DigestSectionOrder: normalizeDigestSectionOrder(data.DigestSectionOrder),
+        DigestDensity: normalizeDigestDensity(data.DigestDensity),
         InterestKeywords: data.InterestKeywords || [],
         ExclusionKeywords: data.ExclusionKeywords || [],
         ExcludedCategories: data.ExcludedCategories || ["notification", "transactional", "marketing"],

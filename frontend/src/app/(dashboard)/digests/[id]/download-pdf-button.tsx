@@ -7,12 +7,24 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import type { Digest } from "@/types/api";
 import { formatShortDate } from "@/lib/utils";
+import {
+  type DigestDensity,
+  type DigestSectionId,
+  normalizeDigestDensity,
+  normalizeDigestSectionOrder,
+} from "@/lib/digest-template";
 
 interface DownloadPdfButtonProps {
   digest: Digest;
+  sectionOrder?: DigestSectionId[];
+  density?: DigestDensity;
 }
 
-export function DownloadPdfButton({ digest }: DownloadPdfButtonProps) {
+export function DownloadPdfButton({
+  digest,
+  sectionOrder,
+  density,
+}: DownloadPdfButtonProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleDownload() {
@@ -23,6 +35,10 @@ export function DownloadPdfButton({ digest }: DownloadPdfButtonProps) {
       const pageWidth = doc.internal.pageSize.getWidth();
       const margin = 20;
       const contentWidth = pageWidth - margin * 2;
+      const order = normalizeDigestSectionOrder(sectionOrder);
+      const compact = normalizeDigestDensity(density) === "compact";
+      const sectionGap = compact ? 4 : 8;
+      const itemGap = compact ? 3 : 5;
       let y = 20;
 
       const checkPage = (needed: number) => {
@@ -54,89 +70,85 @@ export function DownloadPdfButton({ digest }: DownloadPdfButtonProps) {
       doc.text(`${digest.EmailCount} emails`, margin, y);
       y += 10;
 
-      // Summary
+      // Summary is always first
       if (digest.Summary) {
         doc.setFontSize(11);
         doc.setTextColor(0);
         const summaryLines = doc.splitTextToSize(digest.Summary, contentWidth);
         checkPage(summaryLines.length * 5 + 5);
         doc.text(summaryLines, margin, y);
-        y += summaryLines.length * 5 + 8;
+        y += summaryLines.length * 5 + sectionGap;
       }
 
-      // Highlights
-      if (digest.Highlights?.length > 0) {
-        checkPage(15);
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text("Highlights", margin, y);
-        y += 7;
-
-        doc.setFontSize(10);
-        doc.setTextColor(60);
-        for (const highlight of digest.Highlights) {
-          const lines = doc.splitTextToSize(`• ${highlight}`, contentWidth - 4);
-          checkPage(lines.length * 5 + 2);
-          doc.text(lines, margin + 2, y);
-          y += lines.length * 5 + 2;
-        }
-        y += 5;
-      }
-
-      // Top Topics
-      if (digest.TopTopics?.length > 0) {
-        checkPage(15);
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text("Top Topics", margin, y);
-        y += 7;
-
-        doc.setFontSize(10);
-        doc.setTextColor(60);
-        doc.text(digest.TopTopics.join("  •  "), margin + 2, y);
-        y += 10;
-      }
-
-      // Included Emails
-      if (digest.Items?.length > 0) {
-        checkPage(15);
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text("Included Emails", margin, y);
-        y += 8;
-
-        for (const item of digest.Items) {
-          checkPage(20);
-
-          // Subject
-          doc.setFontSize(10);
+      for (const section of order) {
+        if (section === "highlights" && digest.Highlights?.length > 0) {
+          checkPage(15);
+          doc.setFontSize(12);
           doc.setTextColor(0);
-          const subjectLines = doc.splitTextToSize(
-            item.Subject || `Email ${item.SortOrder + 1}`,
-            contentWidth - 4,
-          );
-          doc.text(subjectLines, margin + 2, y);
-          y += subjectLines.length * 4.5;
+          doc.text("Highlights", margin, y);
+          y += 7;
 
-          // Sender
-          if (item.FromName) {
-            doc.setFontSize(9);
-            doc.setTextColor(120);
-            doc.text(item.FromName, margin + 2, y);
-            y += 4;
+          doc.setFontSize(10);
+          doc.setTextColor(60);
+          for (const highlight of digest.Highlights) {
+            const lines = doc.splitTextToSize(`• ${highlight}`, contentWidth - 4);
+            checkPage(lines.length * 5 + 2);
+            doc.text(lines, margin + 2, y);
+            y += lines.length * 5 + 2;
           }
+          y += itemGap;
+        }
 
-          // Summary
-          if (item.Summary) {
-            doc.setFontSize(9);
-            doc.setTextColor(80);
-            const itemSummary = doc.splitTextToSize(item.Summary, contentWidth - 4);
-            checkPage(itemSummary.length * 4);
-            doc.text(itemSummary, margin + 2, y);
-            y += itemSummary.length * 4;
+        if (section === "topics" && digest.TopTopics?.length > 0) {
+          checkPage(15);
+          doc.setFontSize(12);
+          doc.setTextColor(0);
+          doc.text("Top Topics", margin, y);
+          y += 7;
+
+          doc.setFontSize(10);
+          doc.setTextColor(60);
+          doc.text(digest.TopTopics.join("  •  "), margin + 2, y);
+          y += compact ? 7 : 10;
+        }
+
+        if (section === "emails" && digest.Items?.length > 0) {
+          checkPage(15);
+          doc.setFontSize(12);
+          doc.setTextColor(0);
+          doc.text("Included Emails", margin, y);
+          y += compact ? 6 : 8;
+
+          for (const item of digest.Items) {
+            checkPage(20);
+
+            doc.setFontSize(10);
+            doc.setTextColor(0);
+            const subjectLines = doc.splitTextToSize(
+              item.Subject || `Email ${item.SortOrder + 1}`,
+              contentWidth - 4,
+            );
+            doc.text(subjectLines, margin + 2, y);
+            y += subjectLines.length * 4.5;
+
+            if (item.FromName) {
+              doc.setFontSize(9);
+              doc.setTextColor(120);
+              doc.text(item.FromName, margin + 2, y);
+              y += 4;
+            }
+
+            if (item.Summary) {
+              doc.setFontSize(9);
+              doc.setTextColor(80);
+              const itemSummary = doc.splitTextToSize(item.Summary, contentWidth - 4);
+              checkPage(itemSummary.length * 4);
+              doc.text(itemSummary, margin + 2, y);
+              y += itemSummary.length * 4;
+            }
+
+            y += itemGap;
           }
-
-          y += 5;
         }
       }
 

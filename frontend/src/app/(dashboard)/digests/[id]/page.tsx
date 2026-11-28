@@ -15,6 +15,10 @@ import { HighlightedTopics, HighlightedItems } from "./digest-highlights";
 import { DownloadPdfButton } from "./download-pdf-button";
 import { isAdmin } from "@/lib/admin";
 import { formatShortDate, formatDateTime } from "@/lib/utils";
+import {
+  normalizeDigestDensity,
+  normalizeDigestSectionOrder,
+} from "@/lib/digest-template";
 
 export default async function DigestDetailPage({
   params,
@@ -34,9 +38,12 @@ export default async function DigestDetailPage({
     isAdmin(),
     serverFetch<UserPreference>("preferences").catch(() => null),
   ]);
+  const sectionOrder = normalizeDigestSectionOrder(prefs?.DigestSectionOrder);
+  const density = normalizeDigestDensity(prefs?.DigestDensity);
+  const stackClass = density === "compact" ? "space-y-3" : "space-y-6";
 
   return (
-    <div className="space-y-6">
+    <div className={stackClass}>
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/digests" className="hover:text-foreground transition-colors">Digests</Link>
         <span>/</span>
@@ -51,7 +58,11 @@ export default async function DigestDetailPage({
               <SendEmailButton digestId={digest.ID} alreadySent={!!digest.SentAt} />
             )}
             <ShareButton digestId={digest.ID} initialToken={digest.ShareToken} />
-            <DownloadPdfButton digest={digest} />
+            <DownloadPdfButton
+              digest={digest}
+              sectionOrder={sectionOrder}
+              density={density}
+            />
             <DeleteDigestButton digestId={digest.ID} />
           </div>
         </div>
@@ -95,7 +106,7 @@ export default async function DigestDetailPage({
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className={density === "compact" ? "pb-2" : undefined}>
           <CardTitle className="text-lg">Summary</CardTitle>
         </CardHeader>
         <CardContent>
@@ -103,43 +114,54 @@ export default async function DigestDetailPage({
         </CardContent>
       </Card>
 
-      {digest.Highlights?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Highlights</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc list-inside space-y-2 text-sm">
-              {digest.Highlights.map((highlight, i) => (
-                <li key={i}>{highlight}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {digest.TopTopics?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Top Topics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <HighlightedTopics currentDigest={digest} />
-          </CardContent>
-        </Card>
-      )}
+      {sectionOrder.map((section) => {
+        if (section === "highlights" && digest.Highlights?.length > 0) {
+          return (
+            <Card key="highlights">
+              <CardHeader className={density === "compact" ? "pb-2" : undefined}>
+                <CardTitle className="text-lg">Highlights</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul
+                  className={
+                    density === "compact"
+                      ? "list-disc list-inside space-y-1 text-sm"
+                      : "list-disc list-inside space-y-2 text-sm"
+                  }
+                >
+                  {digest.Highlights.map((highlight, i) => (
+                    <li key={i}>{highlight}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          );
+        }
+        if (section === "topics" && digest.TopTopics?.length > 0) {
+          return (
+            <Card key="topics">
+              <CardHeader className={density === "compact" ? "pb-2" : undefined}>
+                <CardTitle className="text-lg">Top Topics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <HighlightedTopics currentDigest={digest} />
+              </CardContent>
+            </Card>
+          );
+        }
+        if (section === "emails" && digest.Items?.length > 0) {
+          return (
+            <div key="emails" className="space-y-2">
+              <Separator />
+              <h2 className="text-lg font-medium">Included Emails</h2>
+              <HighlightedItems currentDigest={digest} />
+            </div>
+          );
+        }
+        return null;
+      })}
 
       <DigestComparison currentDigest={digest} />
-
-      {digest.Items?.length > 0 && (
-        <>
-          <Separator />
-          <div className="space-y-2">
-            <h2 className="text-lg font-medium">Included Emails</h2>
-            <HighlightedItems currentDigest={digest} />
-          </div>
-        </>
-      )}
     </div>
   );
 }

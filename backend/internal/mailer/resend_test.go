@@ -25,6 +25,29 @@ func TestBuildDigestHTMLDateRange(t *testing.T) {
 	}
 }
 
+func TestBuildDigestHTMLSectionOrder(t *testing.T) {
+	got := buildDigestHTML(&domain.Digest{
+		Title:          "Digest",
+		PeriodStart:    testPeriodStart,
+		PeriodEnd:      testPeriodEnd,
+		Summary:        "Overview first",
+		Highlights:     []string{"Highlight A"},
+		TopTopics:      []string{"AI"},
+		SectionOrder:   []string{"emails", "topics", "highlights"},
+		EmailSummaries: []domain.DigestEmailSummary{{EmailID: "e1", Subject: "Hello"}},
+	}, "")
+
+	emailsAt := strings.Index(got, "Email Summaries")
+	topicsAt := strings.Index(got, ">AI<")
+	highlightsAt := strings.Index(got, "Key Highlights")
+	if emailsAt < 0 || topicsAt < 0 || highlightsAt < 0 {
+		t.Fatalf("missing sections in HTML")
+	}
+	if !(emailsAt < topicsAt && topicsAt < highlightsAt) {
+		t.Fatalf("section order wrong: emails=%d topics=%d highlights=%d", emailsAt, topicsAt, highlightsAt)
+	}
+}
+
 func TestBuildWeeklySummaryHTMLDateRange(t *testing.T) {
 	got := buildWeeklySummaryHTML(&domain.WeeklySummary{
 		PeriodStart: testPeriodStart,

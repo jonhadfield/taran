@@ -43,6 +43,8 @@ type updatePreferenceRequest struct {
 	DigestIncludeHighlights *bool     `json:"DigestIncludeHighlights"`
 	DigestIncludeTopics     *bool     `json:"DigestIncludeTopics"`
 	DigestIncludeEmails     *bool     `json:"DigestIncludeEmails"`
+	DigestSectionOrder      *[]string `json:"DigestSectionOrder"`
+	DigestDensity           *string   `json:"DigestDensity"`
 	InterestKeywords        *[]string `json:"InterestKeywords"`
 	ExclusionKeywords       *[]string `json:"ExclusionKeywords"`
 	ColorTheme              *string   `json:"ColorTheme"`
@@ -110,6 +112,30 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		if *req.DigestStyle != "concise" && *req.DigestStyle != "detailed" {
 			WriteError(w, http.StatusBadRequest, "digest style must be 'concise' or 'detailed'")
 			return
+		}
+	}
+
+	if req.DigestDensity != nil {
+		if *req.DigestDensity != domain.DigestDensityComfortable && *req.DigestDensity != domain.DigestDensityCompact {
+			WriteError(w, http.StatusBadRequest, "digest density must be 'comfortable' or 'compact'")
+			return
+		}
+	}
+
+	if req.DigestSectionOrder != nil {
+		seen := map[string]bool{}
+		for _, s := range *req.DigestSectionOrder {
+			switch s {
+			case domain.DigestSectionHighlights, domain.DigestSectionTopics, domain.DigestSectionEmails:
+				if seen[s] {
+					WriteError(w, http.StatusBadRequest, "digest section order must not contain duplicates")
+					return
+				}
+				seen[s] = true
+			default:
+				WriteError(w, http.StatusBadRequest, "digest section order entries must be highlights, topics, or emails")
+				return
+			}
 		}
 	}
 
@@ -222,6 +248,12 @@ func (h *PreferenceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DigestIncludeEmails != nil {
 		existing.DigestIncludeEmails = *req.DigestIncludeEmails
+	}
+	if req.DigestSectionOrder != nil {
+		existing.DigestSectionOrder = domain.NormalizeDigestSectionOrder(*req.DigestSectionOrder)
+	}
+	if req.DigestDensity != nil {
+		existing.DigestDensity = domain.NormalizeDigestDensity(*req.DigestDensity)
 	}
 	if req.InterestKeywords != nil {
 		existing.InterestKeywords = *req.InterestKeywords
